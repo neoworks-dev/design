@@ -41,6 +41,8 @@ export interface StoreInfo {
 	recovered: boolean;
 	/** Edits were committed since the last Save (checkpoint), possibly in an earlier session. */
 	unsaved: boolean;
+	/** The file lives in the app's `untitled` directory: it has never been saved by the user. */
+	untitled: boolean;
 }
 export interface LoadedDocument {
 	info: StoreInfo;
@@ -109,6 +111,25 @@ export interface IpcContract {
 	'store:commit': { payload: { transactions: Transaction[] }; result: CommitResult };
 	/** Save: fold the WAL into the file and clear the unsaved marker. */
 	'store:checkpoint': { payload: void; result: StoreInfo };
+	/**
+	 * A new empty document in a temporary file in the app's `untitled` directory. `null` when the
+	 * user cancelled leaving an untitled document with edits.
+	 */
+	'files:newUntitled': { payload: void; result: LoadedDocument | null };
+	/** Open a design file as this window's document and load it; `null` when cancelled as above. */
+	'files:open': { payload: { path: string }; result: LoadedDocument | null };
+	/** The native open dialog filtered to design files; `null` when cancelled. */
+	'files:openDialog': { payload: void; result: string | null };
+	/** The native save dialog for design files; `null` when cancelled. */
+	'files:saveDialog': { payload: { suggestedName: string }; result: string | null };
+	/** Copy the open file to `path` (replacing it) and continue editing the copy. */
+	'files:saveAs': { payload: { path: string }; result: StoreInfo };
+	/** Offer to restore an untitled document a crash left behind; `null` when none or declined. */
+	'files:offerRecovery': { payload: void; result: LoadedDocument | null };
+	/** The file this launch was asked to open (command line, OS), once; `null` otherwise. */
+	'files:launchRequest': { payload: void; result: string | null };
+	/** Answer to a `files:flush-request` push: the renderer's queue is persisted. */
+	'files:flushed': { payload: { requestId: string }; result: void };
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -117,12 +138,21 @@ export type IpcChannel = keyof IpcContract;
 export interface IpcEvents {
 	'kernel:boot-report': BootReport;
 	'window:maximized': boolean;
+	/** Main is about to close the file (window close, quit, Save As): persist what is queued. */
+	'files:flush-request': { requestId: string };
+	/** The OS asked this running instance to open a file (second launch, macOS open-file). */
+	'files:open-request': { path: string };
 }
 export type IpcEventChannel = keyof IpcEvents;
 
 // The whitelist of push channels the preload exposes. The check below makes a channel missing
 // from it a compile error.
-export const EVENT_CHANNELS = ['kernel:boot-report', 'window:maximized'] as const;
+export const EVENT_CHANNELS = [
+	'kernel:boot-report',
+	'window:maximized',
+	'files:flush-request',
+	'files:open-request'
+] as const;
 type MissingEventChannels = Exclude<IpcEventChannel, (typeof EVENT_CHANNELS)[number]>;
 export const eventChannelsAreExhaustive: MissingEventChannels extends never ? true : never = true;
 
@@ -157,6 +187,18 @@ export interface DesktopBridge {
 		commit(transactions: Transaction[]): Promise<CommitResult>;
 		/** Save: checkpoint the file and clear its unsaved marker. */
 		checkpoint(): Promise<StoreInfo>;
+	};
+	files: {
+		newUntitled(): Promise<LoadedDocument | null>;
+		open(path: string): Promise<LoadedDocument | null>;
+		openDialog(): Promise<string | null>;
+		saveDialog(suggestedName: string): Promise<string | null>;
+		saveAs(path: string): Promise<StoreInfo>;
+		offerRecovery(): Promise<LoadedDocument | null>;
+		launchRequest(): Promise<string | null>;
+		flushed(requestId: string): Promise<void>;
+		/** The path of a file dropped on the window (Electron no longer exposes `File.path`). */
+		pathForFile(file: File): string;
 	};
 	events: {
 		/** Subscribe to a main-to-renderer push; the returned function unsubscribes. */

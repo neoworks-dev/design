@@ -9,6 +9,7 @@ import { route } from '../kernel/route';
 import type { SenderHandle } from '../kernel/host';
 import { DocumentFile } from '../store/documentFile';
 import { StoreError } from '../store/errors';
+import { isUntitledPath } from '../store/untitled';
 
 interface OpenStore {
 	file: DocumentFile;
@@ -24,13 +25,40 @@ export class StoreService extends Service {
 	}
 
 	/** Open `path` as the sender's document, closing whatever it had open. */
-	open(sender: SenderHandle, path: string): StoreInfo {
+	open(sender: SenderHandle, path: string): Promise<StoreInfo> {
 		return this.adopt(sender, () => DocumentFile.open(path));
 	}
 
 	/** Create a new file at `path` holding `document` (or a blank one) as the sender's document. */
-	create(sender: SenderHandle, path: string, document?: DesignDocument): StoreInfo {
+	create(sender: SenderHandle, path: string, document?: DesignDocument): Promise<StoreInfo> {
 		return this.adopt(sender, () => DocumentFile.create(path, document));
+	}
+
+	/**
+	 * Make the file `produce` returns the sender's document and close the one it had. `produce`
+	 * runs first: if it throws, the window keeps its document. Resolves once the previous file
+	 * is closed, so callers may delete or replace it.
+	 */
+	async adopt(sender: SenderHandle, produce: () => DocumentFile): Promise<StoreInfo> {
+		const file = produce();
+		await this.close(sender);
+		const release = this.ctx.effect(() => {
+			const window = this.ctx.electron.windowFromSender(sender);
+			const stopWatching =
+				window === null ? () => {} : window.on('closed', () => void this.close(sender));
+			return () => {
+				stopWatching();
+				file.close();
+			};
+		}, `store:file ${file.path}`);
+		this.stores.set(sender.id, { file, release });
+		return this.infoOf(file);
+	}
+
+	/** What `file` says about itself, plus whether it is an untitled document of ours. */
+	infoOf(file: DocumentFile): StoreInfo {
+		const userData = this.ctx.electron.app.getPath('userData');
+		return { ...file.info(), untitled: isUntitledPath(userData, file.path) };
 	}
 
 	/** The sender's open file; throws NO_STORE when it has none. */
@@ -46,7 +74,7 @@ export class StoreService extends Service {
 
 	load(sender: SenderHandle): LoadedDocument {
 		const file = this.current(sender);
-		return { info: file.info(), document: file.load() };
+		return { info: this.infoOf(file), document: file.load() };
 	}
 
 	/** Persist `transactions` in order, each as its own SQLite transaction. */
@@ -65,7 +93,9 @@ export class StoreService extends Service {
 
 	/** Save: checkpoint the sender's file and clear its unsaved marker. */
 	checkpoint(sender: SenderHandle): StoreInfo {
-		return this.current(sender).checkpoint();
+		const file = this.current(sender);
+		file.checkpoint();
+		return this.infoOf(file);
 	}
 
 	async close(sender: SenderHandle): Promise<void> {
@@ -82,24 +112,6 @@ export class StoreService extends Service {
 
 	snapshotState(): Record<string, unknown> {
 		return { open: this.openPaths() };
-	}
-
-	private adopt(sender: SenderHandle, produce: () => DocumentFile): StoreInfo {
-		// Open the new file before letting go of the old one: if opening fails the window keeps
-		// the document it had.
-		const file = produce();
-		void this.close(sender);
-		const release = this.ctx.effect(() => {
-			const window = this.ctx.electron.windowFromSender(sender);
-			const stopWatching =
-				window === null ? () => {} : window.on('closed', () => void this.close(sender));
-			return () => {
-				stopWatching();
-				file.close();
-			};
-		}, `store:file ${file.path}`);
-		this.stores.set(sender.id, { file, release });
-		return file.info();
 	}
 }
 

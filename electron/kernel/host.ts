@@ -25,7 +25,10 @@ export interface IpcMainApi {
 export interface AppEvents {
 	'before-quit': (event: { preventDefault(): void }) => void;
 	'window-all-closed': () => void;
-	'second-instance': () => void;
+	/** Another launch was attempted; `argv` is its command line (may name a file to open). */
+	'second-instance': (argv: string[]) => void;
+	/** macOS: the user opened a document with the app (Finder, dock, recent documents). */
+	'open-file': (path: string) => void;
 	activate: () => void;
 }
 export type AppEventName = keyof AppEvents;
@@ -75,6 +78,12 @@ export interface WindowHandle {
 	send(channel: string, payload: unknown): void;
 	/** Returns the function that removes the listener. */
 	on(event: WindowEventName, listener: () => void): () => void;
+	/**
+	 * Called when something asks the window to close (the close button, Alt+F4, `close()`). The
+	 * window stays open until the handler's promise resolves to `true`; `false` keeps it open.
+	 * Returns the function that removes the handler.
+	 */
+	onCloseRequest(handler: () => Promise<boolean>): () => void;
 	/** Called for links the page tries to open in a new window; the window itself always denies. */
 	onNewWindowRequest(handler: (url: string) => void): void;
 	openDevTools(): void;
@@ -93,6 +102,16 @@ export interface SaveDialogRequest {
 	filters?: FileFilter[];
 }
 
+export interface MessageBoxRequest {
+	message: string;
+	detail?: string;
+	buttons: string[];
+	/** Button preselected; defaults to the first. */
+	defaultId?: number;
+	/** Button an Escape press (or closing the box) answers with; defaults to the last. */
+	cancelId?: number;
+}
+
 export interface ElectronHost {
 	ipcMain: IpcMainApi;
 	app: AppApi;
@@ -105,6 +124,8 @@ export interface ElectronHost {
 	dialog: {
 		showOpenDialog(request: OpenDialogRequest): Promise<string[] | null>;
 		showSaveDialog(request: SaveDialogRequest): Promise<string | null>;
+		/** Resolves with the index of the button the user chose. */
+		showMessageBox(request: MessageBoxRequest): Promise<number>;
 	};
 	createWindow: (options: WindowOptions) => WindowHandle;
 	windows: () => WindowHandle[];

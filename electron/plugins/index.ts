@@ -5,6 +5,7 @@ import type { PluginEntry } from '../kernel/boot';
 import type { ElectronHost } from '../kernel/host';
 import { mainAppPlugin } from './app';
 import { mainDialogsPlugin } from './dialogs';
+import { mainFilesPlugin } from './files';
 import { mainElectronPlugin } from './electron';
 import { mainIpcPlugin } from './ipc';
 import { mainProtocolPlugin } from './protocol';
@@ -16,6 +17,8 @@ export interface MainPluginOptions {
 	trustedOrigins: string[];
 	buildDirectory: string;
 	window: WindowsConfig;
+	/** Design files named on the command line of this launch. */
+	launchPaths?: string[];
 }
 
 export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
@@ -26,6 +29,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainWindowPlugin, config: options.window },
 		{ plugin: mainAppPlugin },
 		{ plugin: mainDialogsPlugin },
-		{ plugin: mainStorePlugin }
+		{ plugin: mainStorePlugin },
+		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }
 	];
 }

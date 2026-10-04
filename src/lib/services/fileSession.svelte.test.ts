@@ -6,9 +6,10 @@ import type { CommitResult, DesktopBridge, StoreInfo } from '../../../electron/b
 import { DocumentFile } from '../../../electron/store/documentFile';
 import coreCommands from '../../plugins/core-commands';
 import coreContextKeys from '../../plugins/core-context-keys';
+import coreKeymap from '../../plugins/core-keymap';
 import desktopBridge from '../../plugins/desktop-bridge';
 import fileSessionPlugin from '../../plugins/file-session';
-import { FiberState } from '@neoworks/extension-system';
+import { FiberState, type Context, type Plugin } from '@neoworks/extension-system';
 import type { Transaction } from '../document';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../kernel/testing';
 import { documentWith, sampleDocument } from './fixtures/documentFixture';
@@ -63,18 +64,31 @@ const info: StoreInfo = {
 	createdAt: 0,
 	modifiedAt: 0,
 	recovered: false,
-	unsaved: false
+	unsaved: false,
+	untitled: false
+};
+
+const keymap: Plugin.Object = {
+	...coreKeymap,
+	apply: (ctx: Context) => coreKeymap.apply(ctx, { platform: 'linux' })
 };
 
 function providers(): Parameters<typeof mountPlugin>[1] {
 	return {
-		providers: [coreContextKeys, coreCommands, documentWith(sampleDocument()), desktopBridge]
+		providers: [
+			coreContextKeys,
+			coreCommands,
+			keymap,
+			documentWith(sampleDocument()),
+			desktopBridge
+		]
 	};
 }
 
 describePlugin('file-session', fileSessionPlugin, {
 	...providers(),
 	desktop: true,
+	config: { startup: 'none' },
 	contributes: ({ ctx }) => {
 		expect(ctx.fileSession.isAttached).toBe(false);
 		expect(ctx.fileSession.status).toMatchObject({ queued: 0, inFlight: 0, error: null });
@@ -95,6 +109,7 @@ async function mount(
 		desktop: { store: store.bridge },
 		config: {
 			delayMs: 50,
+			startup: 'none',
 			schedule: (callback: () => void) => {
 				timers.callbacks.push(callback);
 				return timers.callbacks.length;

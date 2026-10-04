@@ -1,16 +1,27 @@
 import type { Context } from '@neoworks/extension-system';
 import { FileSessionService, type FileSessionOptions } from '../../lib/services/fileSession';
 import { FileSessionState } from '../../lib/services/fileSessionState.svelte';
+import { registerFileCommands } from './fileCommands';
 
 // The link between the document and its file: autosave of every committed transaction, flushed
-// when the window loses focus, hides or closes, and when the plugin unmounts.
+// when the window loses focus, hides or closes, when main asks (window close, quit) and when the
+// plugin unmounts; new, open, save and save as; the title and dirty context keys the title bar
+// reads; dropping a design file on the window opens it.
 export default {
 	name: 'file-session',
-	inject: ['desktop', 'document'],
+	inject: ['desktop', 'document', 'commands', 'keymap', 'contextKeys'],
 	apply(ctx: Context, config?: FileSessionOptions): void {
-		const session = new FileSessionService(ctx, ctx.desktop, new FileSessionState(), config);
+		const session = new FileSessionService(
+			ctx,
+			ctx.desktop,
+			ctx.document,
+			ctx.contextKeys,
+			new FileSessionState(),
+			config
+		);
 
 		ctx.on('document/change', (event) => session.record(event));
+		registerFileCommands(ctx, session);
 
 		const flushQuietly = (): void => {
 			session.flush().catch(() => undefined);
@@ -28,6 +39,54 @@ export default {
 			return () => document.removeEventListener('visibilitychange', flushQuietly);
 		}, 'file-session/flush-on-hide');
 
+		ctx.desktop.on('files:flush-request', ({ requestId }) => {
+			session.answerFlushRequest(requestId).catch((error: unknown) => ctx.logger.error(error));
+		});
+		ctx.desktop.on('files:open-request', ({ path }) => {
+			session.openDocument(path).catch((error: unknown) => ctx.logger.error(error));
+		});
+
+		ctx.effect(() => {
+			const hasFiles = (event: DragEvent): boolean =>
+				event.dataTransfer !== null && event.dataTransfer.types.includes('Files');
+			const onDragOver = (event: DragEvent): void => {
+				if (hasFiles(event)) event.preventDefault();
+			};
+			const onDrop = (event: DragEvent): void => {
+				if (!hasFiles(event) || event.dataTransfer === null) return;
+				event.preventDefault();
+				for (const file of event.dataTransfer.files) {
+					if (!file.name.endsWith('.ndesign')) continue;
+					session
+						.openDocument(ctx.desktop.pathForFile(file))
+						.catch((error: unknown) => ctx.logger.error(error));
+					return;
+				}
+			};
+			window.addEventListener('dragover', onDragOver);
+			window.addEventListener('drop', onDrop);
+			return () => {
+				window.removeEventListener('dragover', onDragOver);
+				window.removeEventListener('drop', onDrop);
+			};
+		}, 'file-session/drop-to-open');
+
+		if (!config || config.startup !== 'none') {
+			ctx.effect(() => {
+				let cancelled = false;
+				session.startup(() => cancelled).catch((error: unknown) => ctx.logger.error(error));
+				return () => {
+					cancelled = true;
+				};
+			}, 'file-session/startup');
+		}
+
+		ctx.effect(
+			() => () => {
+				session.clearKeys();
+			},
+			'file-session/context-keys'
+		);
 		// Last thing on unmount: try to save what is queued, then stop the timers.
 		ctx.effect(
 			() => async () => {

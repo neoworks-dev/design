@@ -1,7 +1,8 @@
 // main-app: app lifecycle and the `app:*` IPC routes.
 //
-// Shutdown: on the first `before-quit` the quit is held back, the root fiber is disposed (every
-// plugin's effects unwind: windows close, handlers are removed), then the app quits for real.
+// Shutdown: on the first `before-quit` the quit is held back, `app/before-quit` listeners finish
+// their work (flushing open documents), the root fiber is disposed (every plugin's effects
+// unwind: windows close, handlers are removed), then the app quits for real.
 
 import type { Context, Plugin } from '@neoworks/extension-system';
 import { route } from '../kernel/route';
@@ -29,8 +30,11 @@ function installLifecycle(ctx: Context): void {
 			event.preventDefault();
 			if (shuttingDown) return;
 			shuttingDown = true;
-			void ctx.root.fiber
-				.dispose()
+			// Plugins that hold unsaved work (open files) get to finish it before anything unwinds.
+			void ctx
+				.parallel('app/before-quit')
+				.catch((error: unknown) => ctx.logger.error(error))
+				.then(() => ctx.root.fiber.dispose())
 				.catch((error: unknown) => ctx.logger.error(error))
 				.finally(() => electron.app.quit());
 		};

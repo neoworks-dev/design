@@ -8,7 +8,7 @@
 //   file.close();                                       // checkpoints the WAL
 
 import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
-import { existsSync, rmSync, statSync } from 'node:fs';
+import { existsSync, renameSync, rmSync, statSync } from 'node:fs';
 import { createBlankDocument } from '../../src/lib/document/blank';
 import { parseDesignDocument } from '../../src/lib/document/schema';
 import type {
@@ -107,7 +107,7 @@ function asNodeRow(row: Row): NodeRow {
 	};
 }
 
-function removeFileAndSidecars(path: string): void {
+export function removeFileAndSidecars(path: string): void {
 	for (const suffix of ['', '-wal', '-shm', '-journal'])
 		rmSync(`${path}${suffix}`, { force: true });
 }
@@ -371,6 +371,35 @@ export class DocumentFile {
 		this.unsaved = false;
 		database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
 		return this.info();
+	}
+
+	/**
+	 * Save As: write a consistent copy of this file to `destination`, replacing what is there, as
+	 * a file that has never been opened: no session marker, nothing unsaved, `name` as its name.
+	 * Built next to the destination and renamed into place, so a crash never leaves a half copy.
+	 */
+	saveCopyTo(destination: string, name: string, now = Date.now()): void {
+		const database = this.requireOpen();
+		const staging = `${destination}.saving`;
+		removeFileAndSidecars(staging);
+		try {
+			database.prepare('VACUUM INTO ?').run(staging);
+			const copy = new DatabaseSync(staging);
+			try {
+				copy.exec('PRAGMA journal_mode = DELETE');
+				copy.prepare('DELETE FROM meta WHERE key = ?').run(SESSION_KEY);
+				this.setMeta(copy, UNSAVED_KEY, '0');
+				this.setMeta(copy, 'name', name);
+				this.setMeta(copy, 'modified_at', String(now));
+			} finally {
+				copy.close();
+			}
+			removeFileAndSidecars(destination);
+			renameSync(staging, destination);
+		} catch (error) {
+			removeFileAndSidecars(staging);
+			throw asStoreError(error, destination);
+		}
 	}
 
 	/** The newest `limit` log entries, oldest first. */

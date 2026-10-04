@@ -142,6 +142,53 @@ export class DesktopService extends Service {
 		return typed(() => this.bridge.store.checkpoint());
 	}
 
+	// ---------- files ----------
+
+	/** A new empty document in a temporary file; becomes this window's document. */
+	filesNewUntitled(): Promise<LoadedDocument | null> {
+		return typed(() => this.bridge.files.newUntitled());
+	}
+
+	/** Open a design file as this window's document and load it. */
+	filesOpen(path: string): Promise<LoadedDocument | null> {
+		return typed(() => this.bridge.files.open(path));
+	}
+
+	/** The native open dialog for design files; `null` when cancelled. */
+	filesOpenDialog(): Promise<string | null> {
+		return typed(() => this.bridge.files.openDialog());
+	}
+
+	/** The native save dialog for design files; `null` when cancelled. */
+	filesSaveDialog(suggestedName: string): Promise<string | null> {
+		return typed(() => this.bridge.files.saveDialog(suggestedName));
+	}
+
+	/** Copy the open file to `path` and continue editing the copy. */
+	filesSaveAs(path: string): Promise<StoreInfo> {
+		return typed(() => this.bridge.files.saveAs(path));
+	}
+
+	/** Offer to restore an untitled document a crash left behind. */
+	filesOfferRecovery(): Promise<LoadedDocument | null> {
+		return typed(() => this.bridge.files.offerRecovery());
+	}
+
+	/** The file this launch was asked to open, once. */
+	filesLaunchRequest(): Promise<string | null> {
+		return typed(() => this.bridge.files.launchRequest());
+	}
+
+	/** Tell main the queued transactions are persisted (answer to `files:flush-request`). */
+	filesFlushed(requestId: string): Promise<void> {
+		return typed(() => this.bridge.files.flushed(requestId));
+	}
+
+	/** The path of a dropped file; empty when the platform does not know it. */
+	pathForFile(file: File): string {
+		return this.bridge.files.pathForFile(file);
+	}
+
 	/**
 	 * Subscribe to a main-to-renderer push for the lifetime of the calling plugin: the
 	 * subscription is a `ctx.effect` on the caller's context, so unmounting the caller

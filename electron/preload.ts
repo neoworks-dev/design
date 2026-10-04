@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import {
 	EVENT_CHANNELS,
 	type DesktopBridge,
@@ -69,6 +69,17 @@ const bridge: DesktopBridge = {
 		close: () => invoke('store:close'),
 		commit: (transactions) => invoke('store:commit', { transactions }),
 		checkpoint: () => invoke('store:checkpoint')
+	},
+	files: {
+		newUntitled: () => invoke('files:newUntitled'),
+		open: (path) => invoke('files:open', { path }),
+		openDialog: () => invoke('files:openDialog'),
+		saveDialog: (suggestedName) => invoke('files:saveDialog', { suggestedName }),
+		saveAs: (path) => invoke('files:saveAs', { path }),
+		offerRecovery: () => invoke('files:offerRecovery'),
+		launchRequest: () => invoke('files:launchRequest'),
+		flushed: (requestId) => invoke('files:flushed', { requestId }),
+		pathForFile: (file) => webUtils.getPathForFile(file)
 	},
 	events: { on: subscribe },
 	system: {

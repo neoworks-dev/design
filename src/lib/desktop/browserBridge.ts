@@ -63,6 +63,17 @@ export function createBrowserBridge(): BrowserBridge {
 			commit: () => unavailable('saving files'),
 			checkpoint: () => unavailable('saving files')
 		},
+		files: {
+			newUntitled: () => unavailable('creating documents'),
+			open: () => unavailable('opening files'),
+			openDialog: () => Promise.resolve(null),
+			saveDialog: () => Promise.resolve(null),
+			saveAs: () => unavailable('saving files'),
+			offerRecovery: () => Promise.resolve(null),
+			launchRequest: () => Promise.resolve(null),
+			flushed: () => Promise.resolve(),
+			pathForFile: () => ''
+		},
 		events: {
 			on: (channel, listener) => {
 				const set = listeners.get(channel) ?? new Set<(payload: never) => void>();

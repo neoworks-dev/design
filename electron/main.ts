@@ -42,6 +42,7 @@ async function boot(): Promise<void> {
 			host: createRealHost(),
 			trustedOrigins: trustedOrigins(),
 			buildDirectory,
+			launchPaths: process.argv.slice(1).filter((argument) => argument.endsWith('.ndesign')),
 			window: {
 				entryUrl: devServerUrl ? devServerUrl : `${appOrigin}/`,
 				devServer: devServerUrl !== undefined,

@@ -187,7 +187,8 @@ describe('DesktopService', () => {
 			createdAt: 1,
 			modifiedAt: 2,
 			recovered: false,
-			unsaved: false
+			unsaved: false,
+			untitled: false
 		};
 		bridge.store = {
 			open: (path) => {

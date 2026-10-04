@@ -8,6 +8,13 @@ import type { IpcService } from '../plugins/ipc';
 import type { WindowsService } from '../plugins/windows';
 
 declare module '@neoworks/extension-system' {
+	interface Events {
+		/**
+		 * Dispatch mode: parallel. The app is quitting; nothing has been unloaded yet. A listener
+		 * returns a promise for work that must finish first (flushing open documents).
+		 */
+		'app/before-quit'(): void | Promise<void>;
+	}
 	interface Context {
 		electron: ElectronService;
 		ipc: IpcService;
