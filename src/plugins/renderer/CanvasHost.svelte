@@ -50,40 +50,15 @@
 				ratioQuery?.removeEventListener('change', onRatioChange);
 			};
 		}, 'renderer/canvas size');
-		// Not passive: pan and zoom handlers must be able to stop the page from scrolling or zooming.
-		const stopForwardingWheel = ctx.effect(() => {
-			const onWheel = (event: WheelEvent): void => {
-				const box = element.getBoundingClientRect();
-				ctx.emit('canvas/wheel', {
-					deltaX: event.deltaX,
-					deltaY: event.deltaY,
-					deltaMode: event.deltaMode,
-					ctrlKey: event.ctrlKey,
-					shiftKey: event.shiftKey,
-					altKey: event.altKey,
-					metaKey: event.metaKey,
-					screen: { x: event.clientX - box.left, y: event.clientY - box.top },
-					preventDefault: () => event.preventDefault()
-				});
-			};
-			element.addEventListener('wheel', onWheel, { passive: false });
-			return () => element.removeEventListener('wheel', onWheel);
-		}, 'renderer/canvas wheel');
 		return () => {
-			stopForwardingWheel();
 			stopWatching();
 			detach();
 		};
 	});
 </script>
 
-<!-- The canvas input router (separate issue) takes over pointer events; until then the context
-     menu request is forwarded as a kernel event. -->
+<!-- Pointer, keyboard, wheel and context menu are the canvas input router's (plugin canvas-input). -->
 <div bind:this={host} class="relative min-w-0 flex-1 overflow-hidden" data-canvas-host>
-	<canvas
-		bind:this={canvas}
-		class="absolute inset-0 block h-full w-full"
-		data-renderer-canvas
-		oncontextmenu={(event) => ctx.emit('canvas/contextmenu', event)}
+	<canvas bind:this={canvas} class="absolute inset-0 block h-full w-full" data-renderer-canvas
 	></canvas>
 </div>

@@ -81,8 +81,8 @@ declare module '@neoworks/extension-system' {
 
 		/**
 		 * Dispatch mode: emit. A wheel or trackpad event over the canvas. A listener that acts on it
-		 * calls `event.preventDefault()` (the viewport does for pan and zoom). The canvas input
-		 * router will own this later.
+		 * calls `event.preventDefault()` (the viewport does for pan and zoom). Emitted by the
+		 * canvas input router (plugin `canvas-input`).
 		 */
 		'canvas/wheel'(event: CanvasWheelEvent): void;
 
@@ -91,6 +91,12 @@ declare module '@neoworks/extension-system' {
 		 * canvas input router will own this; until then a listener opens the `canvas-empty` menu.
 		 */
 		'canvas/contextmenu'(event: MouseEvent): void;
+
+		/**
+		 * Dispatch mode: emit. The renderer's canvas element was attached or detached (`undefined`).
+		 * The canvas input router follows it to attach its DOM listeners.
+		 */
+		'renderer/canvas-change'(element: HTMLCanvasElement | undefined): void;
 
 		/**
 		 * Dispatch mode: emit. The renderer's Skia surface was rebuilt (WebGL context restored or

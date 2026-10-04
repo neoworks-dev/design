@@ -6,7 +6,6 @@ import PlaceholderText from './PlaceholderText.svelte';
 import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
 import CursorIcon from 'phosphor-svelte/lib/CursorIcon';
 import FrameCornersIcon from 'phosphor-svelte/lib/FrameCornersIcon';
-import HandIcon from 'phosphor-svelte/lib/HandIcon';
 import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 import SquareIcon from 'phosphor-svelte/lib/SquareIcon';
 import TextTIcon from 'phosphor-svelte/lib/TextTIcon';
@@ -77,8 +76,7 @@ export default {
 			);
 		});
 
-		// The canvas component belongs to the renderer plugin; until the canvas input router exists
-		// this stand-in opens the empty-canvas context menu.
+		// The canvas input router emits the request; this stand-in opens the empty-canvas menu.
 		ctx.on('canvas/contextmenu', (event) => ctx.menus.openFromEvent('canvas-empty', event));
 
 		const tools: ToolContribution[] = [
@@ -118,16 +116,6 @@ export default {
 				group: 'create',
 				order: 13,
 				cursor: 'text'
-			},
-			{
-				id: 'hand',
-				title: 'Hand',
-				icon: HandIcon,
-				shortcut: 'H',
-				hold: 'Space',
-				group: 'view',
-				order: 20,
-				cursor: 'grab'
 			},
 			{
 				id: 'comment',
