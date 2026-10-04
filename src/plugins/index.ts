@@ -35,6 +35,7 @@ import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
+import mask from './mask';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import zOrder from './z-order';
@@ -72,6 +73,7 @@ export const builtinPlugins: Plugin[] = [
 	nudge,
 	zOrder,
 	grouping,
+	mask,
 	nodeCommands,
 	duplicate,
 	align,

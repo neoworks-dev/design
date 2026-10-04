@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { describePlugin, mountPlugin } from '../lib/kernel/testing';
 import { editingProviders } from '../lib/editing/fixtures/editingFixture';
 import grouping from './grouping';
+import mask from './mask';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import zOrder from './z-order';
@@ -52,6 +53,37 @@ describePlugin('grouping', grouping, {
 		expect(chords).toContain('ctrl+delete>grouping.ungroup');
 		expect(ctx.menus.has('context/layer')).toBe(true);
 	}
+});
+
+describePlugin('mask', mask, {
+	providers: editingProviders(),
+	contributes: ({ ctx }) => {
+		expect(boundKeys(ctx)).toContain('ctrl+alt+m>mask.toggle');
+		for (const id of ['toggle', 'type-alpha', 'type-vector', 'type-luminance']) {
+			expect(ctx.commands.has(`mask.${id}`)).toBe(true);
+		}
+		expect(ctx.menus.has('context/layer')).toBe(true);
+	}
+});
+
+describe('mask through the keymap', () => {
+	it('masks and unmasks as one undo step each and sets the type', async () => {
+		const mounted = await mountPlugin(mask, { providers: editingProviders() });
+		const { ctx } = mounted;
+		ctx.selection.select(['a', 'b']);
+		press(ctx, { key: 'm', ctrlKey: true, altKey: true });
+		expect(Reflect.get(ctx.document.reader.requireNode('b'), 'isMask')).toBe(true);
+		const group = ctx.selection.ids[0];
+		expect(ctx.document.reader.requireNode('a').parentId).toBe(group);
+		ctx.selection.select(['b']);
+		await ctx.commands.run('mask.type-luminance');
+		expect(Reflect.get(ctx.document.reader.requireNode('b'), 'maskType')).toBe('LUMINANCE');
+		ctx.history.undo();
+		ctx.history.undo();
+		expect(ctx.document.reader.requireNode('a').parentId).toBe('f');
+		expect(Reflect.get(ctx.document.reader.requireNode('b'), 'isMask')).toBe(false);
+		await mounted.cleanup();
+	});
 });
 
 describePlugin('node-commands', nodeCommands, {
