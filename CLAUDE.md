@@ -175,7 +175,7 @@ plugins use exactly the same services, so the public API is never second-class.
 
 ## Tests
 
-`bun test`. Every plugin gets the standard kernel test: mount, assert contribution present,
+`bun run test` (vitest; compiles `.svelte.ts` runes). Every plugin gets the standard kernel test: mount, assert contribution present,
 dispose, assert state identical to before. Architecture rules (feature code outside
 `src/routes`, plugins declare `inject`) are enforced by source-level tests.
 
