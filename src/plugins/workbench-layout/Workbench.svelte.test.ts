@@ -5,13 +5,24 @@ import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kerne
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
 import coreKeymap from '../core-keymap';
+import coreMenus from '../core-menus';
+import corePanels from '../core-panels';
 import coreRegions from '../core-regions';
+import coreTools from '../core-tools';
 import placeholderShell from '../placeholder-shell';
 import workbenchLayout from './index';
 import { LAYOUT_STORAGE_KEY } from './layoutState.svelte';
 import { memoryStorage, type MemoryStorage } from './testStorage';
 
-const providers = [coreRegions, coreContextKeys, coreCommands, coreKeymap];
+const providers = [
+	coreRegions,
+	coreContextKeys,
+	coreCommands,
+	coreKeymap,
+	coreMenus,
+	corePanels,
+	coreTools
+];
 
 type ObserverCallback = (entries: { contentRect: { width: number; height: number } }[]) => void;
 
@@ -120,6 +131,17 @@ describe('workbench-layout rendering', () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		flushSync();
 		expect(sidebar('left')).not.toBeNull();
+	});
+
+	it('reveals a collapsed sidebar when one of its panel tabs is activated', async () => {
+		const { mounted } = await renderWorkbench();
+		await mounted.ctx.commands.run('workbench-layout.toggle-left-sidebar');
+		flushSync();
+		expect(sidebar('left')).toBeNull();
+		await mounted.ctx.commands.run('panels.show.assets');
+		flushSync();
+		expect(sidebar('left')).not.toBeNull();
+		expect(sidebar('left')?.textContent).toContain('assets panel');
 	});
 
 	it('hides all chrome with Ctrl+\\ but keeps the canvas', async () => {

@@ -17,7 +17,7 @@ export interface WorkbenchLayoutConfig {
 // Without this plugin the route shows its empty state.
 export default {
 	name: 'workbench-layout',
-	inject: ['regions', 'commands', 'keymap'],
+	inject: ['regions', 'commands', 'keymap', 'menus'],
 	apply(ctx: Context, config?: WorkbenchLayoutConfig): void {
 		const storage = config?.storage ?? browserStorage();
 		const service = new WorkbenchLayoutService(ctx, storage);
@@ -32,6 +32,8 @@ export default {
 				}),
 			'workbench-layout/root region'
 		);
+
+		ctx.on('panels/tab-activated', (side) => layout.expandSidebar(side));
 
 		if (storage) {
 			ctx.effect(() => persistLayout(layout, storage), 'workbench-layout/persist');
@@ -64,6 +66,25 @@ export default {
 				}),
 			'command workbench-layout.toggle-right-sidebar'
 		);
+
+		const viewMenuItems = [
+			{ id: 'toggle-ui', command: 'workbench-layout.toggle-ui', order: 0 },
+			{ id: 'toggle-left-sidebar', command: 'workbench-layout.toggle-left-sidebar', order: 1 },
+			{ id: 'toggle-right-sidebar', command: 'workbench-layout.toggle-right-sidebar', order: 2 }
+		];
+		for (const item of viewMenuItems) {
+			ctx.effect(
+				() => ctx.menus.register({ menu: 'app/view', item: { ...item, group: '2_layout' } }),
+				`menu app/view ${item.id}`
+			);
+		}
+		for (const item of viewMenuItems) {
+			ctx.effect(
+				() =>
+					ctx.menus.register({ menu: 'context/canvas-empty', item: { ...item, group: '9_view' } }),
+				`menu context/canvas-empty ${item.id}`
+			);
+		}
 
 		ctx.effect(
 			() =>

@@ -10,6 +10,7 @@
 // Fire an event with the matching method (`ctx.emit('command/run', ...)`), never another mode.
 // Names are `<domain>/<verb>`; events of a plugin are prefixed with the plugin id.
 
+import type { BootReport } from './boot.svelte';
 import type { Size } from './types';
 
 declare module '@neoworks/extension-system' {
@@ -25,6 +26,18 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. A command threw or was vetoed; the run rejects with the same error. */
 		'command/error'(commandId: string, args: unknown, error: unknown): void;
+
+		/**
+		 * Dispatch mode: emit. A panel tab was activated (shortcut, command or click); the layout
+		 * reveals that sidebar if it is collapsed.
+		 */
+		'panels/tab-activated'(side: 'left' | 'right', tabId: string): void;
+
+		/** Dispatch mode: emit. The tool in use changed (activation, temporary tool, revert). */
+		'tools/change'(toolId: string, previousToolId: string): void;
+
+		/** Dispatch mode: emit. The built-in plugins finished booting; `report` says how each went. */
+		'kernel/booted'(report: BootReport): void;
 
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;

@@ -18,13 +18,15 @@
 import { Context, type EffectMeta, type Fiber, type Plugin } from '@neoworks/extension-system';
 import { describe, expect, it, vi } from 'vitest';
 import type { DesktopBridge } from '../../../electron/bridge';
-import { createBrowserBridge } from '../desktop/browserBridge';
+import { createBrowserBridge, type BrowserBridge } from '../desktop/browserBridge';
 import { Registry } from '../registries/registry.svelte';
 
 export interface FakeDesktop {
 	bridge: DesktopBridge;
 	/** Names of bridge calls in the order they happened, for example `window.minimize`. */
 	calls: string[];
+	/** Push a main-to-renderer event, like main's `emitTo` (for example `window:maximized`). */
+	emit: BrowserBridge['emit'];
 	/** Restore `window.desktop` to what it was before `installFakeDesktop`. */
 	restore: () => void;
 }
@@ -33,8 +35,10 @@ export interface FakeDesktop {
 export function installFakeDesktop(overrides: Partial<DesktopBridge> = {}): FakeDesktop {
 	const calls: string[] = [];
 	// Sections this fake doesn't record fall back to the in-memory browser bridge.
+	const base = createBrowserBridge();
+	let maximized = false;
 	const bridge: DesktopBridge = {
-		...createBrowserBridge(),
+		...base,
 		window: {
 			minimize: vi.fn(() => {
 				calls.push('window.minimize');
@@ -42,7 +46,12 @@ export function installFakeDesktop(overrides: Partial<DesktopBridge> = {}): Fake
 			}),
 			toggleMaximize: vi.fn(() => {
 				calls.push('window.toggleMaximize');
-				return Promise.resolve(true);
+				maximized = !maximized;
+				return Promise.resolve(maximized);
+			}),
+			isMaximized: vi.fn(() => {
+				calls.push('window.isMaximized');
+				return Promise.resolve(maximized);
 			}),
 			close: vi.fn(() => {
 				calls.push('window.close');
@@ -57,6 +66,7 @@ export function installFakeDesktop(overrides: Partial<DesktopBridge> = {}): Fake
 	return {
 		bridge,
 		calls,
+		emit: (channel, payload) => base.emit(channel, payload),
 		restore: () => Reflect.set(globalThis, 'desktop', previous)
 	};
 }

@@ -13,6 +13,9 @@ let booting: Promise<BootReport> | undefined;
 /** Boot the built-in plugins once. Later calls return the same promise. */
 export function boot(): Promise<BootReport> {
 	if (booting) return booting;
-	booting = bootKernel(rootContext, builtinPlugins);
+	booting = bootKernel(rootContext, builtinPlugins).then((report) => {
+		rootContext.emit('kernel/booted', report);
+		return report;
+	});
 	return booting;
 }

@@ -60,6 +60,9 @@
 			<div bind:this={canvasElement} class="absolute inset-0 flex" data-region="canvas">
 				<RegionHost region="canvas" />
 			</div>
+			<div class="pointer-events-none absolute inset-0 z-[5]" data-region="canvas-overlay">
+				<RegionHost region="canvas-overlay" />
+			</div>
 			{#if !layout.uiHidden}
 				<div
 					class="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center"

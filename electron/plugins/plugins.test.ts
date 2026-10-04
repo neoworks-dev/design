@@ -1,5 +1,5 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { bootMainKernel, type PluginEntry } from '../kernel/boot';
 import { createMainContext } from '../kernel/context';
 import { FakeHost, type FakeWindow } from '../kernel/fakeHost';
@@ -168,12 +168,149 @@ describe('main-window', () => {
 		await bootMainKernel(root, mainPlugins(options));
 		await settle();
 		const window = firstWindow(host);
+		expect(window.loadedUrls).toEqual(['app://design/?qa=1']);
 		expect(window.observers.size).toBe(1);
 		await root.fiber.dispose();
 		expect(window.observers.size).toBe(0);
 
 		const plain = await bootTestKernel();
 		expect(firstWindow(plain.host).observers.size).toBe(0);
+	});
+});
+
+describe('main-window state', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	function savedState(host: FakeHost): unknown {
+		const text = host.files.get('window-state.json');
+		if (text === undefined) return undefined;
+		return JSON.parse(text);
+	}
+
+	it('opens at the default size when nothing was saved', async () => {
+		const { host } = await bootTestKernel();
+		const window = firstWindow(host);
+		expect(window.options).toMatchObject({ width: 1440, height: 900 });
+		expect(window.options.x).toBeUndefined();
+		expect(window.maximized).toBe(false);
+	});
+
+	it('restores the saved size and position', async () => {
+		const files = {
+			'window-state.json': '{"x":40,"y":30,"width":1200,"height":760,"maximized":false}'
+		};
+		const { host } = await bootTestKernel({ host: { files } });
+		expect(firstWindow(host).options).toMatchObject({ x: 40, y: 30, width: 1200, height: 760 });
+	});
+
+	it('restores a maximized window', async () => {
+		const files = {
+			'window-state.json': '{"x":0,"y":0,"width":1200,"height":760,"maximized":true}'
+		};
+		const { host } = await bootTestKernel({ host: { files } });
+		expect(firstWindow(host).maximized).toBe(true);
+	});
+
+	it('drops a position on a monitor that is no longer connected, and fits the size', async () => {
+		const files = {
+			'window-state.json': '{"x":3000,"y":100,"width":2400,"height":1400,"maximized":false}'
+		};
+		const displays = [{ x: 0, y: 0, width: 1920, height: 1080 }];
+		const { host } = await bootTestKernel({ host: { files, displays } });
+		const { options } = firstWindow(host);
+		expect(options.x).toBeUndefined();
+		expect(options).toMatchObject({ width: 1920, height: 1080 });
+	});
+
+	it('ignores a broken state file', async () => {
+		const { host } = await bootTestKernel({ host: { files: { 'window-state.json': '{nope' } } });
+		expect(firstWindow(host).options).toMatchObject({ width: 1440, height: 900 });
+	});
+
+	it('saves bounds debounced after resize and move, once', async () => {
+		const { host } = await bootTestKernel();
+		vi.useFakeTimers();
+		const window = firstWindow(host);
+		window.resizeTo({ x: 10, y: 10, width: 1000, height: 700 });
+		window.resizeTo({ x: 20, y: 20, width: 1100, height: 720 });
+		expect(savedState(host)).toBeUndefined();
+		await vi.advanceTimersByTimeAsync(500);
+		expect(savedState(host)).toEqual({ x: 20, y: 20, width: 1100, height: 720, maximized: false });
+	});
+
+	it('saves the maximized state with the restored bounds', async () => {
+		const { host } = await bootTestKernel();
+		vi.useFakeTimers();
+		const window = firstWindow(host);
+		window.maximize();
+		await vi.advanceTimersByTimeAsync(500);
+		expect(savedState(host)).toMatchObject({ width: 1440, height: 900, maximized: true });
+	});
+
+	it('saves immediately when the window closes', async () => {
+		const { host } = await bootTestKernel();
+		vi.useFakeTimers();
+		const window = firstWindow(host);
+		window.resizeTo({ x: 5, y: 6, width: 1300, height: 800 });
+		window.close();
+		expect(savedState(host)).toEqual({ x: 5, y: 6, width: 1300, height: 800, maximized: false });
+		await vi.advanceTimersByTimeAsync(500);
+		expect(savedState(host)).toEqual({ x: 5, y: 6, width: 1300, height: 800, maximized: false });
+	});
+
+	it('does not save a minimized window', async () => {
+		const { host } = await bootTestKernel();
+		vi.useFakeTimers();
+		const window = firstWindow(host);
+		window.minimized = true;
+		window.resizeTo({ x: 0, y: 0, width: 1000, height: 700 });
+		await vi.advanceTimersByTimeAsync(500);
+		expect(savedState(host)).toBeUndefined();
+	});
+
+	it('unloading saves once, removes every listener and cancels the pending save', async () => {
+		const { host, root } = await bootTestKernel();
+		vi.useFakeTimers();
+		const window = firstWindow(host);
+		window.resizeTo({ x: 1, y: 2, width: 1250, height: 810 });
+		await fiberOf(root, 'main-window').dispose();
+		expect(savedState(host)).toEqual({ x: 1, y: 2, width: 1250, height: 810, maximized: false });
+
+		expect(vi.getTimerCount()).toBe(0);
+		for (const event of ['resize', 'move', 'maximize', 'unmaximize', 'close', 'closed'] as const) {
+			expect(window.listenerCount(event)).toBe(0);
+		}
+	});
+
+	it('mounting again after unmounting restores what unloading saved', async () => {
+		const { host, root } = await bootTestKernel();
+		firstWindow(host).resizeTo({ x: 7, y: 8, width: 1111, height: 777 });
+		await fiberOf(root, 'main-window').dispose();
+		await settle();
+		const entry = mainPlugins(testPluginOptions(host)).find(
+			(item) => item.plugin.name === 'main-window'
+		);
+		if (!entry) throw new Error('no main-window entry');
+		await root.plugin(entry.plugin, entry.config);
+		await settle();
+		expect(firstWindow(host).options).toMatchObject({ x: 7, y: 8, width: 1111, height: 777 });
+	});
+
+	it('keeps macOS traffic lights and is frameless elsewhere', async () => {
+		const mac = await bootTestKernel({ host: { platform: 'darwin' } });
+		expect(firstWindow(mac.host).options).toMatchObject({ frame: true, titleBarStyle: 'hidden' });
+		const linux = await bootTestKernel();
+		expect(firstWindow(linux.host).options.frame).toBe(false);
+		expect(firstWindow(linux.host).options.titleBarStyle).toBeUndefined();
+	});
+
+	it('answers window:isMaximized for the sender window', async () => {
+		const { host } = await bootTestKernel();
+		expect(await host.invoke('window:isMaximized')).toEqual({ ok: true, value: false });
+		firstWindow(host).maximize();
+		expect(await host.invoke('window:isMaximized')).toEqual({ ok: true, value: true });
 	});
 });
 

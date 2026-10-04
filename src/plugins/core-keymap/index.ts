@@ -1,16 +1,13 @@
 import type { Context } from '@neoworks/extension-system';
-import { resolveDesktop } from '../../lib/kernel/desktop';
 import { KeymapService } from '../../lib/registries/keymap.svelte';
 
 interface KeymapConfig {
-	/** `process.platform` value. Defaults to the desktop bridge, then to the browser. */
+	/** `process.platform` value. Defaults to what the browser engine reports (also in Electron). */
 	platform?: string;
 }
 
 function detectPlatform(config: KeymapConfig | undefined): string {
 	if (config && config.platform) return config.platform;
-	const bridge = resolveDesktop();
-	if (bridge) return bridge.system.platform;
 	if (typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)) return 'darwin';
 	return 'linux';
 }

@@ -1,34 +1,83 @@
 import type { Context } from '@neoworks/extension-system';
+import type { PanelTabContribution } from '../../lib/registries/panels.svelte';
+import type { ToolContribution } from '../../lib/registries/tools.svelte';
 import CanvasPlaceholder from './CanvasPlaceholder.svelte';
-import LeftPanel from './LeftPanel.svelte';
-import RightPanel from './RightPanel.svelte';
-import ToolbarPlaceholder from './ToolbarPlaceholder.svelte';
+import FileTab from './FileTab.svelte';
+import PlaceholderText from './PlaceholderText.svelte';
+import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
+import CursorIcon from 'phosphor-svelte/lib/CursorIcon';
+import FrameCornersIcon from 'phosphor-svelte/lib/FrameCornersIcon';
+import HandIcon from 'phosphor-svelte/lib/HandIcon';
+import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
+import SquareIcon from 'phosphor-svelte/lib/SquareIcon';
+import TextTIcon from 'phosphor-svelte/lib/TextTIcon';
 
 // Stand-in content for the workbench regions until the real plugins (layers panel, property
 // sections, canvas, tools) exist. Each real plugin replaces one entry here and this plugin
 // shrinks to nothing.
 export default {
 	name: 'placeholder-shell',
-	inject: ['regions'],
+	inject: ['regions', 'menus', 'panels', 'tools'],
 	apply(ctx: Context): void {
-		ctx.effect(
-			() =>
-				ctx.regions.register({
-					id: 'placeholder-shell/left',
-					region: 'left',
-					component: LeftPanel
-				}),
-			'placeholder left panel'
-		);
-		ctx.effect(
-			() =>
-				ctx.regions.register({
-					id: 'placeholder-shell/right',
-					region: 'right',
-					component: RightPanel
-				}),
-			'placeholder right panel'
-		);
+		const tabs: PanelTabContribution[] = [
+			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1', component: FileTab },
+			{
+				id: 'assets',
+				side: 'left',
+				title: 'Assets',
+				order: 1,
+				shortcut: 'Alt+2',
+				component: PlaceholderText,
+				props: { text: 'Placeholder: the assets panel replaces this.' }
+			},
+			{
+				id: 'design',
+				side: 'right',
+				title: 'Design',
+				order: 0,
+				shortcut: 'Alt+8',
+				when: "mode == 'design'"
+			},
+			{
+				id: 'prototype',
+				side: 'right',
+				title: 'Prototype',
+				order: 1,
+				shortcut: 'Alt+9',
+				when: "mode == 'design'",
+				component: PlaceholderText,
+				props: { text: 'Placeholder: prototype interactions replace this.' }
+			},
+			{
+				id: 'inspect',
+				side: 'right',
+				title: 'Inspect',
+				order: 2,
+				when: "mode == 'dev'",
+				component: PlaceholderText,
+				props: { text: 'Placeholder: dev mode inspection replaces this.' }
+			}
+		];
+		for (const tab of tabs) {
+			ctx.effect(() => ctx.panels.registerTab(tab), `placeholder tab ${tab.id}`);
+		}
+
+		const sections = ['Page', 'Variables', 'Styles', 'Export'];
+		sections.forEach((title, index) => {
+			ctx.effect(
+				() =>
+					ctx.panels.registerSection({
+						tab: 'design',
+						id: title.toLowerCase(),
+						title,
+						order: index,
+						component: PlaceholderText,
+						props: { text: `Placeholder: the ${title.toLowerCase()} section replaces this.` }
+					}),
+				`placeholder section ${title}`
+			);
+		});
+
 		ctx.effect(
 			() =>
 				ctx.regions.register({
@@ -38,14 +87,65 @@ export default {
 				}),
 			'placeholder canvas'
 		);
-		ctx.effect(
-			() =>
-				ctx.regions.register({
-					id: 'placeholder-shell/toolbar',
-					region: 'toolbar',
-					component: ToolbarPlaceholder
-				}),
-			'placeholder toolbar'
-		);
+		const tools: ToolContribution[] = [
+			{ id: 'move', title: 'Move', icon: CursorIcon, shortcut: 'V', group: 'move', order: 0 },
+			{
+				id: 'frame',
+				title: 'Frame',
+				icon: FrameCornersIcon,
+				shortcut: 'F',
+				group: 'create',
+				order: 10,
+				cursor: 'crosshair'
+			},
+			{
+				id: 'rectangle',
+				title: 'Rectangle',
+				icon: SquareIcon,
+				shortcut: 'R',
+				group: 'create',
+				order: 11,
+				cursor: 'crosshair'
+			},
+			{
+				id: 'pen',
+				title: 'Pen',
+				icon: PenNibIcon,
+				shortcut: 'P',
+				group: 'create',
+				order: 12,
+				cursor: 'crosshair'
+			},
+			{
+				id: 'text',
+				title: 'Text',
+				icon: TextTIcon,
+				shortcut: 'T',
+				group: 'create',
+				order: 13,
+				cursor: 'text'
+			},
+			{
+				id: 'hand',
+				title: 'Hand',
+				icon: HandIcon,
+				shortcut: 'H',
+				hold: 'Space',
+				group: 'view',
+				order: 20,
+				cursor: 'grab'
+			},
+			{
+				id: 'comment',
+				title: 'Comment',
+				icon: ChatCircleIcon,
+				shortcut: 'C',
+				group: 'view',
+				order: 21
+			}
+		];
+		for (const tool of tools) {
+			ctx.effect(() => ctx.tools.register(tool), `placeholder tool ${tool.id}`);
+		}
 	}
 };

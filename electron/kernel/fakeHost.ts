@@ -10,6 +10,7 @@ import type {
 	IpcInvokeEvent,
 	IpcListener,
 	OpenDialogRequest,
+	Rect,
 	RendererObserver,
 	SaveDialogRequest,
 	SenderHandle,
@@ -33,6 +34,8 @@ export class FakeWindow implements WindowHandle {
 	readonly loadedUrls: string[] = [];
 	maximized = false;
 	minimized = false;
+	/** The restored bounds `getNormalBounds` reports; tests move them with `resizeTo`. */
+	normalBounds: Rect;
 	focusCount = 0;
 	destroyed = false;
 	devToolsOpened = false;
@@ -47,6 +50,12 @@ export class FakeWindow implements WindowHandle {
 		private readonly onDestroyed: (window: FakeWindow) => void
 	) {
 		this.sender = { id };
+		this.normalBounds = {
+			x: options.x === undefined ? 0 : options.x,
+			y: options.y === undefined ? 0 : options.y,
+			width: options.width,
+			height: options.height
+		};
 	}
 
 	loadURL(url: string): Promise<void> {
@@ -76,6 +85,7 @@ export class FakeWindow implements WindowHandle {
 	}
 	close(): void {
 		if (this.destroyed) return;
+		this.fire('close');
 		this.destroyed = true;
 		this.fire('closed');
 		this.onDestroyed(this);
@@ -85,6 +95,9 @@ export class FakeWindow implements WindowHandle {
 	}
 	isMinimized(): boolean {
 		return this.minimized;
+	}
+	getNormalBounds(): Rect {
+		return this.normalBounds;
 	}
 	isDestroyed(): boolean {
 		return this.destroyed;
@@ -112,6 +125,13 @@ export class FakeWindow implements WindowHandle {
 			this.observers.delete(observer);
 		};
 	}
+	/** Test driver: the user dragged the window to `bounds`. */
+	resizeTo(bounds: Rect): void {
+		const moved = bounds.x !== this.normalBounds.x || bounds.y !== this.normalBounds.y;
+		this.normalBounds = bounds;
+		this.fire('resize');
+		if (moved) this.fire('move');
+	}
 	listenerCount(event: WindowEventName): number {
 		return this.listeners.get(event)?.size ?? 0;
 	}
@@ -124,6 +144,10 @@ export interface FakeHostOptions {
 	platform?: NodeJS.Platform;
 	/** When true, `whenReady()` stays pending until `becomeReady()`. */
 	deferReady?: boolean;
+	/** Work areas of the connected displays, primary first. */
+	displays?: Rect[];
+	/** Files that already exist in the fake user data directory. */
+	files?: Record<string, string>;
 }
 
 export class FakeHost implements ElectronHost {
@@ -132,6 +156,9 @@ export class FakeHost implements ElectronHost {
 	readonly protocolHandlers = new Map<string, (request: { url: string }) => Promise<Response>>();
 	readonly appListeners = new Map<AppEventName, Set<(...args: never[]) => void>>();
 	readonly openedExternal: string[] = [];
+	/** Text files in the fake user data directory, by name. */
+	readonly files = new Map<string, string>();
+	displays: Rect[] = [{ x: 0, y: 0, width: 1920, height: 1080 }];
 	readonly fetched: string[] = [];
 	quitCount = 0;
 	version = '1.2.3';
@@ -145,6 +172,8 @@ export class FakeHost implements ElectronHost {
 
 	constructor(options: FakeHostOptions = {}) {
 		const platform = options.platform === undefined ? 'linux' : options.platform;
+		if (options.displays) this.displays = options.displays;
+		for (const [name, text] of Object.entries(options.files ?? {})) this.files.set(name, text);
 		this.app.platform = platform;
 		if (options.deferReady) {
 			this.readyPromise = new Promise<void>((resolve) => {
@@ -224,6 +253,17 @@ export class FakeHost implements ElectronHost {
 		}
 	};
 
+	readonly screen: ElectronHost['screen'] = {
+		workAreas: () => [...this.displays]
+	};
+
+	readonly userData: ElectronHost['userData'] = {
+		readText: (name) => this.files.get(name),
+		writeText: (name, text) => {
+			this.files.set(name, text);
+		}
+	};
+
 	createWindow = (options: WindowOptions): FakeWindow => {
 		const window = new FakeWindow(this.nextWindowId, options, (closed) => {
 			const position = this.openWindows.indexOf(closed);
@@ -275,8 +315,11 @@ export class FakeHost implements ElectronHost {
 			openWindows: this.openWindows.length,
 			windowListeners: this.openWindows.map((window) => ({
 				closed: window.listenerCount('closed'),
+				close: window.listenerCount('close'),
 				maximize: window.listenerCount('maximize'),
-				unmaximize: window.listenerCount('unmaximize')
+				unmaximize: window.listenerCount('unmaximize'),
+				resize: window.listenerCount('resize'),
+				move: window.listenerCount('move')
 			}))
 		};
 	}

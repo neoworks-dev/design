@@ -30,6 +30,7 @@ export const payloadSchemas: PayloadSchemas = {
 	'window:minimize': z.void(),
 	'window:toggleMaximize': z.void(),
 	'window:close': z.void(),
+	'window:isMaximized': z.void(),
 	'app:version': z.void(),
 	'app:path': z.enum(['userData', 'documents', 'downloads', 'temp', 'home']),
 	'app:quit': z.void(),

@@ -1,7 +1,9 @@
 // The real Electron implementation of ElectronHost. Imported only by main.ts: tests use fakeHost.ts
 // because the `electron` package is not usable outside the Electron runtime.
 
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, shell } from 'electron';
+import fs from 'node:fs';
+import path from 'node:path';
 import type {
 	ElectronHost,
 	OpenDialogRequest,
@@ -35,6 +37,7 @@ function wrapWindow(window: BrowserWindow): WindowHandle {
 		close: () => window.close(),
 		isMaximized: () => window.isMaximized(),
 		isMinimized: () => window.isMinimized(),
+		getNormalBounds: () => window.getNormalBounds(),
 		isDestroyed: () => window.isDestroyed(),
 		send: (channel, payload) => webContents.send(channel, payload),
 		on: (event: WindowEventName, listener) => {
@@ -42,16 +45,9 @@ function wrapWindow(window: BrowserWindow): WindowHandle {
 				webContents.on('did-finish-load', listener);
 				return () => webContents.off('did-finish-load', listener);
 			}
-			if (event === 'closed') {
-				window.on('closed', listener);
-				return () => window.off('closed', listener);
-			}
-			if (event === 'maximize') {
-				window.on('maximize', listener);
-				return () => window.off('maximize', listener);
-			}
-			window.on('unmaximize', listener);
-			return () => window.off('unmaximize', listener);
+			// The names of the remaining events are exactly Electron's BrowserWindow events.
+			window.on(event as 'closed', listener);
+			return () => window.off(event as 'closed', listener);
 		},
 		onNewWindowRequest: (handler) => {
 			webContents.setWindowOpenHandler(({ url }) => {
@@ -84,9 +80,12 @@ export function createRealHost(): ElectronHost {
 		const window = new BrowserWindow({
 			width: options.width,
 			height: options.height,
+			x: options.x,
+			y: options.y,
 			minWidth: options.minWidth,
 			minHeight: options.minHeight,
 			frame: options.frame,
+			titleBarStyle: options.titleBarStyle,
 			backgroundColor: options.backgroundColor,
 			webPreferences: {
 				nodeIntegration: false,
@@ -144,6 +143,19 @@ export function createRealHost(): ElectronHost {
 				});
 				if (result.canceled || result.filePath === '') return null;
 				return result.filePath;
+			}
+		},
+		screen: { workAreas: () => screen.getAllDisplays().map((display) => display.workArea) },
+		userData: {
+			readText: (name) => {
+				try {
+					return fs.readFileSync(path.join(app.getPath('userData'), name), 'utf8');
+				} catch {
+					return undefined;
+				}
+			},
+			writeText: (name, text) => {
+				fs.writeFileSync(path.join(app.getPath('userData'), name), text);
 			}
 		},
 		createWindow,

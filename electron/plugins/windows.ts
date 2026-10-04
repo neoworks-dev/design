@@ -5,7 +5,9 @@
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { z } from 'zod';
 import { emitTo, route } from '../kernel/route';
-import type { IpcInvokeEvent, WindowHandle } from '../kernel/host';
+import type { IpcInvokeEvent, WindowHandle, WindowOptions } from '../kernel/host';
+import { MIN_WINDOW_SIZE } from '../windowBounds';
+import { loadWindowState, trackWindowState } from '../windowState';
 
 export const windowsConfigSchema = z.strictObject({
 	/** Page the window loads: `app://design/` in production, the vite dev server in dev. */
@@ -17,6 +19,17 @@ export const windowsConfigSchema = z.strictObject({
 	qaSession: z.boolean()
 });
 export type WindowsConfig = z.infer<typeof windowsConfigSchema>;
+
+/** The renderer's debug plugin looks for this query parameter (src/plugins/debug/enabled.ts). */
+export const QA_QUERY_PARAMETER = 'qa';
+
+/** The page to load: in a QA session it carries `?qa=1`, which switches the debug hook on. */
+export function entryUrlFor(config: WindowsConfig): string {
+	if (!config.qaSession) return config.entryUrl;
+	const url = new URL(config.entryUrl);
+	url.searchParams.set(QA_QUERY_PARAMETER, '1');
+	return url.toString();
+}
 
 const LOAD_RETRY_ATTEMPTS = 30;
 const LOAD_RETRY_DELAY_MS = 500;
@@ -35,22 +48,41 @@ export class WindowsService extends Service {
 		return this.currentMainWindow;
 	}
 
-	/** Open the main window for the lifetime of the calling fiber. */
+	/**
+	 * Open the main window for the lifetime of the calling fiber, at the size, position and
+	 * maximized state it had when it was last closed (fitted to the connected displays).
+	 */
 	openMainWindow(): void {
 		const { electron } = this.ctx;
 		this.ctx.effect(() => {
-			const window = electron.createWindow({
-				width: 1440,
-				height: 900,
-				minWidth: 960,
-				minHeight: 600,
-				frame: false,
+			const state = loadWindowState(electron);
+			const options: WindowOptions = {
+				width: state.width,
+				height: state.height,
+				minWidth: MIN_WINDOW_SIZE.width,
+				minHeight: MIN_WINDOW_SIZE.height,
+				...this.frameOptions(),
 				backgroundColor: '#0b0b0d',
 				preloadPath: this.config.preloadPath
-			});
+			};
+			if (state.x !== undefined && state.y !== undefined) {
+				options.x = state.x;
+				options.y = state.y;
+			}
+			const window = electron.createWindow(options);
 			this.currentMainWindow = window;
-			return this.attachToWindow(window);
+			const detach = this.attachToWindow(window);
+			if (state.maximized) window.maximize();
+			return detach;
 		}, 'main-window');
+	}
+
+	/** Frameless everywhere; macOS keeps its traffic lights over the (hidden) title bar. */
+	private frameOptions(): Pick<WindowOptions, 'frame' | 'titleBarStyle'> {
+		if (this.ctx.electron.app.platform === 'darwin') {
+			return { frame: true, titleBarStyle: 'hidden' };
+		}
+		return { frame: false };
 	}
 
 	focusMainWindow(): void {
@@ -74,6 +106,7 @@ export class WindowsService extends Service {
 		removers.push(window.on('maximize', () => emitTo(window, 'window:maximized', true)));
 		removers.push(window.on('unmaximize', () => emitTo(window, 'window:maximized', false)));
 		if (this.config.qaSession) removers.push(window.observeRenderer(consoleMirror));
+		removers.push(trackWindowState(window, electron));
 
 		const stopLoading = this.loadEntry(window);
 		if (this.config.devServer && !this.config.qaSession) window.openDevTools();
@@ -94,8 +127,9 @@ export class WindowsService extends Service {
 	private loadEntry(window: WindowHandle): () => void {
 		let cancelled = false;
 		let retryTimer: ReturnType<typeof setTimeout> | undefined;
+		const entryUrl = entryUrlFor(this.config);
 		const attemptLoad = (attempt: number): void => {
-			window.loadURL(this.config.entryUrl).catch(() => {
+			window.loadURL(entryUrl).catch(() => {
 				if (cancelled || !this.config.devServer || attempt >= LOAD_RETRY_ATTEMPTS) return;
 				retryTimer = setTimeout(() => attemptLoad(attempt + 1), LOAD_RETRY_DELAY_MS);
 			});
@@ -159,6 +193,7 @@ export const mainWindowPlugin: Plugin.Object<WindowsConfig> = {
 		route(ctx, 'window:close', (_payload, event) => {
 			requireWindow(ctx, event).close();
 		});
+		route(ctx, 'window:isMaximized', (_payload, event) => requireWindow(ctx, event).isMaximized());
 	}
 };
 
