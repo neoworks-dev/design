@@ -25,6 +25,10 @@ import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
 import workbenchLayout from './workbench-layout';
+import grouping from './grouping';
+import nodeCommands from './node-commands';
+import nudge from './nudge';
+import zOrder from './z-order';
 
 export const builtinPlugins: Plugin[] = [
 	coreRegions,
@@ -49,5 +53,9 @@ export const builtinPlugins: Plugin[] = [
 	coreTools,
 	workbenchLayout,
 	titlebar,
-	placeholderShell
+	placeholderShell,
+	nudge,
+	zOrder,
+	grouping,
+	nodeCommands
 ];
