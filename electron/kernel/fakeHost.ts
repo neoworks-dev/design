@@ -2,7 +2,7 @@
 // windows, protocol and dialogs. `snapshot()` is the observable state the standard mount /
 // unmount / state-identical plugin test compares.
 
-import type { AppPathName } from '../bridge';
+import type { AppPathName, ClipboardContent } from '../bridge';
 import type {
 	AppEventName,
 	AppEvents,
@@ -308,6 +308,21 @@ export class FakeHost implements ElectronHost {
 		showMessageBox: (request) => {
 			this.messageBoxRequests.push(request);
 			return Promise.resolve(this.messageBoxResult);
+		}
+	};
+
+	/** What the fake OS clipboard holds; tests read and set it directly. */
+	clipboardContent: ClipboardContent = { text: null, html: null, png: null };
+
+	readonly clipboard: ElectronHost['clipboard'] = {
+		read: () => Promise.resolve({ ...this.clipboardContent }),
+		write: (content) => {
+			this.clipboardContent = {
+				text: content.text === undefined ? null : content.text,
+				html: content.html === undefined ? null : content.html,
+				png: content.png === undefined ? null : content.png
+			};
+			return Promise.resolve();
 		}
 	};
 

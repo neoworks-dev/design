@@ -1,9 +1,21 @@
 // The real Electron implementation of ElectronHost. Imported only by main.ts: tests use fakeHost.ts
 // because the `electron` package is not usable outside the Electron runtime.
 
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, shell } from 'electron';
+import {
+	app,
+	BrowserWindow,
+	clipboard,
+	ClipboardItem,
+	dialog,
+	ipcMain,
+	net,
+	protocol,
+	screen,
+	shell
+} from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import type { ClipboardContent, ClipboardWrite } from '../bridge';
 import { fontDirectories, scanFonts } from '../fonts/scan';
 import type {
 	ElectronHost,
@@ -16,6 +28,38 @@ import type {
 	WindowHandle,
 	WindowOptions
 } from './host';
+
+async function readBlobType(item: ClipboardItem, type: string): Promise<Blob | null> {
+	if (!item.types.includes(type)) return null;
+	const blob = await item.getType(type);
+	if (blob instanceof Blob) return blob;
+	return null;
+}
+
+async function readClipboard(): Promise<ClipboardContent> {
+	const content: ClipboardContent = { text: null, html: null, png: null };
+	for (const item of await clipboard.read()) {
+		const text = await readBlobType(item, 'text/plain');
+		if (text !== null && content.text === null) content.text = await text.text();
+		const html = await readBlobType(item, 'text/html');
+		if (html !== null && content.html === null) content.html = await html.text();
+		const png = await readBlobType(item, 'image/png');
+		if (png !== null && content.png === null) content.png = new Uint8Array(await png.arrayBuffer());
+	}
+	return content;
+}
+
+function writeClipboard(content: ClipboardWrite): Promise<void> {
+	const entries: Record<string, Blob> = {};
+	if (content.text !== undefined)
+		entries['text/plain'] = new Blob([content.text], { type: 'text/plain' });
+	if (content.html !== undefined)
+		entries['text/html'] = new Blob([content.html], { type: 'text/html' });
+	if (content.png !== undefined) {
+		entries['image/png'] = new Blob([Buffer.from(content.png)], { type: 'image/png' });
+	}
+	return clipboard.write([new ClipboardItem(entries)]);
+}
 
 function toFilters(
 	filters: OpenDialogRequest['filters']
@@ -234,6 +278,10 @@ export function createRealHost(): ElectronHost {
 				});
 				return result.response;
 			}
+		},
+		clipboard: {
+			read: () => readClipboard(),
+			write: (content) => writeClipboard(content)
 		},
 		screen: { workAreas: () => screen.getAllDisplays().map((display) => display.workArea) },
 		userData: {

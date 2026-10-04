@@ -36,6 +36,7 @@ describe('bootMainKernel', () => {
 		expect(report.loaded.sort()).toEqual([
 			'main-app',
 			'main-assets',
+			'main-clipboard',
 			'main-dialogs',
 			'main-electron',
 			'main-files',
@@ -52,7 +53,7 @@ describe('bootMainKernel', () => {
 		const root = createMainContext({ writeLine: () => {} });
 		const reversed = [...mainPlugins(testPluginOptions(host))].reverse();
 		const report = await bootMainKernel(root, reversed);
-		expect(report.loaded).toHaveLength(10);
+		expect(report.loaded).toHaveLength(11);
 		expect(report.pending).toEqual([]);
 	});
 
@@ -85,6 +86,7 @@ describe('bootMainKernel', () => {
 		expect(report.pending.map((entry) => entry.plugin).sort()).toEqual([
 			'main-app',
 			'main-assets',
+			'main-clipboard',
 			'main-dialogs',
 			'main-files',
 			'main-fonts',

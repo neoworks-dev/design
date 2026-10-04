@@ -11,6 +11,8 @@ import type {
 	AssetPutRequest,
 	AssetPutResult,
 	BootReport,
+	ClipboardContent,
+	ClipboardWrite,
 	CommitResult,
 	CreateStoreRequest,
 	DesktopBridge,
@@ -127,6 +129,16 @@ export class DesktopService extends Service {
 
 	saveFileDialog(options?: SaveFileOptions): Promise<string | null> {
 		return typed(() => this.bridge.dialogs.saveFile(options));
+	}
+
+	/** What the OS clipboard holds (text, html and a PNG image, each `null` when absent). */
+	clipboardRead(): Promise<ClipboardContent> {
+		return typed(() => this.bridge.clipboard.read());
+	}
+
+	/** Replace the OS clipboard with the given kinds, written together. */
+	clipboardWrite(content: ClipboardWrite): Promise<void> {
+		return typed(() => this.bridge.clipboard.write(content));
 	}
 
 	/** Installed system font faces, sorted by family then style. */

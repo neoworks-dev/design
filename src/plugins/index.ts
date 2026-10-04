@@ -18,6 +18,9 @@ import desktopBridge from './desktop-bridge';
 import fonts from './fonts';
 import documentPlugin from './document';
 import documentScene from './document-scene';
+import align from './align';
+import clipboard from './clipboard';
+import duplicate from './duplicate';
 import selection from './selection';
 import spatial from './spatial';
 import hitTest from './hit-test';
@@ -38,6 +41,7 @@ import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
+import mask from './mask';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import zOrder from './z-order';
@@ -81,5 +85,9 @@ export const builtinPlugins: Plugin[] = [
 	nudge,
 	zOrder,
 	grouping,
-	nodeCommands
+	mask,
+	nodeCommands,
+	duplicate,
+	align,
+	clipboard
 ];

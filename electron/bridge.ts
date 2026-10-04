@@ -98,6 +98,20 @@ export interface AssetPutResult {
 	created: boolean;
 }
 
+/** What the OS clipboard holds, as far as the app reads it. Absent kinds are `null`. */
+export interface ClipboardContent {
+	text: string | null;
+	html: string | null;
+	/** An image, encoded as PNG. */
+	png: Uint8Array | null;
+}
+/** What to put on the OS clipboard; every kind given is written together, replacing the rest. */
+export interface ClipboardWrite {
+	text?: string;
+	html?: string;
+	png?: Uint8Array;
+}
+
 export interface BootFailure {
 	plugin: string;
 	message: string;
@@ -140,6 +154,8 @@ export interface IpcContract {
 	'app:bootReport': { payload: void; result: BootReport | null };
 	'dialogs:openFile': { payload: OpenFileOptions | undefined; result: string[] | null };
 	'dialogs:saveFile': { payload: SaveFileOptions | undefined; result: string | null };
+	'clipboard:read': { payload: void; result: ClipboardContent };
+	'clipboard:write': { payload: ClipboardWrite; result: void };
 	'fonts:list': { payload: void; result: FontRef[] };
 	'fonts:load': { payload: FontRef; result: Uint8Array | null };
 	/** One open document file per window; these act on the sender's. */
@@ -233,6 +249,10 @@ export interface DesktopBridge {
 	dialogs: {
 		openFile(options?: OpenFileOptions): Promise<string[] | null>;
 		saveFile(options?: SaveFileOptions): Promise<string | null>;
+	};
+	clipboard: {
+		read(): Promise<ClipboardContent>;
+		write(content: ClipboardWrite): Promise<void>;
 	};
 	fonts: {
 		/** Installed font faces, sorted by family then style. */

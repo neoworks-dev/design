@@ -2,7 +2,7 @@
 // the `electron` service (which wraps one of these) instead of importing it, so tests can provide
 // a fake host (see fakeHost.ts) and no plugin holds a hidden singleton dependency.
 
-import type { AppPathName, FileFilter } from '../bridge';
+import type { AppPathName, ClipboardContent, ClipboardWrite, FileFilter } from '../bridge';
 
 /** The renderer that sent an IPC message: a webContents id. */
 export interface SenderHandle {
@@ -151,6 +151,11 @@ export interface ElectronHost {
 		showSaveDialog(request: SaveDialogRequest): Promise<string | null>;
 		/** Resolves with the index of the button the user chose. */
 		showMessageBox(request: MessageBoxRequest): Promise<number>;
+	};
+	/** The OS clipboard. */
+	clipboard: {
+		read(): Promise<ClipboardContent>;
+		write(content: ClipboardWrite): Promise<void>;
 	};
 	/** Work areas of the connected displays, primary first. */
 	screen: { workAreas(): Rect[] };

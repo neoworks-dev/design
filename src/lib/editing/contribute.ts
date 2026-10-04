@@ -11,6 +11,11 @@ export interface MenuPlacement {
 	menu: string;
 	group: string;
 	order?: number;
+	/**
+	 * Run the command with the popup's target as arguments (for example the cursor position)
+	 * instead of an empty object.
+	 */
+	passTarget?: boolean;
 }
 
 export interface EditingCommand {
@@ -25,6 +30,12 @@ export interface EditingCommand {
 	/** Key repeat fires the command again (nudging). */
 	repeat?: boolean;
 	menus?: MenuPlacement[];
+}
+
+/** Menu items run commands with `{}` unless they ask for the popup's target. */
+function menuArguments(placement: MenuPlacement): unknown {
+	if (placement.passTarget === true) return undefined;
+	return {};
 }
 
 export function contributeCommand(ctx: Context, command: EditingCommand): void {
@@ -63,7 +74,7 @@ export function contributeCommand(ctx: Context, command: EditingCommand): void {
 						group: placement.group,
 						order: placement.order,
 						when: command.when,
-						args: {}
+						args: menuArguments(placement)
 					}
 				}),
 			`menu ${placement.menu} ${command.id}`

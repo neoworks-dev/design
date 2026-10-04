@@ -63,6 +63,10 @@ const bridge: DesktopBridge = {
 		openFile: (options) => invoke('dialogs:openFile', options),
 		saveFile: (options) => invoke('dialogs:saveFile', options)
 	},
+	clipboard: {
+		read: () => invoke('clipboard:read'),
+		write: (content) => invoke('clipboard:write', content)
+	},
 	fonts: {
 		list: () => invoke('fonts:list'),
 		load: (ref) => invoke('fonts:load', ref)
