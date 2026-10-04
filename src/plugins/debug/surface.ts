@@ -25,7 +25,10 @@ export const DEBUG_SERVICE_NAMES = [
 	'selection',
 	'viewport',
 	'history',
-	'renderer'
+	'renderer',
+	'overlay',
+	'snapping',
+	'spatial'
 ] as const;
 export type DebugServiceName = (typeof DEBUG_SERVICE_NAMES)[number];
 

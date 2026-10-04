@@ -2,6 +2,7 @@ import type { Context } from '@neoworks/extension-system';
 import { contributeCommand } from '../../lib/editing/contribute';
 import { DEFAULT_SNAP_THRESHOLD_PIXELS, SnappingService } from '../../lib/services/snapping';
 import { SnappingState } from '../../lib/services/snappingState.svelte';
+import { drawSnapOverlay } from '../../lib/snapping/overlayDraw';
 
 export interface SnappingConfig {
 	/** Start with snapping on (default) or off. */
@@ -18,13 +19,12 @@ function thresholdOf(value: number | undefined): number {
 
 // The `snapping` service: object snapping and equal-spacing guides for the move, resize and draw
 // tools, Alt+hover distance measurement, plus the global "Snap to objects" switch. Guides, gap
-// brackets and the measurement live in reactive service state; drawing them (red lines, x marks,
-// distance labels) is the overlay layer's job (#38, not built yet): it will read
-// `ctx.snapping.guides`, `.gaps` and `.measurement` (`projectMeasurement` gives screen space), and
-// a tool calls `snap` / `measure` / `release`. `overlay` joins `inject` when that plugin exists.
+// brackets and the measurement live in reactive service state; a small contribution to the
+// `overlay` service draws them (red lines, x marks, distance labels) and redraws when that state
+// changes. A tool calls `snap` / `measure` / `release`.
 export default {
 	name: 'snapping',
-	inject: ['document', 'spatial', 'viewport', 'commands', 'menus'],
+	inject: ['document', 'spatial', 'viewport', 'commands', 'menus', 'overlay'],
 	apply(ctx: Context, config?: SnappingConfig): void {
 		const state = new SnappingState();
 		if (config && config.enabled === false) state.enabled = false;
@@ -42,5 +42,24 @@ export default {
 			run: () => snapping.setEnabled(!snapping.enabled),
 			menus: [{ menu: 'app/view', group: '4_snapping' }]
 		});
+		ctx.effect(
+			() =>
+				ctx.overlay.register({
+					id: 'snapping/guides',
+					order: 50,
+					track: () => {
+						void snapping.guides;
+						void snapping.gaps;
+						void snapping.measurement;
+					},
+					draw: (frame) =>
+						drawSnapOverlay(frame, {
+							guides: snapping.guides,
+							gaps: snapping.gaps,
+							measurement: snapping.measurement
+						})
+				}),
+			'snapping/overlay guides'
+		);
 	}
 };

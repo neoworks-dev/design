@@ -26,6 +26,7 @@ import fileSession from './file-session';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
+import overlay from './overlay';
 import paintShaders from './paint-shaders';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
@@ -48,6 +49,7 @@ export const builtinPlugins: Plugin[] = [
 	renderer,
 	sceneFixture,
 	viewport,
+	overlay,
 	debug,
 	desktopBridge,
 	fonts,
