@@ -1,7 +1,6 @@
 import type { Context } from '@neoworks/extension-system';
 import type { PanelTabContribution } from '../../lib/registries/panels.svelte';
 import type { ToolContribution } from '../../lib/registries/tools.svelte';
-import CanvasPlaceholder from './CanvasPlaceholder.svelte';
 import FileTab from './FileTab.svelte';
 import PlaceholderText from './PlaceholderText.svelte';
 import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
@@ -17,7 +16,7 @@ import TextTIcon from 'phosphor-svelte/lib/TextTIcon';
 // shrinks to nothing.
 export default {
 	name: 'placeholder-shell',
-	inject: ['regions', 'menus', 'panels', 'tools'],
+	inject: ['menus', 'panels', 'tools'],
 	apply(ctx: Context): void {
 		const tabs: PanelTabContribution[] = [
 			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1', component: FileTab },
@@ -78,15 +77,10 @@ export default {
 			);
 		});
 
-		ctx.effect(
-			() =>
-				ctx.regions.register({
-					id: 'placeholder-shell/canvas',
-					region: 'canvas',
-					component: CanvasPlaceholder
-				}),
-			'placeholder canvas'
-		);
+		// The canvas component belongs to the renderer plugin; until the canvas input router exists
+		// this stand-in opens the empty-canvas context menu.
+		ctx.on('canvas/contextmenu', (event) => ctx.menus.openFromEvent('canvas-empty', event));
+
 		const tools: ToolContribution[] = [
 			{ id: 'move', title: 'Move', icon: CursorIcon, shortcut: 'V', group: 'move', order: 0 },
 			{

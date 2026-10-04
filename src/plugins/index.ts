@@ -2,6 +2,7 @@
 // plugins declare `inject` and activate when their providers appear.
 
 import type { Plugin } from '@neoworks/extension-system';
+import canvaskit from './canvaskit';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
 import coreKeymap from './core-keymap';
@@ -18,12 +19,19 @@ import selection from './selection';
 import fileSession from './file-session';
 import history from './history';
 import placeholderShell from './placeholder-shell';
+import renderer from './renderer';
+import sceneFixture from './scene-fixture';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
+import viewport from './viewport';
 import workbenchLayout from './workbench-layout';
 
 export const builtinPlugins: Plugin[] = [
 	coreRegions,
+	canvaskit,
+	renderer,
+	sceneFixture,
+	viewport,
 	debug,
 	desktopBridge,
 	fonts,

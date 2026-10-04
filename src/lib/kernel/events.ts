@@ -18,6 +18,10 @@ import type {
 	DocumentChangeEvent,
 	DocumentReplaceEvent
 } from '../document';
+import type { NodeId } from '../document/types';
+import type { SurfaceResetReason } from '../renderer/surface';
+import type { Camera } from '../viewport/camera';
+import type { CanvasWheelEvent } from '../viewport/wheel';
 import type { Size } from './types';
 
 declare module '@neoworks/extension-system' {
@@ -52,8 +56,43 @@ declare module '@neoworks/extension-system' {
 		 */
 		'fonts/changed'(): void;
 
-		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
+		/**
+		 * Dispatch mode: emit. The canvas region changed size, in CSS pixels (viewport listens).
+		 * Emitted by the workbench layout and by the renderer when it measures its canvas; equal
+		 * sizes may arrive twice, listeners treat them as idempotent.
+		 */
 		'canvas/resize'(size: Size): void;
+
+		/**
+		 * Dispatch mode: emit. The renderer now shows another page (or none): a page switch, a new
+		 * scene source or the document closing. The viewport swaps the per-page camera on it.
+		 */
+		'scene/page-change'(pageId: NodeId | null): void;
+
+		/**
+		 * Dispatch mode: emit. The camera changed (pan, zoom, page switch); listeners redraw
+		 * anything positioned in screen space.
+		 */
+		'viewport/change'(camera: Camera): void;
+
+		/**
+		 * Dispatch mode: emit. A wheel or trackpad event over the canvas. A listener that acts on it
+		 * calls `event.preventDefault()` (the viewport does for pan and zoom). The canvas input
+		 * router will own this later.
+		 */
+		'canvas/wheel'(event: CanvasWheelEvent): void;
+
+		/**
+		 * Dispatch mode: emit. The user asked for a context menu on the canvas (right click). The
+		 * canvas input router will own this; until then a listener opens the `canvas-empty` menu.
+		 */
+		'canvas/contextmenu'(event: MouseEvent): void;
+
+		/**
+		 * Dispatch mode: emit. The renderer's Skia surface was rebuilt (WebGL context restored or
+		 * the canvas resized); everything drawn on it is gone and the next frame redraws it all.
+		 */
+		'renderer/surface-reset'(reason: SurfaceResetReason): void;
 
 		/**
 		 * Dispatch mode: waterfall. Fired before `document.apply` validates a change list. A
