@@ -11,6 +11,7 @@
 // Names are `<domain>/<verb>`; events of a plugin are prefixed with the plugin id.
 
 import type { BootReport } from './boot.svelte';
+import type { SurfaceResetReason } from '../render/surface';
 import type { Size } from './types';
 
 declare module '@neoworks/extension-system' {
@@ -41,5 +42,11 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;
+
+		/**
+		 * Dispatch mode: emit. The renderer's Skia surface was rebuilt (WebGL context restored or
+		 * the canvas resized); everything drawn on it is gone and the next frame redraws it all.
+		 */
+		'renderer/surface-reset'(reason: SurfaceResetReason): void;
 	}
 }

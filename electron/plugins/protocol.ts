@@ -27,6 +27,15 @@ export function resolveBuildFile(buildDirectory: string, pathname: string): stri
 	return path.join(root, FALLBACK_PAGE);
 }
 
+/**
+ * Content type to force for a file, or undefined to keep what the file URL fetch reports.
+ * WebAssembly streaming compilation (what CanvasKit uses for `app://` URLs) rejects any other type.
+ */
+export function forcedContentType(file: string): string | undefined {
+	if (file.endsWith('.wasm')) return 'application/wasm';
+	return undefined;
+}
+
 export const mainProtocolPlugin: Plugin.Object<ProtocolConfig> = {
 	name: 'main-protocol',
 	inject: ['electron'],
@@ -39,10 +48,15 @@ export const mainProtocolPlugin: Plugin.Object<ProtocolConfig> = {
 			let disposed = false;
 			void electron.app.whenReady().then(() => {
 				if (disposed) return;
-				electron.protocol.handle(APP_SCHEME, (request) => {
+				electron.protocol.handle(APP_SCHEME, async (request) => {
 					const { pathname } = new URL(request.url);
 					const file = resolveBuildFile(config.buildDirectory, pathname);
-					return electron.net.fetch(pathToFileURL(file).href);
+					const response = await electron.net.fetch(pathToFileURL(file).href);
+					const contentType = forcedContentType(file);
+					if (contentType === undefined) return response;
+					const headers = new Headers(response.headers);
+					headers.set('content-type', contentType);
+					return new Response(response.body, { status: response.status, headers });
 				});
 				registered = true;
 			});

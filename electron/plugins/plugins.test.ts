@@ -5,7 +5,7 @@ import { createMainContext } from '../kernel/context';
 import { FakeHost, type FakeWindow } from '../kernel/fakeHost';
 import { mainPlugins } from './index';
 import { bootTestKernel, settle, testPluginOptions } from '../kernel/testing';
-import { resolveBuildFile } from './protocol';
+import { forcedContentType, resolveBuildFile } from './protocol';
 
 function fiberOf(root: Context, pluginName: string): ReturnType<Context['plugin']> {
 	for (const runtime of root.registry.values()) {
@@ -325,6 +325,19 @@ describe('main-protocol', () => {
 		await handler?.({ url: 'app://design/unknown/route' });
 		expect(host.fetched).toHaveLength(1);
 		expect(host.fetched[0]).toMatch(/^file:\/\/\/fake\/build\/200\.html$/);
+	});
+
+	it('serves wasm files as application/wasm so streaming compilation accepts them', async () => {
+		const { host } = await bootTestKernel({ host: { deferReady: true } });
+		host.becomeReady();
+		await settle();
+		const handler = host.protocolHandlers.get('app');
+		const response = await handler?.({ url: 'app://design/200.html' });
+		expect(response?.headers.get('content-type')).not.toBe('application/wasm');
+		expect(forcedContentType('/build/_app/immutable/assets/canvaskit.abc123.wasm')).toBe(
+			'application/wasm'
+		);
+		expect(forcedContentType('/build/200.html')).toBeUndefined();
 	});
 
 	it('does not touch the protocol if unloaded before ready', async () => {
