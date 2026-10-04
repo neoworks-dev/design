@@ -1,46 +1,79 @@
-// Absolute bounds straight from a SceneSource, for consumers that need a box now (viewport fit).
-// The spatial index (#40) caches the same numbers incrementally; this is the uncached definition.
+// Absolute bounds from a SceneSource, for consumers that need a box now (viewport fit).
+//
+// `SceneBounds` is the cached form: the document layer's DerivedCache (absolute transforms and
+// bounds, computed lazily and kept) over the source, invalidated incrementally by feeding it the
+// source's change notifications (`handle`). The owner decides when to subscribe, so that mounting
+// and unmounting stays observable-state neutral. Hit testing and culling use the SceneIndex in
+// lib/document, which sits on the document store's own cache; this is the SceneSource-shaped
+// entry for code that must not know about the store.
+//
+// `absoluteBoundsOf` and `pageContentBounds` are the cold one-shot variants (fresh cache).
 
-import { composeMatrices, identityMatrix, transformedBounds } from '../document/matrix';
-import type { Matrix2x3, NodeId, Rect } from '../document/types';
+import { DerivedCache } from '../document/cache';
+import type { Change, NodeId, Rect } from '../document/types';
 import { unionRects } from '../viewport/camera';
-import type { SceneSource } from './sceneSource';
+import type { SceneChange, SceneSource } from './sceneSource';
 
-function absoluteTransform(source: SceneSource, id: NodeId): Matrix2x3 | undefined {
-	const chain: Matrix2x3[] = [];
-	let current = source.getNode(id);
-	if (!current) return undefined;
-	while (current && current.type !== 'PAGE') {
-		chain.push(current.transform);
-		if (current.parentId === null) break;
-		current = source.getNode(current.parentId);
+function invalidate(cache: DerivedCache, change: Change): void {
+	switch (change.t) {
+		case 'set':
+			cache.onSet(change.id, Object.keys(change.set));
+			return;
+		case 'del':
+			cache.invalidateSubtree(change.node.id);
+			return;
+		case 'move':
+			cache.invalidateSubtree(change.id);
+			return;
+		default:
+			return;
 	}
-	let result = identityMatrix();
-	for (let position = chain.length - 1; position >= 0; position -= 1) {
-		result = composeMatrices(result, chain[position]);
-	}
-	return result;
 }
 
-/** Axis-aligned bounds of node `id` in page space, or undefined when it does not exist. */
+export class SceneBounds {
+	private readonly cache: DerivedCache;
+
+	constructor(private readonly source: SceneSource) {
+		this.cache = new DerivedCache(source);
+	}
+
+	/** Feed every notification of the source here to keep the cache valid. */
+	handle(notification: SceneChange): void {
+		if (notification.kind === 'reset') {
+			this.cache.invalidateAll();
+			return;
+		}
+		for (const change of notification.changes) invalidate(this.cache, change);
+	}
+
+	/** Axis-aligned bounds of node `id` in page space, or undefined when it does not exist. */
+	absoluteBoundsOf(id: NodeId): Rect | undefined {
+		const node = this.source.getNode(id);
+		if (!node || node.type === 'PAGE') return undefined;
+		return this.cache.absoluteBounds(id);
+	}
+
+	/** Bounds of everything visible directly on the current page; null for an empty page. */
+	pageContentBounds(): Rect | null {
+		const pageId = this.source.currentPageId();
+		if (pageId === null) return null;
+		const rects: Rect[] = [];
+		for (const childId of this.source.children(pageId)) {
+			const child = this.source.getNode(childId);
+			if (!child || child.type === 'PAGE' || !child.visible) continue;
+			const bounds = this.absoluteBoundsOf(childId);
+			if (bounds) rects.push(bounds);
+		}
+		return unionRects(rects);
+	}
+}
+
+/** Cold one-shot: bounds of node `id` computed from scratch. */
 export function absoluteBoundsOf(source: SceneSource, id: NodeId): Rect | undefined {
-	const node = source.getNode(id);
-	if (!node || node.type === 'PAGE') return undefined;
-	const transform = absoluteTransform(source, id);
-	if (!transform) return undefined;
-	return transformedBounds(transform, node.width, node.height);
+	return new SceneBounds(source).absoluteBoundsOf(id);
 }
 
-/** Bounds of everything visible directly on the current page; null for an empty page. */
+/** Cold one-shot: bounds of everything visible on the current page. */
 export function pageContentBounds(source: SceneSource): Rect | null {
-	const pageId = source.currentPageId();
-	if (pageId === null) return null;
-	const rects: Rect[] = [];
-	for (const childId of source.children(pageId)) {
-		const child = source.getNode(childId);
-		if (!child || child.type === 'PAGE' || !child.visible) continue;
-		const bounds = absoluteBoundsOf(source, childId);
-		if (bounds) rects.push(bounds);
-	}
-	return unionRects(rects);
+	return new SceneBounds(source).pageContentBounds();
 }

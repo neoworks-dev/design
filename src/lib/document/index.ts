@@ -18,3 +18,7 @@ export * from './apply';
 export * from './blank';
 export * from './changeEvents';
 export * from './variables';
+export * from './rtree';
+export * from './shapeGeometry';
+export * from './sceneIndex';
+export * from './hitTest';

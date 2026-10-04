@@ -1,7 +1,7 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type { NodeId, Rect } from '../../lib/document/types';
 import type { Size } from '../../lib/kernel/types';
-import { absoluteBoundsOf, pageContentBounds } from '../../lib/renderer/bounds';
+import { SceneBounds } from '../../lib/renderer/bounds';
 import type { SceneSource } from '../../lib/renderer/sceneSource';
 import {
 	DEFAULT_FIT,
@@ -42,6 +42,7 @@ const FRAME_TYPES = ['FRAME', 'SECTION', 'COMPONENT', 'COMPONENT_SET'];
 export class ViewportService extends Service {
 	private selectionProvider: SelectionProvider = () => [];
 	private lastFrameIndex: number | undefined;
+	private cachedBounds: { source: SceneSource; bounds: SceneBounds; stop: () => void } | undefined;
 
 	constructor(
 		ctx: Context,
@@ -149,7 +150,7 @@ export class ViewportService extends Service {
 	zoomToFit(): boolean {
 		const source = this.sceneSource();
 		if (!source) return false;
-		const bounds = pageContentBounds(source);
+		const bounds = this.boundsFor(source).pageContentBounds();
 		if (!bounds) return false;
 		return this.zoomToRect(bounds);
 	}
@@ -205,6 +206,21 @@ export class ViewportService extends Service {
 		return this.ctx.renderer.sceneSource;
 	}
 
+	/** Cached bounds over `source`, kept valid by a subscription that unmounting removes. */
+	private boundsFor(source: SceneSource): SceneBounds {
+		if (this.cachedBounds && this.cachedBounds.source === source) return this.cachedBounds.bounds;
+		if (this.cachedBounds) this.cachedBounds.stop();
+		const bounds = new SceneBounds(source);
+		const dispose = this.ctx.effect(() => {
+			const unsubscribe = source.subscribe((notification) => bounds.handle(notification));
+			return () => {
+				unsubscribe();
+			};
+		}, 'viewport bounds cache');
+		this.cachedBounds = { source, bounds, stop: () => void dispose() };
+		return bounds;
+	}
+
 	private canvasCentre(): ScreenPoint {
 		const size = this.size;
 		return { x: size.width / 2, y: size.height / 2 };
@@ -215,7 +231,7 @@ export class ViewportService extends Service {
 		if (!source) return null;
 		const rects: Rect[] = [];
 		for (const id of ids) {
-			const bounds = absoluteBoundsOf(source, id);
+			const bounds = this.boundsFor(source).absoluteBoundsOf(id);
 			if (bounds) rects.push(bounds);
 		}
 		return unionRects(rects);
