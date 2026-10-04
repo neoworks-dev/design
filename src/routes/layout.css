@@ -1,0 +1,49 @@
+@import '@fontsource/geist-sans/400.css';
+@import '@fontsource/geist-sans/500.css';
+@import '@fontsource/geist-sans/600.css';
+@import '@fontsource/geist-mono/400.css';
+@import 'tailwindcss';
+/* Shared neoworks design tokens (CSS-var layer + theme-aware utilities). */
+@import '@neoworks-dev/ui/styles';
+
+/* Tailwind v4 skips node_modules — scan the linked ui package so utilities used
+   inside shared components compile. */
+@source '../../node_modules/@neoworks-dev/ui/src';
+
+@theme {
+	--font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--font-mono: 'Geist Mono', ui-monospace, 'JetBrains Mono', monospace;
+
+	--color-canvas: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-raised: var(--surface-raised);
+}
+
+html,
+body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	font-family: var(--font-sans);
+	font-size: 13px;
+	background: var(--color-canvas);
+	color: var(--text);
+	user-select: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+input,
+textarea,
+select {
+	user-select: text;
+	font-family: inherit;
+}
+
+/* The frameless-window drag region and its interactive exceptions. */
+.app-drag {
+	-webkit-app-region: drag;
+}
+.app-no-drag {
+	-webkit-app-region: no-drag;
+}

@@ -1,0 +1,18 @@
+node_modules/
+/build
+/dist
+/.svelte-kit
+/package
+.env
+.env.*
+!.env.example
+.DS_Store
+*.tsbuildinfo
+/release
+
+/electron/dist
+
+/.qa
+
+# Mobbin reference images are licensed to us, not redistributable (public repo).
+/docs/references/

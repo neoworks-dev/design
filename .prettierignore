@@ -1,0 +1,7 @@
+build
+.svelte-kit
+electron/dist
+bun.lock
+.claude
+docs
+.qa

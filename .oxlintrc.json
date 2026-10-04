@@ -1,0 +1,5 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"extends": ["./node_modules/@neoworks/lint-config/oxlintrc.json"],
+	"ignorePatterns": ["build", ".svelte-kit", "electron/dist", "docs", ".qa"]
+}
