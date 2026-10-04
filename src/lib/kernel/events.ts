@@ -26,6 +26,12 @@ declare module '@neoworks/extension-system' {
 		/** Dispatch mode: emit. A command threw or was vetoed; the run rejects with the same error. */
 		'command/error'(commandId: string, args: unknown, error: unknown): void;
 
+		/**
+		 * Dispatch mode: emit. A panel tab was activated (shortcut, command or click); the layout
+		 * reveals that sidebar if it is collapsed.
+		 */
+		'panels/tab-activated'(side: 'left' | 'right', tabId: string): void;
+
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;
 	}

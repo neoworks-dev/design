@@ -6,6 +6,7 @@ import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
 import coreKeymap from './core-keymap';
 import coreMenus from './core-menus';
+import corePanels from './core-panels';
 import coreRegions from './core-regions';
 import desktopBridge from './desktop-bridge';
 import placeholderShell from './placeholder-shell';
@@ -19,6 +20,7 @@ export const builtinPlugins: Plugin[] = [
 	coreCommands,
 	coreKeymap,
 	coreMenus,
+	corePanels,
 	workbenchLayout,
 	titlebar,
 	placeholderShell

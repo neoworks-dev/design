@@ -86,6 +86,11 @@ export class LayoutState {
 		else this.rightCollapsed = !this.rightCollapsed;
 	}
 
+	expandSidebar(side: SidebarSide): void {
+		if (side === 'left') this.leftCollapsed = false;
+		else this.rightCollapsed = false;
+	}
+
 	toggleUi(): void {
 		this.uiHidden = !this.uiHidden;
 	}

@@ -33,6 +33,8 @@ export default {
 			'workbench-layout/root region'
 		);
 
+		ctx.on('panels/tab-activated', (side) => layout.expandSidebar(side));
+
 		if (storage) {
 			ctx.effect(() => persistLayout(layout, storage), 'workbench-layout/persist');
 		}
