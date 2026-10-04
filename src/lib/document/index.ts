@@ -13,3 +13,8 @@ export * from './store';
 export * from './treeOps';
 export * from './clone';
 export * from './text';
+export * from './changes';
+export * from './apply';
+export * from './blank';
+export * from './changeEvents';
+export * from './variables';

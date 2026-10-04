@@ -1,0 +1,626 @@
+{
+	"schemaVersion": 1,
+	"id": "doc-rich",
+	"name": "Rich fixture",
+	"nodes": {
+		"n1": {
+			"id": "n1",
+			"type": "PAGE",
+			"name": "Home",
+			"parentId": null,
+			"index": "a0",
+			"pluginData": {},
+			"backgrounds": [
+				{
+					"type": "SOLID",
+					"visible": true,
+					"opacity": 1,
+					"blendMode": "NORMAL",
+					"color": {
+						"r": 0.96,
+						"g": 0.96,
+						"b": 0.96
+					}
+				}
+			],
+			"guides": [],
+			"flowStartingPoints": []
+		},
+		"n2": {
+			"id": "n2",
+			"name": "Hero",
+			"parentId": "n1",
+			"index": "a0",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 800,
+			"height": 400,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"fills": [],
+			"strokes": [],
+			"cornerRadius": 0,
+			"cornerSmoothing": 0,
+			"layoutMode": "NONE",
+			"layoutWrap": "NO_WRAP",
+			"primaryAxisSizingMode": "AUTO",
+			"counterAxisSizingMode": "AUTO",
+			"primaryAxisAlignItems": "MIN",
+			"counterAxisAlignItems": "MIN",
+			"counterAxisAlignContent": "AUTO",
+			"itemSpacing": 0,
+			"counterAxisSpacing": null,
+			"paddingTop": 0,
+			"paddingRight": 0,
+			"paddingBottom": 0,
+			"paddingLeft": 0,
+			"itemReverseZIndex": false,
+			"strokesIncludedInLayout": false,
+			"clipsContent": true,
+			"gridRows": [],
+			"gridColumns": [],
+			"gridRowGap": 0,
+			"gridColumnGap": 0,
+			"layoutGrids": [],
+			"guides": [],
+			"overflowDirection": "NONE",
+			"numberOfFixedChildren": 0,
+			"type": "FRAME"
+		},
+		"n3": {
+			"id": "n3",
+			"name": "Background",
+			"parentId": "n2",
+			"index": "a0",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 100,
+			"height": 100,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"fills": [],
+			"strokes": [],
+			"cornerRadius": 0,
+			"cornerSmoothing": 0,
+			"type": "RECTANGLE",
+			"boundVariables": {
+				"width": {
+					"type": "VARIABLE_ALIAS",
+					"id": "v-width"
+				}
+			}
+		},
+		"n4": {
+			"id": "n4",
+			"name": "Title",
+			"parentId": "n2",
+			"index": "a1",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 100,
+			"height": 100,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"fills": [],
+			"strokes": [],
+			"type": "TEXT",
+			"paragraphs": [
+				{
+					"runs": [],
+					"align": "LEFT",
+					"indent": 0,
+					"spacingAfter": 0,
+					"list": "NONE",
+					"listLevel": 0
+				}
+			],
+			"defaultStyle": {
+				"fontName": {
+					"family": "Inter",
+					"style": "Regular"
+				},
+				"fontWeight": 400,
+				"fontSize": 16,
+				"letterSpacing": {
+					"value": 0,
+					"unit": "PERCENT"
+				},
+				"lineHeight": {
+					"unit": "AUTO"
+				},
+				"textCase": "ORIGINAL",
+				"textDecoration": "NONE",
+				"openTypeFeatures": {},
+				"fontVariations": {},
+				"fills": [
+					{
+						"type": "SOLID",
+						"visible": true,
+						"opacity": 1,
+						"blendMode": "NORMAL",
+						"color": {
+							"r": 0,
+							"g": 0,
+							"b": 0
+						}
+					}
+				]
+			},
+			"textAutoResize": "WIDTH_AND_HEIGHT",
+			"textTruncation": "DISABLED",
+			"maxLines": null,
+			"textAlignVertical": "TOP",
+			"leadingTrim": "NONE"
+		},
+		"n5": {
+			"id": "n5",
+			"name": "Badges",
+			"parentId": "n2",
+			"index": "a2",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 100,
+			"height": 100,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"type": "GROUP"
+		},
+		"n6": {
+			"id": "n6",
+			"name": "Badge 1",
+			"parentId": "n5",
+			"index": "a0",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 100,
+			"height": 100,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"fills": [],
+			"strokes": [],
+			"cornerRadius": 0,
+			"cornerSmoothing": 0,
+			"type": "RECTANGLE"
+		},
+		"n7": {
+			"id": "n7",
+			"name": "Badge 2",
+			"parentId": "n5",
+			"index": "a1",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 100,
+			"height": 100,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"fills": [],
+			"strokes": [],
+			"cornerRadius": 0,
+			"cornerSmoothing": 0,
+			"type": "RECTANGLE"
+		},
+		"n8": {
+			"id": "n8",
+			"name": "Footer",
+			"parentId": "n1",
+			"index": "a1",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 100,
+			"height": 100,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"fills": [],
+			"strokes": [],
+			"cornerRadius": 0,
+			"cornerSmoothing": 0,
+			"layoutMode": "NONE",
+			"layoutWrap": "NO_WRAP",
+			"primaryAxisSizingMode": "AUTO",
+			"counterAxisSizingMode": "AUTO",
+			"primaryAxisAlignItems": "MIN",
+			"counterAxisAlignItems": "MIN",
+			"counterAxisAlignContent": "AUTO",
+			"itemSpacing": 0,
+			"counterAxisSpacing": null,
+			"paddingTop": 0,
+			"paddingRight": 0,
+			"paddingBottom": 0,
+			"paddingLeft": 0,
+			"itemReverseZIndex": false,
+			"strokesIncludedInLayout": false,
+			"clipsContent": true,
+			"gridRows": [],
+			"gridColumns": [],
+			"gridRowGap": 0,
+			"gridColumnGap": 0,
+			"layoutGrids": [],
+			"guides": [],
+			"overflowDirection": "NONE",
+			"numberOfFixedChildren": 0,
+			"type": "FRAME"
+		},
+		"n9": {
+			"id": "n9",
+			"type": "PAGE",
+			"name": "Components",
+			"parentId": null,
+			"index": "a1",
+			"pluginData": {},
+			"backgrounds": [
+				{
+					"type": "SOLID",
+					"visible": true,
+					"opacity": 1,
+					"blendMode": "NORMAL",
+					"color": {
+						"r": 0.96,
+						"g": 0.96,
+						"b": 0.96
+					}
+				}
+			],
+			"guides": [],
+			"flowStartingPoints": []
+		},
+		"n10": {
+			"id": "n10",
+			"type": "PAGE",
+			"name": "Archive",
+			"parentId": null,
+			"index": "a2",
+			"pluginData": {},
+			"backgrounds": [
+				{
+					"type": "SOLID",
+					"visible": true,
+					"opacity": 1,
+					"blendMode": "NORMAL",
+					"color": {
+						"r": 0.96,
+						"g": 0.96,
+						"b": 0.96
+					}
+				}
+			],
+			"guides": [],
+			"flowStartingPoints": []
+		},
+		"n11": {
+			"id": "n11",
+			"name": "Old",
+			"parentId": "n10",
+			"index": "a0",
+			"pluginData": {},
+			"visible": true,
+			"locked": false,
+			"exportSettings": [],
+			"transform": [
+				[
+					1,
+					0,
+					0
+				],
+				[
+					0,
+					1,
+					0
+				]
+			],
+			"width": 100,
+			"height": 100,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"constrainProportions": false,
+			"layoutSizingHorizontal": "FIXED",
+			"layoutSizingVertical": "FIXED",
+			"layoutPositioning": "AUTO",
+			"opacity": 1,
+			"blendMode": "PASS_THROUGH",
+			"isMask": false,
+			"maskType": "ALPHA",
+			"effects": [],
+			"constraints": {
+				"horizontal": "MIN",
+				"vertical": "MIN"
+			},
+			"reactions": [],
+			"fills": [],
+			"strokes": [],
+			"cornerRadius": 0,
+			"cornerSmoothing": 0,
+			"type": "RECTANGLE"
+		}
+	},
+	"styles": {
+		"s-primary": {
+			"id": "s-primary",
+			"type": "PAINT",
+			"name": "Primary",
+			"description": "brand fill",
+			"value": {
+				"type": "SOLID",
+				"color": {
+					"r": 0.1,
+					"g": 0.2,
+					"b": 0.9
+				}
+			}
+		}
+	},
+	"variableCollections": {
+		"c-theme": {
+			"id": "c-theme",
+			"name": "Theme",
+			"modes": [
+				{
+					"modeId": "m-light",
+					"name": "Light"
+				},
+				{
+					"modeId": "m-dark",
+					"name": "Dark"
+				}
+			],
+			"defaultModeId": "m-light",
+			"variableIds": [
+				"v-width"
+			]
+		}
+	},
+	"variables": {
+		"v-width": {
+			"id": "v-width",
+			"name": "width",
+			"collectionId": "c-theme",
+			"resolvedType": "FLOAT",
+			"valuesByMode": {
+				"m-light": 320,
+				"m-dark": 360
+			},
+			"scopes": [
+				"WIDTH_HEIGHT"
+			],
+			"codeSyntax": {
+				"WEB": "var(--width)"
+			},
+			"description": ""
+		}
+	},
+	"assets": {
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+			"id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			"mime": "image/png",
+			"width": 64,
+			"height": 32
+		},
+		"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
+			"id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			"mime": "image/svg+xml"
+		}
+	},
+	"fonts": [
+		{
+			"family": "Inter",
+			"style": "Regular",
+			"source": "system"
+		},
+		{
+			"family": "Brand Sans",
+			"style": "Bold",
+			"source": "embedded"
+		}
+	]
+}

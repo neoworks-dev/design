@@ -371,7 +371,7 @@ describe('main-app', () => {
 		const { host } = await bootTestKernel();
 		const window = firstWindow(host);
 		window.minimized = true;
-		host.emitAppEvent('second-instance');
+		host.emitAppEvent('second-instance', []);
 		expect(window.minimized).toBe(false);
 		expect(window.focusCount).toBe(1);
 	});
@@ -445,7 +445,9 @@ describe('plugin shape rules', () => {
 			expect(plugin.name).toMatch(/^main-/);
 		}
 		const withRoutes = entries.filter((entry) =>
-			['main-window', 'main-app', 'main-dialogs'].includes(entry.plugin.name as string)
+			['main-window', 'main-app', 'main-dialogs', 'main-store', 'main-files'].includes(
+				entry.plugin.name as string
+			)
 		);
 		for (const { plugin } of withRoutes) {
 			const inject = (plugin as Plugin.Object).inject as string[];

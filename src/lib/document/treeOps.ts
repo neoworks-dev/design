@@ -67,7 +67,7 @@ export function planReorder(store: DocumentStore, id: NodeId, position: number):
 	return planMove(store, id, store.requireNode(id).parentId, position);
 }
 
-function assertValidParent(store: DocumentStore, id: NodeId, parentId: NodeId | null): void {
+export function assertValidParent(store: DocumentStore, id: NodeId, parentId: NodeId | null): void {
 	const node = store.requireNode(id);
 	if (node.type === 'PAGE') {
 		if (parentId !== null) throw new Error(`page ${id} must stay a root`);

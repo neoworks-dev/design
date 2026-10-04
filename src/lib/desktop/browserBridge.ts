@@ -27,6 +27,10 @@ function browserPlatform(): NodeJS.Platform {
 	return 'linux';
 }
 
+function unavailable(what: string): Promise<never> {
+	return Promise.reject(new Error(`${what} needs the desktop app (this is a plain browser)`));
+}
+
 export function createBrowserBridge(): BrowserBridge {
 	const listeners = new Map<IpcEventChannel, Set<(payload: never) => void>>();
 	let maximized = false;
@@ -55,6 +59,25 @@ export function createBrowserBridge(): BrowserBridge {
 		fonts: {
 			list: () => Promise.resolve([]),
 			load: () => Promise.resolve(null)
+		},
+		store: {
+			open: () => unavailable('opening files'),
+			create: () => unavailable('creating files'),
+			load: () => unavailable('loading files'),
+			close: () => Promise.resolve(),
+			commit: () => unavailable('saving files'),
+			checkpoint: () => unavailable('saving files')
+		},
+		files: {
+			newUntitled: () => unavailable('creating documents'),
+			open: () => unavailable('opening files'),
+			openDialog: () => Promise.resolve(null),
+			saveDialog: () => Promise.resolve(null),
+			saveAs: () => unavailable('saving files'),
+			offerRecovery: () => Promise.resolve(null),
+			launchRequest: () => Promise.resolve(null),
+			flushed: () => Promise.resolve(),
+			pathForFile: () => ''
 		},
 		events: {
 			on: (channel, listener) => {

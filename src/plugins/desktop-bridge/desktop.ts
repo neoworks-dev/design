@@ -9,14 +9,19 @@ import { Service, type Context } from '@neoworks/extension-system';
 import type {
 	AppPathName,
 	BootReport,
+	CommitResult,
+	CreateStoreRequest,
 	DesktopBridge,
 	FontRef,
 	IpcErrorCode,
 	IpcEventChannel,
 	IpcEvents,
+	LoadedDocument,
 	OpenFileOptions,
-	SaveFileOptions
+	SaveFileOptions,
+	StoreInfo
 } from '../../../electron/bridge';
+import type { Transaction } from '../../lib/document';
 
 const ERROR_CODES: readonly IpcErrorCode[] = [
 	'INVALID_PAYLOAD',
@@ -128,6 +133,82 @@ export class DesktopService extends Service {
 	/** Bytes of an installed font file; `null` when no installed face matches. */
 	loadSystemFont(ref: FontRef): Promise<Uint8Array | null> {
 		return typed(() => this.bridge.fonts.load(ref));
+	}
+
+	/** Open an existing design file as this window's document. */
+	storeOpen(path: string): Promise<StoreInfo> {
+		return typed(() => this.bridge.store.open(path));
+	}
+
+	/** Create a design file (blank unless a document is given) and make it this window's. */
+	storeCreate(request: CreateStoreRequest): Promise<StoreInfo> {
+		return typed(() => this.bridge.store.create(request));
+	}
+
+	/** The whole document of the file this window has open. */
+	storeLoad(): Promise<LoadedDocument> {
+		return typed(() => this.bridge.store.load());
+	}
+
+	storeClose(): Promise<void> {
+		return typed(() => this.bridge.store.close());
+	}
+
+	/** Persist committed document transactions, oldest first (autosave). */
+	storeCommit(transactions: Transaction[]): Promise<CommitResult> {
+		return typed(() => this.bridge.store.commit(transactions));
+	}
+
+	/** Save: checkpoint the open file and clear its unsaved marker. */
+	storeCheckpoint(): Promise<StoreInfo> {
+		return typed(() => this.bridge.store.checkpoint());
+	}
+
+	// ---------- files ----------
+
+	/** A new empty document in a temporary file; becomes this window's document. */
+	filesNewUntitled(): Promise<LoadedDocument | null> {
+		return typed(() => this.bridge.files.newUntitled());
+	}
+
+	/** Open a design file as this window's document and load it. */
+	filesOpen(path: string): Promise<LoadedDocument | null> {
+		return typed(() => this.bridge.files.open(path));
+	}
+
+	/** The native open dialog for design files; `null` when cancelled. */
+	filesOpenDialog(): Promise<string | null> {
+		return typed(() => this.bridge.files.openDialog());
+	}
+
+	/** The native save dialog for design files; `null` when cancelled. */
+	filesSaveDialog(suggestedName: string): Promise<string | null> {
+		return typed(() => this.bridge.files.saveDialog(suggestedName));
+	}
+
+	/** Copy the open file to `path` and continue editing the copy. */
+	filesSaveAs(path: string): Promise<StoreInfo> {
+		return typed(() => this.bridge.files.saveAs(path));
+	}
+
+	/** Offer to restore an untitled document a crash left behind. */
+	filesOfferRecovery(): Promise<LoadedDocument | null> {
+		return typed(() => this.bridge.files.offerRecovery());
+	}
+
+	/** The file this launch was asked to open, once. */
+	filesLaunchRequest(): Promise<string | null> {
+		return typed(() => this.bridge.files.launchRequest());
+	}
+
+	/** Tell main the queued transactions are persisted (answer to `files:flush-request`). */
+	filesFlushed(requestId: string): Promise<void> {
+		return typed(() => this.bridge.files.flushed(requestId));
+	}
+
+	/** The path of a dropped file; empty when the platform does not know it. */
+	pathForFile(file: File): string {
+		return this.bridge.files.pathForFile(file);
 	}
 
 	/**

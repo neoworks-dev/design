@@ -3,7 +3,8 @@
 // Main only: the preload is sandboxed and must not import this file.
 
 import { z } from 'zod';
-import type { IpcChannel, IpcContract } from './bridge';
+import type { CreateStoreRequest, IpcChannel, IpcContract } from './bridge';
+import { designDocumentSchema, transactionSchema } from '../src/lib/document/schema';
 
 const fileFilter = z.strictObject({ name: z.string(), extensions: z.array(z.string()) });
 const openFileOptions = z
@@ -23,6 +24,14 @@ const saveFileOptions = z
 	.optional();
 
 const fontRef = z.strictObject({ family: z.string().min(1), style: z.string().min(1) });
+const storePath = z.string().min(1);
+const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
+	path: storePath,
+	document: designDocumentSchema.optional()
+});
+
+/** More than this in one message is a bug in the sender, not a batch. */
+const MAX_TRANSACTIONS_PER_COMMIT = 5000;
 
 export type PayloadSchemas = {
 	[Channel in IpcChannel]: z.ZodType<IpcContract[Channel]['payload']>;
@@ -40,5 +49,21 @@ export const payloadSchemas: PayloadSchemas = {
 	'dialogs:openFile': openFileOptions,
 	'dialogs:saveFile': saveFileOptions,
 	'fonts:list': z.void(),
-	'fonts:load': fontRef
+	'fonts:load': fontRef,
+	'store:open': z.strictObject({ path: storePath }),
+	'store:create': createStoreRequest,
+	'store:load': z.void(),
+	'store:close': z.void(),
+	'store:commit': z.strictObject({
+		transactions: z.array(transactionSchema).max(MAX_TRANSACTIONS_PER_COMMIT)
+	}),
+	'store:checkpoint': z.void(),
+	'files:newUntitled': z.void(),
+	'files:open': z.strictObject({ path: storePath }),
+	'files:openDialog': z.void(),
+	'files:saveDialog': z.strictObject({ suggestedName: z.string() }),
+	'files:saveAs': z.strictObject({ path: storePath }),
+	'files:offerRecovery': z.void(),
+	'files:launchRequest': z.void(),
+	'files:flushed': z.strictObject({ requestId: z.string().min(1) })
 };

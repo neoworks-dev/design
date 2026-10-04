@@ -11,6 +11,13 @@
 // Names are `<domain>/<verb>`; events of a plugin are prefixed with the plugin id.
 
 import type { BootReport } from './boot.svelte';
+import type {
+	AppendRequest,
+	ApplyMeta,
+	Change,
+	DocumentChangeEvent,
+	DocumentReplaceEvent
+} from '../document';
 import type { Size } from './types';
 
 declare module '@neoworks/extension-system' {
@@ -47,5 +54,40 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;
+
+		/**
+		 * Dispatch mode: waterfall. Fired before `document.apply` validates a change list. A
+		 * listener may veto by throwing or rewrite the list by transforming `next()`'s result.
+		 * Call as `ctx.waterfall('document/before-apply', changes, meta, () => changes)`.
+		 */
+		'document/before-apply'(changes: Change[], meta: ApplyMeta, next: () => Change[]): Change[];
+
+		/**
+		 * Dispatch mode: waterfall. Fired after changes applied, so reflow and component sync can
+		 * append derived changes to the triggering transaction (one undo step). A listener returns
+		 * `[...next(), ...mine]`; appended changes are reported with origin `sync`.
+		 */
+		'document/append'(request: AppendRequest, next: () => Change[]): Change[];
+
+		/**
+		 * Dispatch mode: emit. A batch (one `apply` or one `transaction()`) is about to apply its
+		 * first change; the document is still unchanged. History captures the selection here.
+		 */
+		'document/begin'(meta: ApplyMeta): void;
+
+		/** Dispatch mode: emit. A transaction was committed. The one source of document change news. */
+		'document/change'(event: DocumentChangeEvent): void;
+
+		/** Dispatch mode: emit. The whole document was replaced (new, open): drop derived state. */
+		'document/replace'(event: DocumentReplaceEvent): void;
+
+		/** Dispatch mode: emit. The current page changed. */
+		'document/currentpagechange'(pageId: string, previousPageId: string | null): void;
+
+		/** Dispatch mode: emit. The undo or redo stack changed (canUndo, canRedo, entries). */
+		'history/change'(): void;
+
+		/** Dispatch mode: emit. The selection set changed; fires once per change. */
+		'selection/change'(ids: readonly string[], previousIds: readonly string[]): void;
 	}
 }

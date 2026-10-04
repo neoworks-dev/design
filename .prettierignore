@@ -5,3 +5,4 @@ bun.lock
 .claude
 docs
 .qa
+electron/store/fixtures

@@ -10,6 +10,7 @@ import type {
 	HostFontFile,
 	IpcInvokeEvent,
 	IpcListener,
+	MessageBoxRequest,
 	OpenDialogRequest,
 	Rect,
 	RendererObserver,
@@ -41,6 +42,7 @@ export class FakeWindow implements WindowHandle {
 	destroyed = false;
 	devToolsOpened = false;
 	newWindowHandler: ((url: string) => void) | null = null;
+	private closeHandlers = new Set<() => Promise<boolean>>();
 	observers = new Set<RendererObserver>();
 	loadFailuresRemaining = 0;
 	private listeners = new Map<WindowEventName, Set<() => void>>();
@@ -84,9 +86,27 @@ export class FakeWindow implements WindowHandle {
 	focus(): void {
 		this.focusCount += 1;
 	}
+	/** Like the real window: handlers may keep it open; without any it closes at once. */
 	close(): void {
 		if (this.destroyed) return;
 		this.fire('close');
+		if (this.closeHandlers.size === 0) {
+			this.destroy();
+			return;
+		}
+		void this.requestClose();
+	}
+	/** Runs the close handlers; resolves true when the window closed. */
+	async requestClose(): Promise<boolean> {
+		if (this.destroyed) return true;
+		for (const handler of Array.from(this.closeHandlers)) {
+			if (!(await handler())) return false;
+		}
+		this.destroy();
+		return true;
+	}
+	private destroy(): void {
+		if (this.destroyed) return;
 		this.destroyed = true;
 		this.fire('closed');
 		this.onDestroyed(this);
@@ -113,6 +133,15 @@ export class FakeWindow implements WindowHandle {
 		return () => {
 			set.delete(listener);
 		};
+	}
+	onCloseRequest(handler: () => Promise<boolean>): () => void {
+		this.closeHandlers.add(handler);
+		return () => {
+			this.closeHandlers.delete(handler);
+		};
+	}
+	closeHandlerCount(): number {
+		return this.closeHandlers.size;
 	}
 	onNewWindowRequest(handler: (url: string) => void): void {
 		this.newWindowHandler = handler;
@@ -143,6 +172,8 @@ export class FakeWindow implements WindowHandle {
 
 export interface FakeHostOptions {
 	platform?: NodeJS.Platform;
+	/** Directories `app.getPath` answers with; unset names are `/fake/<name>`. */
+	paths?: Partial<Record<AppPathName, string>>;
 	/** When true, `whenReady()` stays pending until `becomeReady()`. */
 	deferReady?: boolean;
 	/** Work areas of the connected displays, primary first. */
@@ -167,12 +198,16 @@ export class FakeHost implements ElectronHost {
 	readCount = 0;
 	displays: Rect[] = [{ x: 0, y: 0, width: 1920, height: 1080 }];
 	readonly fetched: string[] = [];
+	paths: Partial<Record<AppPathName, string>> = {};
 	quitCount = 0;
 	version = '1.2.3';
 	openDialogResult: string[] | null = null;
 	saveDialogResult: string | null = null;
 	lastOpenDialogRequest: OpenDialogRequest | null = null;
 	lastSaveDialogRequest: SaveDialogRequest | null = null;
+	/** Index of the button `showMessageBox` answers with. */
+	messageBoxResult = 0;
+	readonly messageBoxRequests: MessageBoxRequest[] = [];
 	private nextWindowId = 1;
 	private resolveReady: () => void = () => {};
 	private readyPromise: Promise<void>;
@@ -184,6 +219,7 @@ export class FakeHost implements ElectronHost {
 		if (options.displays) this.displays = options.displays;
 		for (const [name, text] of Object.entries(options.files ?? {})) this.files.set(name, text);
 		this.app.platform = platform;
+		this.paths = { ...options.paths };
 		if (options.deferReady) {
 			this.readyPromise = new Promise<void>((resolve) => {
 				this.resolveReady = resolve;
@@ -223,7 +259,7 @@ export class FakeHost implements ElectronHost {
 			this.quitCount += 1;
 		},
 		getVersion: () => this.version,
-		getPath: (name: AppPathName) => `/fake/${name}`,
+		getPath: (name: AppPathName) => this.paths[name] ?? `/fake/${name}`,
 		requestSingleInstanceLock: () => true,
 		platform: 'linux'
 	};
@@ -259,6 +295,10 @@ export class FakeHost implements ElectronHost {
 		showSaveDialog: (request) => {
 			this.lastSaveDialogRequest = request;
 			return Promise.resolve(this.saveDialogResult);
+		},
+		showMessageBox: (request) => {
+			this.messageBoxRequests.push(request);
+			return Promise.resolve(this.messageBoxResult);
 		}
 	};
 
@@ -345,7 +385,8 @@ export class FakeHost implements ElectronHost {
 				maximize: window.listenerCount('maximize'),
 				unmaximize: window.listenerCount('unmaximize'),
 				resize: window.listenerCount('resize'),
-				move: window.listenerCount('move')
+				move: window.listenerCount('move'),
+				closeRequests: window.closeHandlerCount()
 			}))
 		};
 	}

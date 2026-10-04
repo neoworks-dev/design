@@ -13,8 +13,13 @@ import coreTools from './core-tools';
 import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import fonts from './fonts';
+import documentPlugin from './document';
+import selection from './selection';
+import fileSession from './file-session';
+import history from './history';
 import placeholderShell from './placeholder-shell';
 import titlebar from './titlebar';
+import variablesCore from './variables-core';
 import workbenchLayout from './workbench-layout';
 
 export const builtinPlugins: Plugin[] = [
@@ -22,6 +27,11 @@ export const builtinPlugins: Plugin[] = [
 	debug,
 	desktopBridge,
 	fonts,
+	documentPlugin,
+	selection,
+	history,
+	fileSession,
+	variablesCore,
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,

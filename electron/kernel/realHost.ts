@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fontDirectories, scanFonts } from '../fonts/scan';
 import type {
 	ElectronHost,
+	MessageBoxRequest,
 	OpenDialogRequest,
 	RendererObserver,
 	SaveDialogRequest,
@@ -21,6 +22,16 @@ function toFilters(
 ): { name: string; extensions: string[] }[] | undefined {
 	if (!filters) return undefined;
 	return filters.map((filter) => ({ name: filter.name, extensions: filter.extensions }));
+}
+
+// `bun run qa` cannot click native dialogs on its virtual display. In a QA session only, these
+// variables answer them: DESIGN_QA_OPEN_PATH / DESIGN_QA_SAVE_PATH give the chosen file and
+// DESIGN_QA_MESSAGE_BOX the index of the chosen button. Never set in normal use.
+function qaAnswer(name: string): string | undefined {
+	if (process.env.DESIGN_QA !== '1') return undefined;
+	const value = process.env[name];
+	if (value === undefined || value === '') return undefined;
+	return value;
 }
 
 function wrapWindow(window: BrowserWindow): WindowHandle {
@@ -50,6 +61,28 @@ function wrapWindow(window: BrowserWindow): WindowHandle {
 			window.on(event as 'closed', listener);
 			return () => window.off(event as 'closed', listener);
 		},
+		onCloseRequest: (handler) => {
+			let deciding = false;
+			let allowing = false;
+			const onClose = (event: { preventDefault(): void }): void => {
+				if (allowing) return;
+				event.preventDefault();
+				if (deciding) return;
+				deciding = true;
+				void handler()
+					.catch(() => true)
+					.then((allow) => {
+						deciding = false;
+						if (!allow || window.isDestroyed()) return;
+						allowing = true;
+						window.close();
+					});
+			};
+			window.on('close', onClose);
+			return () => {
+				window.off('close', onClose);
+			};
+		},
 		onNewWindowRequest: (handler) => {
 			webContents.setWindowOpenHandler(({ url }) => {
 				handler(url);
@@ -76,6 +109,11 @@ function wrapWindow(window: BrowserWindow): WindowHandle {
 
 export function createRealHost(): ElectronHost {
 	const handles = new Map<number, WindowHandle>();
+	const openFileForwarders = new Map<
+		unknown,
+		(event: { preventDefault(): void }, path: string) => void
+	>();
+	const secondInstanceForwarders = new Map<unknown, (event: unknown, argv: string[]) => void>();
 
 	function createWindow(options: WindowOptions): WindowHandle {
 		const window = new BrowserWindow({
@@ -108,9 +146,36 @@ export function createRealHost(): ElectronHost {
 		app: {
 			whenReady: () => app.whenReady(),
 			on: (event, listener) => {
+				if (event === 'open-file') {
+					const forward = (electronEvent: { preventDefault(): void }, path: string): void => {
+						electronEvent.preventDefault();
+						(listener as (path: string) => void)(path);
+					};
+					openFileForwarders.set(listener, forward);
+					app.on('open-file', forward);
+					return;
+				}
+				if (event === 'second-instance') {
+					const forward = (_event: unknown, argv: string[]): void => {
+						(listener as (argv: string[]) => void)(argv);
+					};
+					secondInstanceForwarders.set(listener, forward);
+					app.on('second-instance', forward);
+					return;
+				}
 				app.on(event as 'activate', listener as () => void);
 			},
 			off: (event, listener) => {
+				if (event === 'open-file') {
+					const forward = openFileForwarders.get(listener);
+					if (forward) app.off('open-file', forward);
+					return;
+				}
+				if (event === 'second-instance') {
+					const forward = secondInstanceForwarders.get(listener);
+					if (forward) app.off('second-instance', forward);
+					return;
+				}
 				app.off(event as 'activate', listener as () => void);
 			},
 			quit: () => app.quit(),
@@ -127,6 +192,8 @@ export function createRealHost(): ElectronHost {
 		shell: { openExternal: (url) => shell.openExternal(url) },
 		dialog: {
 			showOpenDialog: async (request) => {
+				const answer = qaAnswer('DESIGN_QA_OPEN_PATH');
+				if (answer !== undefined) return [answer];
 				const result = await dialog.showOpenDialog({
 					title: request.title,
 					defaultPath: request.defaultPath,
@@ -137,6 +204,8 @@ export function createRealHost(): ElectronHost {
 				return result.filePaths;
 			},
 			showSaveDialog: async (request: SaveDialogRequest) => {
+				const answer = qaAnswer('DESIGN_QA_SAVE_PATH');
+				if (answer !== undefined) return answer;
 				const result = await dialog.showSaveDialog({
 					title: request.title,
 					defaultPath: request.defaultPath,
@@ -144,6 +213,20 @@ export function createRealHost(): ElectronHost {
 				});
 				if (result.canceled || result.filePath === '') return null;
 				return result.filePath;
+			},
+			showMessageBox: async (request: MessageBoxRequest) => {
+				const answer = qaAnswer('DESIGN_QA_MESSAGE_BOX');
+				if (answer !== undefined) return Number(answer);
+				const result = await dialog.showMessageBox({
+					type: 'question',
+					message: request.message,
+					detail: request.detail,
+					buttons: request.buttons,
+					defaultId: request.defaultId,
+					cancelId: request.cancelId === undefined ? request.buttons.length - 1 : request.cancelId,
+					noLink: true
+				});
+				return result.response;
 			}
 		},
 		screen: { workAreas: () => screen.getAllDisplays().map((display) => display.workArea) },
