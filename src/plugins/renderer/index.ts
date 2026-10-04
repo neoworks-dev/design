@@ -33,6 +33,16 @@ export default {
 		ctx.on('renderer/surface-reset', (reason) => renderer.noteSurfaceReset(reason));
 		ctx.on('renderer/need-frame', (reason) => renderer.requestFrame(reason));
 
+		ctx.inject(['spatial'], (scoped) => {
+			scoped.effect(
+				() =>
+					scoped.renderer.setCulling({
+						visibleNodes: (pageId, rect) => scoped.spatial.sceneIndex.visible(pageId, rect)
+					}),
+				'renderer/culling'
+			);
+		});
+
 		ctx.effect(
 			() =>
 				ctx.regions.register({

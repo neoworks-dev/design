@@ -9,6 +9,7 @@ import type { NodeId, SceneNode } from '../../document/types';
 import type { FrameResult } from '../types';
 import type { DrawContext } from './context';
 import { drawMasked, isMaskNode } from './masks';
+import { drawFromPicture } from './pictures';
 import { toCanvasKitMatrix } from './matrix';
 import { drawFills, isIsolatingBlendMode, skiaBlendMode } from './paints';
 import { buildNodeShape, type NodeShape } from './shape';
@@ -17,7 +18,13 @@ import { drawStrokes } from './strokes';
 export function drawScene(context: DrawContext): FrameResult {
 	const pageId = context.source.currentPageId();
 	if (pageId !== null) drawChildren(context, pageId);
-	return { drawn: true, drawnNodes: context.counters.drawnNodes, layers: context.counters.layers };
+	return {
+		drawn: true,
+		drawnNodes: context.counters.drawnNodes,
+		layers: context.counters.layers,
+		picturesReplayed: context.counters.picturesReplayed,
+		picturesRecorded: context.counters.picturesRecorded
+	};
 }
 
 /** Draws one node and its subtree where the canvas currently is (export). */
@@ -58,6 +65,12 @@ function maskAt(context: DrawContext, id: NodeId): SceneNode | null {
 }
 
 function drawNode(context: DrawContext, id: NodeId): void {
+	if (context.needed !== null && !context.needed.has(id)) return;
+	if (drawFromPicture(context, id, drawNodeDirect)) return;
+	drawNodeDirect(context, id);
+}
+
+function drawNodeDirect(context: DrawContext, id: NodeId): void {
 	const stored = context.source.getNode(id);
 	if (!stored || stored.type === 'PAGE') return;
 	const node = context.source.resolve(stored);

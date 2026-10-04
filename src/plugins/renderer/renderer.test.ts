@@ -39,6 +39,7 @@ class FakeBackend implements RenderBackend {
 	readonly renders: FrameRequest[] = [];
 	readonly resizes: [number, number][] = [];
 	disposed = false;
+	readonly invalidations: unknown[] = [];
 
 	resize(pixelWidth: number, pixelHeight: number): void {
 		this.resizes.push([pixelWidth, pixelHeight]);
@@ -47,6 +48,10 @@ class FakeBackend implements RenderBackend {
 	render(request: FrameRequest): FrameResult {
 		this.renders.push(request);
 		return { drawn: true, drawnNodes: 0, layers: 0 };
+	}
+
+	invalidate(change: unknown): void {
+		this.invalidations.push(change);
 	}
 
 	dispose(): void {
@@ -198,6 +203,26 @@ describe('renderer service', () => {
 		ctx.renderer.setViewProvider(() => ({ x: 5, y: 6, scale: 2 }));
 		driver.tick();
 		expect(backend.renders[1].view).toEqual({ x: 5, y: 6, scale: 2 });
+	});
+
+	it('hands the culling index to the backend and tells it about edits and image arrivals', async () => {
+		const { ctx } = await mountRenderer();
+		ctx.renderer.attachCanvas(document.createElement('canvas'));
+		const source = sampleSource();
+		ctx.renderer.setSceneSource(source);
+		const culling = { visibleNodes: () => [] };
+		const disposeCulling = ctx.renderer.setCulling(culling);
+		driver.tick();
+		expect(backend.renders[backend.renders.length - 1].culling).toBe(culling);
+		source.notifyReset();
+		expect(backend.invalidations).toEqual([{ kind: 'reset' }]);
+		ctx.renderer.requestFrame('image-ready');
+		expect(backend.invalidations).toHaveLength(2);
+		ctx.renderer.requestFrame('viewport');
+		expect(backend.invalidations).toHaveLength(2);
+		disposeCulling();
+		driver.tick();
+		expect(backend.renders[backend.renders.length - 1].culling).toBeUndefined();
 	});
 
 	it('disposing a scene source removes only that source', async () => {
