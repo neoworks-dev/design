@@ -1,4 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
+import { resolveDesktop } from '../../lib/kernel/desktop';
 import { KeymapService } from '../../lib/registries/keymap.svelte';
 
 interface KeymapConfig {
@@ -8,8 +9,8 @@ interface KeymapConfig {
 
 function detectPlatform(config: KeymapConfig | undefined): string {
 	if (config && config.platform) return config.platform;
-	const bridge = Reflect.get(globalThis, 'desktop');
-	if (bridge && typeof bridge.system?.platform === 'string') return bridge.system.platform;
+	const bridge = resolveDesktop();
+	if (bridge) return bridge.system.platform;
 	if (typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)) return 'darwin';
 	return 'linux';
 }

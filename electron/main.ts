@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { applyDebugPaths, forwardRendererConsole, isQaSession } from './debug';
 import { registerWindowIpc } from './ipc';
+import { loadWindowState, trackWindowState } from './windowState';
 
 // Compiled output lives in electron/dist, so the project root is two levels up.
 const distDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -23,13 +24,23 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null;
 
+// The title bar is drawn by the renderer (titlebar plugin). macOS keeps its traffic lights over
+// it; elsewhere the window is fully frameless and the plugin draws the controls.
+const frameOptions: Electron.BrowserWindowConstructorOptions =
+	process.platform === 'darwin'
+		? { titleBarStyle: 'hidden', trafficLightPosition: { x: 14, y: 13 } }
+		: { frame: false };
+
 function createWindow(): void {
+	const state = loadWindowState();
 	const window = new BrowserWindow({
-		width: 1440,
-		height: 900,
+		width: state.width,
+		height: state.height,
+		x: state.x,
+		y: state.y,
 		minWidth: 960,
 		minHeight: 600,
-		frame: false,
+		...frameOptions,
 		backgroundColor: '#0b0b0d',
 		webPreferences: {
 			nodeIntegration: false,
@@ -39,6 +50,8 @@ function createWindow(): void {
 	});
 	mainWindow = window;
 	forwardRendererConsole(window);
+	trackWindowState(window);
+	if (state.maximized) window.maximize();
 
 	window.on('closed', () => {
 		if (mainWindow === window) mainWindow = null;
