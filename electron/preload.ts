@@ -83,6 +83,9 @@ const bridge: DesktopBridge = {
 		saveAs: (path) => invoke('files:saveAs', { path }),
 		offerRecovery: () => invoke('files:offerRecovery'),
 		launchRequest: () => invoke('files:launchRequest'),
+		recent: () => invoke('files:recent'),
+		clearRecent: () => invoke('files:clearRecent'),
+		setThumbnail: (thumbnail) => invoke('files:setThumbnail', thumbnail),
 		flushed: (requestId) => invoke('files:flushed', { requestId }),
 		pathForFile: (file) => webUtils.getPathForFile(file)
 	},

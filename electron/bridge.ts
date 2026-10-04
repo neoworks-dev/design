@@ -66,6 +66,23 @@ export interface CreateStoreRequest {
 	document?: DesignDocument;
 }
 
+/** An encoded preview image, as stored in a file's `thumbnails` table. */
+export interface Thumbnail {
+	mime: string;
+	width: number;
+	height: number;
+	bytes: Uint8Array;
+}
+/** A document the user opened or saved before, newest first in `files:recent`. */
+export interface RecentFile {
+	path: string;
+	name: string;
+	/** Milliseconds since the epoch. */
+	openedAt: number;
+	/** The file's `file` thumbnail; `null` until the renderer wrote one. */
+	thumbnail: Thumbnail | null;
+}
+
 export interface BootFailure {
 	plugin: string;
 	message: string;
@@ -136,6 +153,12 @@ export interface IpcContract {
 	'files:offerRecovery': { payload: void; result: LoadedDocument | null };
 	/** The file this launch was asked to open (command line, OS), once; `null` otherwise. */
 	'files:launchRequest': { payload: void; result: string | null };
+	/** Recently opened or saved documents, newest first; files that vanished are pruned here. */
+	'files:recent': { payload: void; result: RecentFile[] };
+	/** Forget every recent document (also the OS's list where it has one). */
+	'files:clearRecent': { payload: void; result: void };
+	/** Store the open file's thumbnail (key `file`) so the recent list can show it. */
+	'files:setThumbnail': { payload: Thumbnail; result: void };
 	/** Answer to a `files:flush-request` push: the renderer's queue is persisted. */
 	'files:flushed': { payload: { requestId: string }; result: void };
 }
@@ -212,6 +235,9 @@ export interface DesktopBridge {
 		saveAs(path: string): Promise<StoreInfo>;
 		offerRecovery(): Promise<LoadedDocument | null>;
 		launchRequest(): Promise<string | null>;
+		recent(): Promise<RecentFile[]>;
+		clearRecent(): Promise<void>;
+		setThumbnail(thumbnail: Thumbnail): Promise<void>;
 		flushed(requestId: string): Promise<void>;
 		/** The path of a file dropped on the window (Electron no longer exposes `File.path`). */
 		pathForFile(file: File): string;

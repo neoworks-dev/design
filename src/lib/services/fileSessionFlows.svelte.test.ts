@@ -69,6 +69,9 @@ class FakeBackend {
 	};
 
 	files: DesktopBridge['files'] = {
+		recent: () => Promise.resolve([]),
+		clearRecent: () => Promise.resolve(),
+		setThumbnail: () => Promise.resolve(),
 		newUntitled: () => {
 			this.calls.push('newUntitled');
 			return Promise.resolve(this.newUntitled);

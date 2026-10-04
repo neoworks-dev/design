@@ -41,6 +41,9 @@ export interface AppApi {
 	getVersion(): string;
 	getPath(name: AppPathName): string;
 	requestSingleInstanceLock(): boolean;
+	/** The OS's recent documents list (dock, taskbar, Finder); a no-op where there is none. */
+	addRecentDocument(path: string): void;
+	clearRecentDocuments(): void;
 	platform: NodeJS.Platform;
 }
 

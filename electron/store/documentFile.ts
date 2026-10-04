@@ -22,6 +22,7 @@ import type {
 	Variable,
 	VariableCollection
 } from '../../src/lib/document/types';
+import type { Thumbnail } from '../bridge';
 import { APPLICATION_ID, OPEN_PRAGMAS } from './constants';
 import { asStoreError, StoreError } from './errors';
 import { pruneTransactionLog, writeTransaction, type WriteStats } from './transactionWriter';
@@ -313,6 +314,30 @@ export class DocumentFile {
 			.run(bytes, hash);
 		if (result.changes === 0)
 			throw new StoreError('CORRUPT', `no asset record ${hash} to hold bytes`);
+	}
+
+	/** The stored preview under `key` (the file's own is `file`), or `null`. */
+	readThumbnail(key: string): Thumbnail | null {
+		const row = this.requireOpen()
+			.prepare('SELECT mime, width, height, bytes FROM thumbnails WHERE key = ?')
+			.get(key);
+		if (row === undefined) return null;
+		const bytes = row.bytes;
+		if (!(bytes instanceof Uint8Array)) return null;
+		const width = numberOrNull(row, 'width');
+		const height = numberOrNull(row, 'height');
+		if (width === null || height === null) return null;
+		return { mime: textOf(row, 'mime'), width, height, bytes };
+	}
+
+	writeThumbnail(key: string, thumbnail: Thumbnail, now = Date.now()): void {
+		this.requireOpen()
+			.prepare(
+				`INSERT INTO thumbnails (key, mime, width, height, bytes, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+				 ON CONFLICT (key) DO UPDATE SET mime = excluded.mime, width = excluded.width,
+				 height = excluded.height, bytes = excluded.bytes, updated_at = excluded.updated_at`
+			)
+			.run(key, thumbnail.mime, thumbnail.width, thumbnail.height, thumbnail.bytes, now);
 	}
 
 	// ---------- closing ----------

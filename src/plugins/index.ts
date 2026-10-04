@@ -17,6 +17,7 @@ import documentPlugin from './document';
 import selection from './selection';
 import fileSession from './file-session';
 import history from './history';
+import recentFiles from './recent-files';
 import placeholderShell from './placeholder-shell';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
@@ -31,6 +32,7 @@ export const builtinPlugins: Plugin[] = [
 	selection,
 	history,
 	fileSession,
+	recentFiles,
 	variablesCore,
 	coreContextKeys,
 	coreCommands,

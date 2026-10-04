@@ -18,8 +18,10 @@ import type {
 	IpcEvents,
 	LoadedDocument,
 	OpenFileOptions,
+	RecentFile,
 	SaveFileOptions,
-	StoreInfo
+	StoreInfo,
+	Thumbnail
 } from '../../../electron/bridge';
 import type { Transaction } from '../../lib/document';
 
@@ -199,6 +201,20 @@ export class DesktopService extends Service {
 	/** The file this launch was asked to open, once. */
 	filesLaunchRequest(): Promise<string | null> {
 		return typed(() => this.bridge.files.launchRequest());
+	}
+
+	/** Recently opened or saved documents, newest first. */
+	filesRecent(): Promise<RecentFile[]> {
+		return typed(() => this.bridge.files.recent());
+	}
+
+	filesClearRecent(): Promise<void> {
+		return typed(() => this.bridge.files.clearRecent());
+	}
+
+	/** Store the preview of the open document for the recent list (the renderer draws it). */
+	filesSetThumbnail(thumbnail: Thumbnail): Promise<void> {
+		return typed(() => this.bridge.files.setThumbnail(thumbnail));
 	}
 
 	/** Tell main the queued transactions are persisted (answer to `files:flush-request`). */

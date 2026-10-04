@@ -19,6 +19,7 @@ import type {
 	DocumentReplaceEvent
 } from '../document';
 import type { Size } from './types';
+import type { StoreInfo } from '../../../electron/bridge';
 
 declare module '@neoworks/extension-system' {
 	interface Events {
@@ -51,6 +52,9 @@ declare module '@neoworks/extension-system' {
 		 * that was drawn with a fallback should be laid out again.
 		 */
 		'fonts/changed'(): void;
+
+		/** Dispatch mode: emit. The window's document file changed (open, new, Save As). */
+		'file/attached'(info: StoreInfo): void;
 
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;

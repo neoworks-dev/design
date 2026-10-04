@@ -13,18 +13,22 @@ import { mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { createBlankDocument } from '../../src/lib/document/blank';
-import type { LoadedDocument, StoreInfo } from '../bridge';
+import type { LoadedDocument, RecentFile, StoreInfo, Thumbnail } from '../bridge';
 import type { SenderHandle, WindowHandle } from '../kernel/host';
 import { emitTo, route } from '../kernel/route';
 import { FILE_EXTENSION, FILE_TYPE_NAME } from '../store/constants';
 import { DocumentFile, removeFileAndSidecars } from '../store/documentFile';
 import { StoreError } from '../store/errors';
+import { RECENT_FILES_NAME, RecentFilesStore } from '../store/recentFiles';
 import { untitledDirectory } from '../store/untitled';
 
 /** How long main waits for the renderer to confirm it persisted its queue. */
 export const FLUSH_TIMEOUT_MS = 2000;
 
 export const UNTITLED_NAME = 'Untitled';
+
+/** The `thumbnails` key of a document's own preview. */
+export const FILE_THUMBNAIL_KEY = 'file';
 
 export interface FilesConfig {
 	/** How long to wait for the renderer to confirm a flush (milliseconds). */
@@ -60,6 +64,7 @@ export class FilesService extends Service {
 	private readonly launchPaths: string[];
 	private readonly flushTimeoutMs: number;
 	private quitting = false;
+	private recentStore: RecentFilesStore | null = null;
 
 	constructor(ctx: Context, config: FilesConfig = {}) {
 		super(ctx, 'files');
@@ -79,6 +84,7 @@ export class FilesService extends Service {
 		);
 		this.discardIfUntitled(previous);
 		this.watchClose(sender);
+		this.recordRecent(info);
 		return this.loaded(sender, info);
 	}
 
@@ -89,6 +95,7 @@ export class FilesService extends Service {
 		const info = await this.store.adopt(sender, () => DocumentFile.open(target));
 		if (previous !== null && previous !== path.resolve(target)) this.discardIfUntitled(previous);
 		this.watchClose(sender);
+		this.recordRecent(info);
 		return this.loaded(sender, info);
 	}
 
@@ -101,6 +108,7 @@ export class FilesService extends Service {
 		file.saveCopyTo(target, displayNameOf(target));
 		const info = await this.store.adopt(sender, () => DocumentFile.open(target));
 		this.discardIfUntitled(source);
+		this.recordRecent(info);
 		return info;
 	}
 
@@ -126,6 +134,53 @@ export class FilesService extends Service {
 		});
 		if (chosen === null) return null;
 		return withExtension(chosen);
+	}
+
+	// ---------- recent files ----------
+
+	/** Recent documents, newest first; vanished files are pruned, thumbnails read from each file. */
+	recent(): RecentFile[] {
+		return this.recents()
+			.list()
+			.map((entry) => ({ ...entry, thumbnail: this.readThumbnailFromDisk(entry.path) }));
+	}
+
+	clearRecent(): void {
+		this.recents().clear();
+		this.ctx.electron.app.clearRecentDocuments();
+	}
+
+	/** Store the sender's preview. The renderer draws it (see the renderer's thumbnail seam). */
+	setThumbnail(sender: SenderHandle, thumbnail: Thumbnail): void {
+		this.store.current(sender).writeThumbnail(FILE_THUMBNAIL_KEY, thumbnail);
+	}
+
+	/** Untitled documents are temporary and never listed; the OS list follows ours. */
+	private recordRecent(info: StoreInfo): void {
+		if (info.untitled) return;
+		this.recents().record(info.path, info.name);
+		this.ctx.electron.app.addRecentDocument(path.resolve(info.path));
+	}
+
+	private recents(): RecentFilesStore {
+		if (this.recentStore === null) {
+			const userData = this.ctx.electron.app.getPath('userData');
+			this.recentStore = new RecentFilesStore(path.join(userData, RECENT_FILES_NAME));
+		}
+		return this.recentStore;
+	}
+
+	private readThumbnailFromDisk(file: string): Thumbnail | null {
+		let peeked: DocumentFile | null = null;
+		try {
+			peeked = DocumentFile.open(file, { session: false });
+			return peeked.readThumbnail(FILE_THUMBNAIL_KEY);
+		} catch (error) {
+			if (!(error instanceof StoreError)) throw error;
+			return null;
+		} finally {
+			peeked?.close();
+		}
 	}
 
 	// ---------- untitled documents and recovery ----------
@@ -162,6 +217,7 @@ export class FilesService extends Service {
 			}
 			const info = await this.store.adopt(sender, () => DocumentFile.open(candidate.path));
 			this.watchClose(sender);
+			this.recordRecent(info);
 			return this.loaded(sender, info);
 		}
 		return null;
@@ -365,6 +421,11 @@ export const mainFilesPlugin: Plugin.Object<FilesConfig> = {
 		route(ctx, 'files:saveDialog', (request) => files.saveDialog(request.suggestedName));
 		route(ctx, 'files:saveAs', (request, event) => files.saveAs(event.sender, request.path));
 		route(ctx, 'files:offerRecovery', (_payload, event) => files.offerRecovery(event.sender));
+		route(ctx, 'files:recent', () => files.recent());
+		route(ctx, 'files:clearRecent', () => files.clearRecent());
+		route(ctx, 'files:setThumbnail', (thumbnail, event) =>
+			files.setThumbnail(event.sender, thumbnail)
+		);
 		route(ctx, 'files:launchRequest', () => files.takeLaunchRequest());
 		route(ctx, 'files:flushed', (request) => files.flushed(request.requestId));
 

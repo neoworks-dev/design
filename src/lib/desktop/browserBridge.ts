@@ -76,6 +76,9 @@ export function createBrowserBridge(): BrowserBridge {
 			saveAs: () => unavailable('saving files'),
 			offerRecovery: () => Promise.resolve(null),
 			launchRequest: () => Promise.resolve(null),
+			recent: () => Promise.resolve([]),
+			clearRecent: () => Promise.resolve(),
+			setThumbnail: () => Promise.resolve(),
 			flushed: () => Promise.resolve(),
 			pathForFile: () => ''
 		},

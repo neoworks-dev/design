@@ -65,5 +65,13 @@ export const payloadSchemas: PayloadSchemas = {
 	'files:saveAs': z.strictObject({ path: storePath }),
 	'files:offerRecovery': z.void(),
 	'files:launchRequest': z.void(),
+	'files:recent': z.void(),
+	'files:clearRecent': z.void(),
+	'files:setThumbnail': z.strictObject({
+		mime: z.string().min(1),
+		width: z.number().int().positive(),
+		height: z.number().int().positive(),
+		bytes: z.instanceof(Uint8Array)
+	}),
 	'files:flushed': z.strictObject({ requestId: z.string().min(1) })
 };
