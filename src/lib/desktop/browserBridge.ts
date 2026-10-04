@@ -68,6 +68,14 @@ export function createBrowserBridge(): BrowserBridge {
 			commit: () => unavailable('saving files'),
 			checkpoint: () => unavailable('saving files')
 		},
+		assets: {
+			put: () => unavailable('storing images'),
+			get: () => Promise.resolve(null),
+			collect: () => Promise.resolve([]),
+			embedFont: () => unavailable('embedding fonts'),
+			fontBytes: () => Promise.resolve(null),
+			embeddedFonts: () => Promise.resolve([])
+		},
 		files: {
 			newUntitled: () => unavailable('creating documents'),
 			open: () => unavailable('opening files'),

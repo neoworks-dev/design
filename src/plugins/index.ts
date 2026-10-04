@@ -2,6 +2,7 @@
 // plugins declare `inject` and activate when their providers appear.
 
 import type { Plugin } from '@neoworks/extension-system';
+import assetsStore from './assets-store';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
 import coreKeymap from './core-keymap';
@@ -28,6 +29,7 @@ export const builtinPlugins: Plugin[] = [
 	debug,
 	desktopBridge,
 	fonts,
+	assetsStore,
 	documentPlugin,
 	selection,
 	history,

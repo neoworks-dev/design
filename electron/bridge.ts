@@ -6,7 +6,7 @@
 // methods to `DesktopBridge` and `preload.ts`, and register the routes from a main plugin with
 // `route()`.
 
-import type { DesignDocument, Transaction } from '../src/lib/document/types';
+import type { AssetRecord, DesignDocument, Transaction } from '../src/lib/document/types';
 
 // ---------- shared value types ----------
 
@@ -81,6 +81,21 @@ export interface RecentFile {
 	openedAt: number;
 	/** The file's `file` thumbnail; `null` until the renderer wrote one. */
 	thumbnail: Thumbnail | null;
+}
+
+/** An image to store in the open file's `assets` table. */
+export interface AssetPutRequest {
+	mime: string;
+	bytes: Uint8Array;
+	/** Pixel size after EXIF orientation, when the sender could read it. */
+	width?: number;
+	height?: number;
+}
+export interface AssetPutResult {
+	/** The record to add to the document's `assets` (hash is its `id`). */
+	record: AssetRecord;
+	/** False when the same bytes were already stored. */
+	created: boolean;
 }
 
 export interface BootFailure {
@@ -159,6 +174,17 @@ export interface IpcContract {
 	'files:clearRecent': { payload: void; result: void };
 	/** Store the open file's thumbnail (key `file`) so the recent list can show it. */
 	'files:setThumbnail': { payload: Thumbnail; result: void };
+	/** Store image bytes by sha-256 in the open file; the same bytes are stored once. */
+	'assets:put': { payload: AssetPutRequest; result: AssetPutResult };
+	/** The bytes of a stored image; `null` when the file has none under that hash. */
+	'assets:get': { payload: { hash: string }; result: Uint8Array | null };
+	/** Delete stored images nothing references (also done at every Save); the removed hashes. */
+	'assets:collect': { payload: void; result: string[] };
+	/** Embed a font file in the open file (its `fonts` table). */
+	'assets:embedFont': { payload: FontRef & { bytes: Uint8Array }; result: void };
+	'assets:fontBytes': { payload: FontRef; result: Uint8Array | null };
+	/** Faces the open file carries bytes for. */
+	'assets:embeddedFonts': { payload: void; result: FontRef[] };
 	/** Answer to a `files:flush-request` push: the renderer's queue is persisted. */
 	'files:flushed': { payload: { requestId: string }; result: void };
 }
@@ -226,6 +252,14 @@ export interface DesktopBridge {
 		commit(transactions: Transaction[]): Promise<CommitResult>;
 		/** Save: checkpoint the file and clear its unsaved marker. */
 		checkpoint(): Promise<StoreInfo>;
+	};
+	assets: {
+		put(request: AssetPutRequest): Promise<AssetPutResult>;
+		get(hash: string): Promise<Uint8Array | null>;
+		collect(): Promise<string[]>;
+		embedFont(ref: FontRef, bytes: Uint8Array): Promise<void>;
+		fontBytes(ref: FontRef): Promise<Uint8Array | null>;
+		embeddedFonts(): Promise<FontRef[]>;
 	};
 	files: {
 		newUntitled(): Promise<LoadedDocument | null>;

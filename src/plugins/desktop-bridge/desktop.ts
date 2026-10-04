@@ -8,6 +8,8 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type {
 	AppPathName,
+	AssetPutRequest,
+	AssetPutResult,
 	BootReport,
 	CommitResult,
 	CreateStoreRequest,
@@ -164,6 +166,35 @@ export class DesktopService extends Service {
 	/** Save: checkpoint the open file and clear its unsaved marker. */
 	storeCheckpoint(): Promise<StoreInfo> {
 		return typed(() => this.bridge.store.checkpoint());
+	}
+
+	// ---------- assets and embedded fonts ----------
+
+	/** Store image bytes in the open file under their sha-256. */
+	assetsPut(request: AssetPutRequest): Promise<AssetPutResult> {
+		return typed(() => this.bridge.assets.put(request));
+	}
+
+	/** Stored image bytes by hash; `null` when the file has none. */
+	assetsGet(hash: string): Promise<Uint8Array | null> {
+		return typed(() => this.bridge.assets.get(hash));
+	}
+
+	/** Delete stored images nothing references; the removed hashes. */
+	assetsCollect(): Promise<string[]> {
+		return typed(() => this.bridge.assets.collect());
+	}
+
+	assetsEmbedFont(ref: FontRef, bytes: Uint8Array): Promise<void> {
+		return typed(() => this.bridge.assets.embedFont(ref, bytes));
+	}
+
+	assetsFontBytes(ref: FontRef): Promise<Uint8Array | null> {
+		return typed(() => this.bridge.assets.fontBytes(ref));
+	}
+
+	assetsEmbeddedFonts(): Promise<FontRef[]> {
+		return typed(() => this.bridge.assets.embeddedFonts());
 	}
 
 	// ---------- files ----------

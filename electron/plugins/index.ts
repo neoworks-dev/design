@@ -4,6 +4,7 @@
 import type { PluginEntry } from '../kernel/boot';
 import type { ElectronHost } from '../kernel/host';
 import { mainAppPlugin } from './app';
+import { mainAssetsPlugin } from './assets';
 import { mainDialogsPlugin } from './dialogs';
 import { mainFilesPlugin } from './files';
 import { mainElectronPlugin } from './electron';
@@ -32,6 +33,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainDialogsPlugin },
 		{ plugin: mainFontsPlugin },
 		{ plugin: mainStorePlugin },
+		{ plugin: mainAssetsPlugin },
 		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }
 	];
 }

@@ -24,6 +24,16 @@ import type {
 } from '../../src/lib/document/types';
 import type { Thumbnail } from '../bridge';
 import { APPLICATION_ID, OPEN_PRAGMAS } from './constants';
+import {
+	collectUnreferencedAssets,
+	embedFont,
+	listEmbeddedFonts,
+	putAsset,
+	readEmbeddedFontBytes,
+	type AssetInput,
+	type FaceName,
+	type PutAssetResult
+} from './assetStore';
 import { asStoreError, StoreError } from './errors';
 import { pruneTransactionLog, writeTransaction, type WriteStats } from './transactionWriter';
 import { readHeader, requireDesignFile } from './header';
@@ -316,6 +326,28 @@ export class DocumentFile {
 			throw new StoreError('CORRUPT', `no asset record ${hash} to hold bytes`);
 	}
 
+	/** Store image bytes under their content hash (see assetStore.ts); same bytes, same row. */
+	putAsset(input: AssetInput): PutAssetResult {
+		return this.transact((database) => putAsset(database, input));
+	}
+
+	/** Delete asset rows no node or style references; returns their hashes. */
+	collectAssets(): string[] {
+		return this.transact((database) => collectUnreferencedAssets(database));
+	}
+
+	embedFont(face: FaceName, bytes: Uint8Array): void {
+		this.transact((database) => embedFont(database, face, bytes));
+	}
+
+	readEmbeddedFont(face: FaceName): Uint8Array | null {
+		return readEmbeddedFontBytes(this.requireOpen(), face);
+	}
+
+	embeddedFonts(): FaceName[] {
+		return listEmbeddedFonts(this.requireOpen());
+	}
+
 	/** The stored preview under `key` (the file's own is `file`), or `null`. */
 	readThumbnail(key: string): Thumbnail | null {
 		const row = this.requireOpen()
@@ -390,6 +422,7 @@ export class DocumentFile {
 	checkpoint(now = Date.now()): FileInfo {
 		const database = this.requireOpen();
 		this.transact((open) => {
+			collectUnreferencedAssets(open);
 			this.setMeta(open, UNSAVED_KEY, '0');
 			this.setMeta(open, 'modified_at', String(now));
 		});
