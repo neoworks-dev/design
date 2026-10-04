@@ -7,7 +7,15 @@
 
 import { ChildIndex, type NodeMap } from './childIndex';
 import { DerivedCache } from './cache';
-import type { Change, DesignDocument, EntityChange, EntityKind, Node, NodeId } from './types';
+import type {
+	Change,
+	DesignDocument,
+	EntityChange,
+	EntityKind,
+	EntityMap,
+	Node,
+	NodeId
+} from './types';
 import { ENTITY_KINDS } from './types';
 
 const PROTECTED_KEYS = ['id', 'type', 'parentId', 'index'];
@@ -44,6 +52,27 @@ export function invertChange(change: Change): Change {
 export function invertChanges(changes: Change[]): Change[] {
 	return changes.map(invertChange).reverse();
 }
+
+/** The read side of the store: what derived layers and services may use. Mutation is `apply` only. */
+export type DocumentReader = Pick<
+	DocumentStore,
+	| 'document'
+	| 'cache'
+	| 'nodes'
+	| 'hasNode'
+	| 'getNode'
+	| 'requireNode'
+	| 'children'
+	| 'childNodes'
+	| 'pages'
+	| 'parentOf'
+	| 'ancestors'
+	| 'descendants'
+	| 'isDescendantOf'
+	| 'pageOf'
+	| 'getEntity'
+	| 'entities'
+>;
 
 export class DocumentStore {
 	readonly document: DesignDocument;
@@ -133,6 +162,20 @@ export class DocumentStore {
 		let current = this.requireNode(id);
 		while (current.parentId !== null) current = this.requireNode(current.parentId);
 		return current;
+	}
+
+	/** The stored entity (style, variable, collection or asset record), if it exists. */
+	getEntity<K extends EntityKind>(kind: K, id: string): EntityMap[K] | undefined {
+		const table = this.entityTable(kind);
+		if (!Object.hasOwn(table, id)) return undefined;
+		return table[id] as EntityMap[K];
+	}
+
+	entities<K extends EntityKind>(kind: K): EntityMap[K][] {
+		const entities: EntityMap[K][] = [];
+		for (const entity of Object.values(this.entityTable(kind)))
+			entities.push(entity as EntityMap[K]);
+		return entities;
 	}
 
 	// ---------- mutation ----------
