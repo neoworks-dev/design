@@ -8,6 +8,7 @@
 import type {
 	ColorStop,
 	DesignDocument,
+	Effect,
 	GradientPaint,
 	ImagePaint,
 	Matrix2x3,
@@ -578,10 +579,218 @@ function paintsFrame(): NodeSpec {
 	]);
 }
 
-function shapesPage(): NodeSpec {
-	return page('Shapes', [shapesFrame(), fillsFrame(), strokesFrame(), paintsFrame()], {
-		id: SHAPES_PAGE_ID
+function shadow(
+	type: 'DROP_SHADOW' | 'INNER_SHADOW',
+	offsetX: number,
+	offsetY: number,
+	radius: number,
+	options: { spread?: number; alpha?: number; showShadowBehindNode?: boolean } = {}
+): Effect {
+	return {
+		type,
+		visible: true,
+		color: { r: 0, g: 0, b: 0, a: options.alpha ?? 0.5 },
+		offset: { x: offsetX, y: offsetY },
+		radius,
+		spread: options.spread ?? 0,
+		blendMode: 'NORMAL',
+		showShadowBehindNode: options.showShadowBehindNode
+	};
+}
+
+function blur(type: 'LAYER_BLUR' | 'BACKGROUND_BLUR', radius: number): Effect {
+	return { type, visible: true, radius };
+}
+
+const STRIPES = [
+	rectangle({
+		id: 'fx-stripe-a',
+		name: 'fx-stripe-a',
+		width: 100,
+		height: 20,
+		transform: translation(0, 10),
+		fills: [RED]
+	}),
+	rectangle({
+		id: 'fx-stripe-b',
+		name: 'fx-stripe-b',
+		width: 100,
+		height: 20,
+		transform: translation(0, 50),
+		fills: [INK]
+	}),
+	rectangle({
+		id: 'fx-stripe-c',
+		name: 'fx-stripe-c',
+		width: 100,
+		height: 20,
+		transform: translation(0, 90),
+		fills: [RED]
+	})
+];
+
+function effectsFrame(): NodeSpec {
+	return artboard('frame-effects', 'Effects', 0, 960, 640, 420, [
+		shape('RECTANGLE', 'fx-drop-shadow', 30, 30, {
+			fills: [BLUE],
+			effects: [shadow('DROP_SHADOW', 8, 10, 14, { alpha: 0.55 })]
+		}),
+		shape('RECTANGLE', 'fx-inner-shadow', 150, 30, {
+			fills: [PALE],
+			effects: [shadow('INNER_SHADOW', 0, 6, 8, { alpha: 0.6 })]
+		}),
+		shape('ELLIPSE', 'fx-layer-blur', 270, 30, { fills: [RED], effects: [blur('LAYER_BLUR', 10)] }),
+		frame(
+			{
+				id: 'fx-backdrop',
+				name: 'fx-backdrop',
+				width: 100,
+				height: 100,
+				transform: translation(390, 30),
+				clipsContent: true,
+				fills: [solid(1, 1, 1)]
+			},
+			[
+				...STRIPES,
+				rectangle({
+					id: 'fx-background-blur',
+					name: 'fx-background-blur',
+					width: 70,
+					height: 100,
+					transform: translation(20, 0),
+					fills: [solid(1, 1, 1, 0.25)],
+					effects: [blur('BACKGROUND_BLUR', 10)]
+				})
+			]
+		),
+		shape('RECTANGLE', 'fx-spread-shadow', 510, 30, {
+			fills: [YELLOW],
+			effects: [shadow('DROP_SHADOW', 0, 0, 0, { spread: 8, alpha: 0.6 })]
+		}),
+		shape('RECTANGLE', 'fx-opacity-back', 30, 170, { fills: [RED] }),
+		shape('RECTANGLE', 'fx-opacity-front', 70, 210, { fills: [BLUE], opacity: 0.5 }),
+		shape('RECTANGLE', 'fx-blend-base', 190, 170, { fills: [YELLOW] }),
+		shape('ELLIPSE', 'fx-blend-multiply', 230, 210, {
+			fills: [solid(0, 0.8, 1)],
+			blendMode: 'MULTIPLY'
+		}),
+		frame(
+			{
+				id: 'fx-clip',
+				name: 'fx-clip',
+				width: 100,
+				height: 100,
+				transform: translation(390, 170),
+				clipsContent: true,
+				fills: [PALE]
+			},
+			[
+				rectangle({
+					id: 'fx-clip-child',
+					name: 'fx-clip-child',
+					width: 100,
+					height: 100,
+					transform: translation(50, 50),
+					fills: [RED]
+				})
+			]
+		),
+		frame(
+			{
+				id: 'fx-noclip',
+				name: 'fx-noclip',
+				width: 100,
+				height: 100,
+				transform: translation(510, 170),
+				clipsContent: false,
+				fills: [PALE]
+			},
+			[
+				rectangle({
+					id: 'fx-noclip-child',
+					name: 'fx-noclip-child',
+					width: 100,
+					height: 100,
+					transform: translation(50, 50),
+					fills: [RED]
+				})
+			]
+		)
+	]);
+}
+
+function maskedBar(id: string, x: number, y: number, mask: NodeSpec): NodeSpec {
+	const bar = rectangle({
+		id: `${id}-content`,
+		name: `${id}-content`,
+		width: 120,
+		height: 100,
+		transform: translation(x, y),
+		fills: [BLUE]
 	});
+	return group({ id, name: id, transform: translation(0, 0) }, [mask, bar]);
+}
+
+function masksFrame(): NodeSpec {
+	return artboard('frame-masks', 'Masks', 700, 960, 640, 420, [
+		maskedBar(
+			'mask-alpha',
+			30,
+			30,
+			node('ELLIPSE', {
+				id: 'mask-alpha-shape',
+				name: 'mask-alpha-shape',
+				width: 100,
+				height: 100,
+				transform: translation(40, 30),
+				isMask: true,
+				maskType: 'ALPHA',
+				fills: [INK]
+			})
+		),
+		maskedBar(
+			'mask-vector',
+			180,
+			30,
+			node('ELLIPSE', {
+				id: 'mask-vector-shape',
+				name: 'mask-vector-shape',
+				width: 100,
+				height: 100,
+				transform: translation(190, 30),
+				isMask: true,
+				maskType: 'VECTOR',
+				fills: [],
+				strokes: [stroke(INK, 6)]
+			})
+		),
+		maskedBar(
+			'mask-luminance',
+			330,
+			30,
+			rectangle({
+				id: 'mask-luminance-shape',
+				name: 'mask-luminance-shape',
+				width: 120,
+				height: 100,
+				transform: translation(330, 30),
+				isMask: true,
+				maskType: 'LUMINANCE',
+				fills: [gradient('GRADIENT_LINEAR', [stop(0, 0, 0, 0), stop(1, 1, 1, 1)])]
+			})
+		),
+		shape('RECTANGLE', 'mask-sibling-below', 480, 30, { fills: [YELLOW] })
+	]);
+}
+
+function shapesPage(): NodeSpec {
+	return page(
+		'Shapes',
+		[shapesFrame(), fillsFrame(), strokesFrame(), paintsFrame(), effectsFrame(), masksFrame()],
+		{
+			id: SHAPES_PAGE_ID
+		}
+	);
 }
 
 function addThemeVariables(document: DesignDocument): void {

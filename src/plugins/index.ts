@@ -15,6 +15,7 @@ import coreRegions from './core-regions';
 import coreTools from './core-tools';
 import debug from './debug';
 import desktopBridge from './desktop-bridge';
+import effects from './effects';
 import fonts from './fonts';
 import documentPlugin from './document';
 import documentScene from './document-scene';
@@ -56,6 +57,7 @@ export const builtinPlugins: Plugin[] = [
 	assetsStore,
 	imageCache,
 	paintShaders,
+	effects,
 	documentPlugin,
 	documentScene,
 	selection,

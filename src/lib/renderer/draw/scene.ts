@@ -1,13 +1,14 @@
 // Walks the current page and draws it. Per node, in this order (issue #34):
-//   1. parent transform, node opacity and blend mode (one layer when the node is composited)
+//   1. parent transform, node opacity, blend mode and layer blur (one layer when composited)
 //   2. effects behind (hook), fills bottom to top, effects inside (hook), strokes
 //   3. text (hook)
 //   4. children, clipped to the node when it clips content
-// Every value comes from `source.resolve(node)`: variables are already applied.
+// A mask node (masks.ts) masks the siblings above it. Every value comes from `source.resolve(node)`: variables are already applied.
 
 import type { NodeId, SceneNode } from '../../document/types';
 import type { FrameResult } from '../types';
 import type { DrawContext } from './context';
+import { drawMasked, isMaskNode } from './masks';
 import { toCanvasKitMatrix } from './matrix';
 import { drawFills, isIsolatingBlendMode, skiaBlendMode } from './paints';
 import { buildNodeShape, type NodeShape } from './shape';
@@ -20,7 +21,30 @@ export function drawScene(context: DrawContext): FrameResult {
 }
 
 function drawChildren(context: DrawContext, parentId: NodeId): void {
-	for (const childId of context.source.children(parentId)) drawNode(context, childId);
+	drawSiblings(context, context.source.children(parentId));
+}
+
+/** Draws siblings bottom to top; a visible mask node masks everything after it. */
+function drawSiblings(context: DrawContext, ids: readonly NodeId[]): void {
+	for (let index = 0; index < ids.length; index += 1) {
+		const mask = maskAt(context, ids[index]);
+		if (mask === null) {
+			drawNode(context, ids[index]);
+			continue;
+		}
+		const masked = ids.slice(index + 1);
+		drawMasked(context, mask, masked, (rest) => drawSiblings(context, rest), drawNode);
+		return;
+	}
+}
+
+function maskAt(context: DrawContext, id: NodeId): SceneNode | null {
+	const stored = context.source.getNode(id);
+	if (!stored || stored.type === 'PAGE') return null;
+	const node = context.source.resolve(stored);
+	if (node.type === 'SLICE' || !node.visible) return null;
+	if (!isMaskNode(node)) return null;
+	return node;
 }
 
 function drawNode(context: DrawContext, id: NodeId): void {
@@ -44,11 +68,13 @@ function drawNode(context: DrawContext, id: NodeId): void {
 function beginLayer(context: DrawContext, node: SceneNode): boolean {
 	if (!('opacity' in node)) return false;
 	const needsOpacity = node.opacity < 1;
-	if (!needsOpacity && !isIsolatingBlendMode(node.blendMode)) return false;
+	const filter = context.hooks.layerImageFilter(context, node);
+	if (!needsOpacity && !isIsolatingBlendMode(node.blendMode) && filter === null) return false;
 	const { canvasKit, canvas, scope } = context;
 	const layerPaint = scope.own(new canvasKit.Paint());
 	layerPaint.setAlphaf(node.opacity);
 	layerPaint.setBlendMode(skiaBlendMode(context, node.blendMode));
+	if (filter !== null) layerPaint.setImageFilter(filter);
 	canvas.saveLayer(layerPaint);
 	context.counters.layers += 1;
 	return true;

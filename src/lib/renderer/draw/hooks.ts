@@ -3,7 +3,7 @@
 // the renderer (`ctx.renderer.registerDrawHooks`), so shapes, paints and strokes never need to
 // know about gradients, images, effects or text.
 
-import type { Shader } from 'canvaskit-wasm';
+import type { ImageFilter, Shader } from 'canvaskit-wasm';
 import type { Size } from '../../kernel/types';
 import type { GradientPaint, ImagePaint, SceneNode, TextNode } from '../../document/types';
 import type { DrawContext } from './context';
@@ -23,6 +23,8 @@ export interface DrawHooks {
 	drawEffectsBehind(context: DrawContext, node: SceneNode, shape: NodeShape): void;
 	/** Effects painted over the fills and below the strokes: inner shadows (#37). */
 	drawEffectsInside(context: DrawContext, node: SceneNode, shape: NodeShape): void;
+	/** Image filter for the node's isolating layer: layer blur (#37). Null for none. */
+	layerImageFilter(context: DrawContext, node: SceneNode): ImageFilter | null;
 	/** The glyphs of a text node (#43); fills and strokes of text go through here too. */
 	drawText(context: DrawContext, node: TextNode): void;
 }
@@ -31,6 +33,7 @@ export const DEFAULT_DRAW_HOOKS: DrawHooks = {
 	shaderForPaint: () => null,
 	drawEffectsBehind: () => {},
 	drawEffectsInside: () => {},
+	layerImageFilter: () => null,
 	drawText: () => {}
 };
 
@@ -78,6 +81,16 @@ export class DrawHookRegistry implements DrawHooks {
 		for (const layer of this.layers) {
 			if (layer.drawEffectsInside) layer.drawEffectsInside(context, node, shape);
 		}
+	}
+
+	layerImageFilter(context: DrawContext, node: SceneNode): ImageFilter | null {
+		for (let index = this.layers.length - 1; index >= 0; index -= 1) {
+			const layer = this.layers[index];
+			if (!layer.layerImageFilter) continue;
+			const filter = layer.layerImageFilter(context, node);
+			if (filter !== null) return filter;
+		}
+		return null;
 	}
 
 	drawText(context: DrawContext, node: TextNode): void {
