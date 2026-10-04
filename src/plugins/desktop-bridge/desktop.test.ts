@@ -1,9 +1,9 @@
 import { Context, FiberState, type Plugin } from '@neoworks/extension-system';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DesktopBridge } from '../../../electron/bridge';
-import { createBrowserBridge, type BrowserBridge } from './browserBridge';
+import { createBrowserBridge, type BrowserBridge } from '../../lib/desktop/browserBridge';
 import { DesktopError, DesktopService, parseBridgeError } from './desktop';
-import { desktopBridgePlugin, resolveBridge } from './index';
+import desktopBridgePlugin, { resolveBridge } from './index';
 
 // A consumer plugin, the way other plugins use the service: inject it, subscribe through it.
 function consumer(use: (desktop: DesktopService) => void, name = 'consumer'): Plugin.Object {

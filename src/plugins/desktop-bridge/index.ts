@@ -1,11 +1,10 @@
 // desktop-bridge: provides the `desktop` service. Uses the preload's `window.desktop` when running
 // in Electron and an in-memory browser bridge otherwise.
 //
-// NOT yet in the renderer boot list: the renderer-kernel boot (owned by another change) adds it.
 
-import type { Plugin } from '@neoworks/extension-system';
+import type { Context } from '@neoworks/extension-system';
 import type { DesktopBridge } from '../../../electron/bridge';
-import { createBrowserBridge } from './browserBridge';
+import { createBrowserBridge } from '../../lib/desktop/browserBridge';
 import { DesktopService } from './desktop';
 
 declare module '@neoworks/extension-system' {
@@ -28,9 +27,10 @@ export function resolveBridge(): DesktopBridge {
 	return createBrowserBridge();
 }
 
-export const desktopBridgePlugin: Plugin.Object<DesktopBridgeConfig | undefined> = {
+export default {
 	name: 'desktop-bridge',
-	apply(ctx, config) {
+	inject: [],
+	apply(ctx: Context, config: DesktopBridgeConfig | undefined): void {
 		const bridge = config && config.bridge ? config.bridge : resolveBridge();
 		new DesktopService(ctx, bridge);
 	}
