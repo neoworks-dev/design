@@ -1,5 +1,7 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
 import { describe, expect, it } from 'vitest';
+import coreCommands from '../../plugins/core-commands';
+import coreContextKeys from '../../plugins/core-context-keys';
 import documentPlugin from '../../plugins/document';
 import { createNode, type Change, type DocumentChangeEvent, type Node } from '../document';
 import { buildDocument, frame, page, rectangle } from '../document/fixtures';
@@ -13,6 +15,7 @@ const sample = (): ReturnType<typeof buildDocument> =>
 	]);
 
 describePlugin('document', documentPlugin, {
+	providers: [coreContextKeys, coreCommands],
 	contributes: ({ ctx }) => {
 		expect(ctx.document.childNodes(null)).toHaveLength(1);
 		expect(ctx.document.childNodes(null)[0].name).toBe('Page 1');
@@ -22,7 +25,10 @@ describePlugin('document', documentPlugin, {
 async function mountWithDocument(
 	extraPlugins: Plugin[] = []
 ): Promise<Awaited<ReturnType<typeof mountPlugin>>> {
-	const mounted = await mountPlugin(documentPlugin, { config: { document: sample() } });
+	const mounted = await mountPlugin(documentPlugin, {
+		providers: [coreContextKeys, coreCommands],
+		config: { document: sample() }
+	});
 	for (const plugin of extraPlugins) await mounted.ctx.plugin(plugin);
 	return mounted;
 }

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import selectionPlugin from '../../plugins/selection';
+import coreCommands from '../../plugins/core-commands';
 import coreContextKeys from '../../plugins/core-context-keys';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../kernel/testing';
 import { documentWith, sampleDocument } from './fixtures/documentFixture';
 
-const providers = [coreContextKeys, documentWith(sampleDocument())];
+const providers = [coreContextKeys, coreCommands, documentWith(sampleDocument())];
 const user = { origin: 'user' as const, label: 'Test' };
 
 describePlugin('selection', selectionPlugin, {
@@ -18,7 +19,7 @@ describePlugin('selection', selectionPlugin, {
 
 async function mount(): Promise<MountedPlugin> {
 	return mountPlugin(selectionPlugin, {
-		providers: [coreContextKeys, documentWith(sampleDocument())]
+		providers: [coreContextKeys, coreCommands, documentWith(sampleDocument())]
 	});
 }
 

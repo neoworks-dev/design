@@ -24,7 +24,7 @@ export function sampleDocument(): DesignDocument {
 export function documentWith(document: DesignDocument): Plugin.Object {
 	return {
 		name: 'document',
-		inject: [],
+		inject: ['commands'],
 		apply(ctx): void {
 			documentPlugin.apply(ctx, { document });
 		}

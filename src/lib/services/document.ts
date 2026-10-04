@@ -20,6 +20,9 @@ import { Service, type Context } from '@neoworks/extension-system';
 import {
 	affectedNodeIds,
 	applyChanges,
+	cloneSubtree,
+	createNode,
+	indexAtPosition,
 	generateNodeId,
 	invertChanges,
 	planEntityAdd,
@@ -43,9 +46,15 @@ import {
 	type NodeId,
 	type PageNode,
 	type Rect,
+	type RGB,
 	type Transaction
 } from '../document';
-import type { Batch, DocumentState } from './documentState.svelte';
+import {
+	DEFAULT_PAGE_VIEWPORT,
+	type Batch,
+	type DocumentState,
+	type PageViewport
+} from './documentState.svelte';
 
 declare module '@neoworks/extension-system' {
 	interface Context {
@@ -55,6 +64,13 @@ declare module '@neoworks/extension-system' {
 
 /** Derived changes can trigger more derived changes; a loop of this depth is a bug in a listener. */
 const MAX_APPEND_ROUNDS = 8;
+
+export class LastPageError extends Error {
+	constructor() {
+		super('a document needs at least one page; the last page cannot be deleted');
+		this.name = 'LastPageError';
+	}
+}
 
 export class DocumentService extends Service {
 	constructor(
@@ -296,11 +312,115 @@ export class DocumentService extends Service {
 		this.ctx.emit('document/currentpagechange', pageId, previous);
 	}
 
+	createPage(name?: string): NodeId {
+		const id = generateNodeId();
+		const pageName = name === undefined ? this.nextPageName() : requireName(name);
+		const index = indexAtPosition(this.state.store, null, this.pages().length);
+		const page = createNode('PAGE', { id, name: pageName, parentId: null, index });
+		this.apply(planInsert(page), { origin: 'user', label: 'Create page' });
+		this.setCurrentPage(id);
+		return id;
+	}
+
+	renamePage(pageId: NodeId, name: string): void {
+		this.requirePage(pageId);
+		this.apply(this.setProps(pageId, { name: requireName(name) }), {
+			origin: 'user',
+			label: 'Rename page',
+			mergeKey: `rename-page:${pageId}`
+		});
+	}
+
+	reorderPage(pageId: NodeId, position: number): void {
+		this.requirePage(pageId);
+		this.apply(this.moveNode(pageId, null, position), { origin: 'user', label: 'Reorder page' });
+	}
+
+	/** Copy of the page with all its nodes (fresh ids), placed right after it and made current. */
+	duplicatePage(pageId: NodeId): NodeId {
+		const original = this.requirePage(pageId);
+		const clone = cloneSubtree(this.state.store, pageId);
+		const root = clone.nodes[0];
+		root.name = `${original.name} copy`;
+		this.apply(planInsertAll(clone.nodes), { origin: 'user', label: 'Duplicate page' });
+		this.setCurrentPage(clone.rootId);
+		return clone.rootId;
+	}
+
+	deletePage(pageId: NodeId): void {
+		this.requirePage(pageId);
+		const pages = this.pages();
+		if (pages.length <= 1) throw new LastPageError();
+		const position = pages.findIndex((page) => page.id === pageId);
+		const neighbour = pages[position + 1] ?? pages[position - 1];
+		const wasCurrent = this.state.currentPageId === pageId;
+		if (wasCurrent) this.setCurrentPage(neighbour.id);
+		try {
+			this.apply(this.removeNode(pageId), { origin: 'user', label: 'Delete page' });
+		} catch (error) {
+			if (wasCurrent) this.setCurrentPage(pageId);
+			throw error;
+		}
+	}
+
+	/** Page background, as the design panel's Page section edits it. */
+	setPageBackground(pageId: NodeId, color: RGB): void {
+		const page = this.requirePage(pageId);
+		const [first, ...rest] = page.backgrounds;
+		const backgrounds = first
+			? [{ ...first, type: 'SOLID' as const, color }, ...rest]
+			: [
+					{
+						type: 'SOLID' as const,
+						visible: true,
+						opacity: 1,
+						blendMode: 'NORMAL' as const,
+						color
+					}
+				];
+		this.apply(this.setProps(pageId, { backgrounds }), {
+			origin: 'user',
+			label: 'Change page background',
+			mergeKey: `page-background:${pageId}`
+		});
+	}
+
+	getPageViewport(pageId: NodeId): PageViewport {
+		return this.state.viewports.get(pageId) ?? { ...DEFAULT_PAGE_VIEWPORT };
+	}
+
+	setPageViewport(pageId: NodeId, viewport: PageViewport): void {
+		this.state.viewports.set(pageId, { ...viewport });
+	}
+
+	/**
+	 * Hook for lazy page loading: resolves once the page's nodes are in memory. The in-memory
+	 * store holds every page today, so this resolves immediately; the file session can later
+	 * replace it with a per-page load from SQLite.
+	 */
+	ensurePageLoaded(pageId: NodeId): Promise<void> {
+		this.requirePage(pageId);
+		return Promise.resolve();
+	}
+
 	snapshotState(): Record<string, unknown> {
 		return { revision: this.state.revision, nodeCount: Object.keys(this.state.store.nodes).length };
 	}
 
 	// ---------- internals ----------
+
+	private requirePage(pageId: NodeId): PageNode {
+		const page = this.state.store.getNode(pageId);
+		if (!page || page.type !== 'PAGE') throw new Error(`not a page: ${pageId}`);
+		return page;
+	}
+
+	private nextPageName(): string {
+		const taken = new Set(this.pages().map((page) => page.name));
+		let number = this.pages().length + 1;
+		while (taken.has(`Page ${number}`)) number += 1;
+		return `Page ${number}`;
+	}
 
 	private openBatch(meta: ApplyMeta): Batch {
 		const batch: Batch = { id: generateNodeId(), meta, applied: [], derived: [] };
@@ -414,6 +534,12 @@ export class DocumentService extends Service {
 		if (current === null || current === previous) return;
 		this.ctx.emit('document/currentpagechange', current, previous);
 	}
+}
+
+function requireName(name: string): string {
+	const trimmed = name.trim();
+	if (trimmed.length === 0) throw new Error('a page needs a name');
+	return trimmed;
 }
 
 function isThenable(value: unknown): boolean {
