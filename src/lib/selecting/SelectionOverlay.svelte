@@ -23,6 +23,12 @@
 		worldToScreen: (point) => ctx.viewport.worldToScreen(point)
 	};
 
+	// Whole class names, so Tailwind's scanner sees them (`class:` directives are not scanned).
+	function strokeClass(outline: Outline): string {
+		if (outline.component) return 'text-violet-500';
+		return 'text-blue-500';
+	}
+
 	interface Outline {
 		id: string;
 		points: string;
@@ -71,9 +77,9 @@
 <svg class="absolute inset-0 h-full w-full overflow-visible" data-selection-overlay>
 	{#if hovered}
 		<polygon
-			class="fill-none"
-			class:stroke-accent={!hovered.component}
-			class:stroke-violet-500={hovered.component}
+			class={strokeClass(hovered)}
+			fill="none"
+			stroke="currentColor"
 			stroke-width="1"
 			points={hovered.points}
 			data-hover-outline={hovered.id}
@@ -81,9 +87,9 @@
 	{/if}
 	{#each selected as outline (outline.id)}
 		<polygon
-			class="fill-none"
-			class:stroke-accent={!outline.component}
-			class:stroke-violet-500={outline.component}
+			class={strokeClass(outline)}
+			fill="none"
+			stroke="currentColor"
 			stroke-width="1"
 			points={outline.points}
 			data-selection-outline={outline.id}
@@ -91,7 +97,9 @@
 	{/each}
 	{#if dropTarget}
 		<polygon
-			class="stroke-accent fill-none"
+			class="text-blue-500"
+			fill="none"
+			stroke="currentColor"
 			stroke-width="2"
 			points={dropTarget.points}
 			data-drop-target={dropTarget.id}
@@ -99,7 +107,10 @@
 	{/if}
 	{#if marquee}
 		<rect
-			class="stroke-accent fill-accent/10"
+			class="text-blue-500"
+			fill="currentColor"
+			fill-opacity="0.1"
+			stroke="currentColor"
 			stroke-width="1"
 			x={marquee.x}
 			y={marquee.y}
@@ -110,7 +121,8 @@
 	{/if}
 	{#each guides as guide, position (position)}
 		<line
-			class="stroke-red-500"
+			class="text-red-500"
+			stroke="currentColor"
 			stroke-width="1"
 			x1={guide.from.x}
 			y1={guide.from.y}

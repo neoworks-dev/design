@@ -28,7 +28,7 @@ export default {
 					title: 'Move',
 					icon: CursorIcon,
 					shortcut: 'V',
-					group: 'select',
+					group: 'move',
 					order: 0,
 					cursor: 'default',
 					...createMoveTool(ctx, state)
