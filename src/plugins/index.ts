@@ -12,6 +12,7 @@ import selection from './selection';
 import history from './history';
 import placeholderShell from './placeholder-shell';
 import titlebar from './titlebar';
+import variablesCore from './variables-core';
 import workbenchLayout from './workbench-layout';
 
 export const builtinPlugins: Plugin[] = [
@@ -20,6 +21,7 @@ export const builtinPlugins: Plugin[] = [
 	documentPlugin,
 	selection,
 	history,
+	variablesCore,
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,
