@@ -59,10 +59,17 @@ export interface PanelSectionContribution {
 	order?: number;
 	/** Context-key expression; the section is hidden while false. */
 	when?: string;
+	/** Reactive predicate, read where the section list is rendered; combined with `when`. */
+	visible?: () => boolean;
 	component: AnyComponent;
 	props?: Record<string, unknown>;
 	/** Start collapsed until the user chooses otherwise. */
 	collapsed?: boolean;
+	/**
+	 * Context the component renders with. Defaults to the plugin calling `registerSection`;
+	 * services that register on behalf of a plugin (inspectors) pass that plugin's context.
+	 */
+	owner?: Context;
 }
 
 export interface PanelTab extends RegistryEntry {
@@ -79,6 +86,7 @@ export interface PanelSection extends RegistryEntry {
 	tab: string;
 	title: string;
 	when?: string;
+	visible?: () => boolean;
 	collapsedByDefault: boolean;
 	content: RegionEntry;
 }
@@ -190,13 +198,17 @@ export function publishModeKey(state: PanelState, contextKeys: ContextKeysServic
 	};
 }
 
-class WhenRegistry<T extends RegistryEntry & { when?: string }> extends Registry<T> {
+class WhenRegistry<
+	T extends RegistryEntry & { when?: string; visible?: () => boolean }
+> extends Registry<T> {
 	constructor(private readonly contextKeys: ContextKeysService) {
 		super();
 	}
 
 	protected override isActive(entry: T): boolean {
-		return this.contextKeys.evaluate(entry.when);
+		if (!this.contextKeys.evaluate(entry.when)) return false;
+		if (entry.visible === undefined) return true;
+		return entry.visible();
 	}
 }
 
@@ -266,7 +278,7 @@ export class PanelsService extends Service {
 	/** Stack a section in a tab. Sections sort by `order` and hide with `when`. */
 	registerSection(section: PanelSectionContribution): () => void {
 		if (section.when !== undefined) this.contextKeys.validate(section.when);
-		const owner = callerContext(this, this.ctx);
+		const owner = section.owner ? section.owner : callerContext(this, this.ctx);
 		const id = `${section.tab}/${section.id}`;
 		const content = contentEntry(id, section.tab, section.component, section.props, owner);
 		if (!content) throw new Error(`section "${id}" needs a component`);
@@ -276,6 +288,7 @@ export class PanelsService extends Service {
 			tab: section.tab,
 			title: section.title,
 			when: section.when,
+			visible: section.visible,
 			collapsedByDefault: section.collapsed === true,
 			content
 		});
