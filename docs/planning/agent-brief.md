@@ -15,6 +15,8 @@ You implement a chunk of issues from `neoworks-dev/design`. Read this whole file
 
 ## While working
 
+- Do the work yourself: **do not spawn subagents or forks.**
+
 - Work issue by issue in dependency order. **One commit per issue** (or a few), message in
   normal prose, ending with `Closes #<n>` and the line
   `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Commit with the existing git
