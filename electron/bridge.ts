@@ -61,6 +61,7 @@ export interface IpcContract {
 	'window:minimize': { payload: void; result: void };
 	'window:toggleMaximize': { payload: void; result: boolean };
 	'window:close': { payload: void; result: void };
+	'window:isMaximized': { payload: void; result: boolean };
 	'app:version': { payload: void; result: string };
 	'app:path': { payload: AppPathName; result: string };
 	'app:quit': { payload: void; result: void };
@@ -91,6 +92,8 @@ export interface DesktopBridge {
 		minimize(): Promise<void>;
 		toggleMaximize(): Promise<boolean>;
 		close(): Promise<void>;
+		/** Whether the window is maximized now; `window:maximized` pushes the changes. */
+		isMaximized(): Promise<boolean>;
 	};
 	app: {
 		version(): Promise<string>;

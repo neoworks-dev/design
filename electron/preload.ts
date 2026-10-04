@@ -50,7 +50,8 @@ const bridge: DesktopBridge = {
 	window: {
 		minimize: () => invoke('window:minimize'),
 		toggleMaximize: () => invoke('window:toggleMaximize'),
-		close: () => invoke('window:close')
+		close: () => invoke('window:close'),
+		isMaximized: () => invoke('window:isMaximized')
 	},
 	app: {
 		version: () => invoke('app:version'),

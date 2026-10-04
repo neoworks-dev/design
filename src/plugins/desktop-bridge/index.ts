@@ -16,6 +16,19 @@ declare module '@neoworks/extension-system' {
 export interface DesktopBridgeConfig {
 	/** Overrides detection; tests pass a fake here. */
 	bridge?: DesktopBridge;
+	/** Whether `bridge` talks to a real shell. Defaults to true for an explicit bridge. */
+	native?: boolean;
+}
+
+/** True when the page runs inside Electron, that is the preload exposed `window.desktop`. */
+function hasPreloadBridge(): boolean {
+	return typeof window !== 'undefined' && window.desktop !== undefined;
+}
+
+function isNative(config: DesktopBridgeConfig | undefined): boolean {
+	if (config && config.native !== undefined) return config.native;
+	if (config && config.bridge) return true;
+	return hasPreloadBridge();
 }
 
 /** The preload bridge if present, else the browser fallback. */
@@ -32,6 +45,6 @@ export default {
 	inject: [],
 	apply(ctx: Context, config: DesktopBridgeConfig | undefined): void {
 		const bridge = config && config.bridge ? config.bridge : resolveBridge();
-		new DesktopService(ctx, bridge);
+		new DesktopService(ctx, bridge, isNative(config));
 	}
 };

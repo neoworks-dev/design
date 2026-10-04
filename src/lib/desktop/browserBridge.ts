@@ -39,7 +39,8 @@ export function createBrowserBridge(): BrowserBridge {
 				maximized = !maximized;
 				return Promise.resolve(maximized);
 			},
-			close: () => Promise.resolve()
+			close: () => Promise.resolve(),
+			isMaximized: () => Promise.resolve(maximized)
 		},
 		app: {
 			version: () => Promise.resolve(BROWSER_VERSION),

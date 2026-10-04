@@ -149,6 +149,7 @@ describe('DesktopService', () => {
 					return bridge.window.minimize();
 				},
 				toggleMaximize: () => bridge.window.toggleMaximize(),
+				isMaximized: () => bridge.window.isMaximized(),
 				close: () => {
 					calls.push('close');
 					return bridge.window.close();

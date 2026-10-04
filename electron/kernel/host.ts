@@ -41,12 +41,24 @@ export interface AppApi {
 	platform: NodeJS.Platform;
 }
 
+export interface Rect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
 export interface WindowOptions {
 	width: number;
 	height: number;
+	/** Position; absent lets the OS place (centre) the window. */
+	x?: number;
+	y?: number;
 	minWidth: number;
 	minHeight: number;
 	frame: boolean;
+	/** `hidden` draws no title bar but keeps the macOS traffic lights (with `frame: true`). */
+	titleBarStyle?: 'hidden';
 	backgroundColor: string;
 	preloadPath: string;
 }
@@ -56,7 +68,8 @@ export interface RendererObserver {
 	gone(reason: string, exitCode: number): void;
 }
 
-export type WindowEventName = 'closed' | 'maximize' | 'unmaximize' | 'did-finish-load';
+export type WindowEventName =
+	'closed' | 'close' | 'maximize' | 'unmaximize' | 'resize' | 'move' | 'did-finish-load';
 
 export interface WindowHandle {
 	readonly id: number;
@@ -70,6 +83,8 @@ export interface WindowHandle {
 	close(): void;
 	isMaximized(): boolean;
 	isMinimized(): boolean;
+	/** The restored (not maximized) bounds, also while the window is maximized. */
+	getNormalBounds(): Rect;
 	isDestroyed(): boolean;
 	/** Push a message to the window's renderer. */
 	send(channel: string, payload: unknown): void;
@@ -105,6 +120,13 @@ export interface ElectronHost {
 	dialog: {
 		showOpenDialog(request: OpenDialogRequest): Promise<string[] | null>;
 		showSaveDialog(request: SaveDialogRequest): Promise<string | null>;
+	};
+	/** Work areas of the connected displays, primary first. */
+	screen: { workAreas(): Rect[] };
+	/** Small text files in the app's user data directory (window state, ...). */
+	userData: {
+		readText(name: string): string | undefined;
+		writeText(name: string, text: string): void;
 	};
 	createWindow: (options: WindowOptions) => WindowHandle;
 	windows: () => WindowHandle[];

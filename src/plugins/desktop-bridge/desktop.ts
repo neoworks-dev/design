@@ -57,9 +57,15 @@ async function typed<Value>(call: () => Promise<Value>): Promise<Value> {
 export class DesktopService extends Service {
 	constructor(
 		ctx: Context,
-		private readonly bridge: DesktopBridge
+		private readonly bridge: DesktopBridge,
+		private readonly native: boolean = true
 	) {
 		super(ctx, 'desktop');
+	}
+
+	/** False when the app runs in a plain browser on the in-memory fallback bridge. */
+	get isNative(): boolean {
+		return this.native;
 	}
 
 	get platform(): NodeJS.Platform {
@@ -77,6 +83,11 @@ export class DesktopService extends Service {
 	/** Resolves with whether the window is maximized afterwards. */
 	toggleMaximizeWindow(): Promise<boolean> {
 		return typed(() => this.bridge.window.toggleMaximize());
+	}
+
+	/** Whether the window is maximized now; `window:maximized` pushes the changes after that. */
+	isWindowMaximized(): Promise<boolean> {
+		return typed(() => this.bridge.window.isMaximized());
 	}
 
 	closeWindow(): Promise<void> {

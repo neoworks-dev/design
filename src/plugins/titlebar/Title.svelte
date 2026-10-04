@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { getKernel } from '../../lib/kernel/context';
-	import { resolveDesktop } from '../../lib/kernel/desktop';
 	import { documentTitleOf, isDocumentDirty } from './documentTitle.svelte';
 
 	const ctx = getKernel();
 	const title = $derived(documentTitleOf(ctx.contextKeys));
 	const dirty = $derived(isDocumentDirty(ctx.contextKeys));
 	// macOS draws its traffic lights over the top-left corner of the window.
-	const insetForTrafficLights = resolveDesktop()?.system.platform === 'darwin';
+	const insetForTrafficLights = ctx.desktop.platform === 'darwin';
 </script>
 
 <!-- Double click toggles maximize like a native title bar. -->
