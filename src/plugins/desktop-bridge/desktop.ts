@@ -9,6 +9,7 @@ import { Service, type Context } from '@neoworks/extension-system';
 import type {
 	AppPathName,
 	BootReport,
+	CommitResult,
 	CreateStoreRequest,
 	DesktopBridge,
 	IpcErrorCode,
@@ -19,6 +20,7 @@ import type {
 	SaveFileOptions,
 	StoreInfo
 } from '../../../electron/bridge';
+import type { Transaction } from '../../lib/document';
 
 const ERROR_CODES: readonly IpcErrorCode[] = [
 	'INVALID_PAYLOAD',
@@ -128,6 +130,16 @@ export class DesktopService extends Service {
 
 	storeClose(): Promise<void> {
 		return typed(() => this.bridge.store.close());
+	}
+
+	/** Persist committed document transactions, oldest first (autosave). */
+	storeCommit(transactions: Transaction[]): Promise<CommitResult> {
+		return typed(() => this.bridge.store.commit(transactions));
+	}
+
+	/** Save: checkpoint the open file and clear its unsaved marker. */
+	storeCheckpoint(): Promise<StoreInfo> {
+		return typed(() => this.bridge.store.checkpoint());
 	}
 
 	/**

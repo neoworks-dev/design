@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import type { CreateStoreRequest, IpcChannel, IpcContract } from './bridge';
-import { designDocumentSchema } from '../src/lib/document/schema';
+import { designDocumentSchema, transactionSchema } from '../src/lib/document/schema';
 
 const fileFilter = z.strictObject({ name: z.string(), extensions: z.array(z.string()) });
 const openFileOptions = z
@@ -29,6 +29,9 @@ const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
 	document: designDocumentSchema.optional()
 });
 
+/** More than this in one message is a bug in the sender, not a batch. */
+const MAX_TRANSACTIONS_PER_COMMIT = 5000;
+
 export type PayloadSchemas = {
 	[Channel in IpcChannel]: z.ZodType<IpcContract[Channel]['payload']>;
 };
@@ -46,5 +49,9 @@ export const payloadSchemas: PayloadSchemas = {
 	'store:open': z.strictObject({ path: storePath }),
 	'store:create': createStoreRequest,
 	'store:load': z.void(),
-	'store:close': z.void()
+	'store:close': z.void(),
+	'store:commit': z.strictObject({
+		transactions: z.array(transactionSchema).max(MAX_TRANSACTIONS_PER_COMMIT)
+	}),
+	'store:checkpoint': z.void()
 };

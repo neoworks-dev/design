@@ -176,6 +176,59 @@ describe('DesktopService', () => {
 		expect(desktop.platform).toBe(bridge.system.platform);
 	});
 
+	it('forwards the store calls and rebuilds their errors', async () => {
+		const bridge = createBrowserBridge();
+		const calls: string[] = [];
+		const info = {
+			path: '/a.ndesign',
+			documentId: 'd',
+			name: 'a',
+			schemaVersion: 1,
+			createdAt: 1,
+			modifiedAt: 2,
+			recovered: false,
+			unsaved: false
+		};
+		bridge.store = {
+			open: (path) => {
+				calls.push(`open:${path}`);
+				return Promise.resolve(info);
+			},
+			create: (request) => {
+				calls.push(`create:${request.path}`);
+				return Promise.resolve(info);
+			},
+			load: () => Promise.reject(new Error('HANDLER_FAILED: /a.ndesign is damaged')),
+			close: () => {
+				calls.push('close');
+				return Promise.resolve();
+			},
+			commit: (transactions) => {
+				calls.push(`commit:${transactions.length}`);
+				return Promise.resolve({ committed: transactions.length, documentRows: 0 });
+			},
+			checkpoint: () => {
+				calls.push('checkpoint');
+				return Promise.resolve(info);
+			}
+		};
+		const desktop = await mount(bridge);
+		expect(await desktop.storeOpen('/a.ndesign')).toBe(info);
+		expect(await desktop.storeCreate({ path: '/b.ndesign' })).toBe(info);
+		expect(await desktop.storeCommit([])).toEqual({ committed: 0, documentRows: 0 });
+		expect(await desktop.storeCheckpoint()).toBe(info);
+		await desktop.storeClose();
+		expect(calls).toEqual([
+			'open:/a.ndesign',
+			'create:/b.ndesign',
+			'commit:0',
+			'checkpoint',
+			'close'
+		]);
+		const error = await desktop.storeLoad().catch((caught: unknown) => caught);
+		expect(error).toMatchObject({ code: 'HANDLER_FAILED', message: '/a.ndesign is damaged' });
+	});
+
 	it('turns the bridge error message back into a typed DesktopError', async () => {
 		const bridge = createBrowserBridge();
 		bridge.app.path = () => Promise.reject(new Error('INVALID_PAYLOAD: expected one of userData'));

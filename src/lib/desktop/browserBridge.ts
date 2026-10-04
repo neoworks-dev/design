@@ -59,7 +59,9 @@ export function createBrowserBridge(): BrowserBridge {
 			open: () => unavailable('opening files'),
 			create: () => unavailable('creating files'),
 			load: () => unavailable('loading files'),
-			close: () => Promise.resolve()
+			close: () => Promise.resolve(),
+			commit: () => unavailable('saving files'),
+			checkpoint: () => unavailable('saving files')
 		},
 		events: {
 			on: (channel, listener) => {

@@ -8,7 +8,7 @@
 //   file.close();                                       // checkpoints the WAL
 
 import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, rmSync, statSync } from 'node:fs';
 import { createBlankDocument } from '../../src/lib/document/blank';
 import { parseDesignDocument } from '../../src/lib/document/schema';
 import type {
@@ -18,12 +18,14 @@ import type {
 	Node,
 	PageNode,
 	Style,
+	Transaction,
 	Variable,
 	VariableCollection
 } from '../../src/lib/document/types';
-import { OPEN_PRAGMAS } from './constants';
+import { APPLICATION_ID, OPEN_PRAGMAS } from './constants';
 import { asStoreError, StoreError } from './errors';
-import { requireDesignFile } from './header';
+import { pruneTransactionLog, writeTransaction, type WriteStats } from './transactionWriter';
+import { readHeader, requireDesignFile } from './header';
 import { LATEST_SCHEMA_VERSION, migrate, readUserVersion } from './migrations';
 import {
 	assetToRow,
@@ -46,6 +48,29 @@ export interface FileInfo {
 	/** Milliseconds since the epoch. */
 	createdAt: number;
 	modifiedAt: number;
+	/** The previous session left this file without closing it cleanly (crash, kill). */
+	recovered: boolean;
+	/** Edits were committed since the last checkpoint (Save), possibly in an earlier session. */
+	unsaved: boolean;
+}
+
+export interface OpenOptions {
+	/**
+	 * Take part in the crash-recovery protocol (default). A file opened with `session: false` is
+	 * only inspected: it neither sets nor clears the unclean-session marker.
+	 */
+	session?: boolean;
+}
+
+/** One entry of the transaction log. */
+export interface LoggedTransaction {
+	seq: number;
+	id: string;
+	createdAt: number;
+	origin: string;
+	label: string;
+	changes: Transaction['changes'];
+	undo: Transaction['undo'];
 }
 
 /** The nodes of one page, the unit the loader streams. */
@@ -87,12 +112,22 @@ function removeFileAndSidecars(path: string): void {
 		rmSync(`${path}${suffix}`, { force: true });
 }
 
+const TRANSACTION_LOG_LIMIT = 1000;
+const SESSION_KEY = 'session_open';
+const UNSAVED_KEY = 'unsaved';
+/** The log is pruned every this many commits, and on open and close. */
+const PRUNE_EVERY_COMMITS = 100;
+
 export class DocumentFile {
 	private database: DatabaseSync | null;
+	private unsaved = false;
+	private commitsSincePrune = 0;
 
 	private constructor(
 		readonly path: string,
-		database: DatabaseSync
+		database: DatabaseSync,
+		private readonly ownsSession: boolean,
+		private readonly recovered: boolean
 	) {
 		this.database = database;
 	}
@@ -118,8 +153,13 @@ export class DocumentFile {
 		try {
 			DocumentFile.configure(database);
 			migrate(database);
-			const file = new DocumentFile(path, database);
+			const file = new DocumentFile(path, database, true, false);
 			file.writeDocument(document);
+			file.markSessionOpen();
+			// The header (application id, version) is only in the main file after a checkpoint;
+			// without this a crash right after creation would leave a file the header check
+			// cannot recognise.
+			database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
 			return file;
 		} catch (error) {
 			database.close();
@@ -132,29 +172,65 @@ export class DocumentFile {
 	 * Open an existing file. Anything that is not a design file, or that a newer version wrote, is
 	 * refused from the 100-byte header alone, before a connection exists, so it is never written.
 	 */
-	static open(path: string): DocumentFile {
+	static open(path: string, options: OpenOptions = {}): DocumentFile {
 		if (!existsSync(path)) throw new StoreError('NOT_FOUND', `${path} does not exist`);
-		DocumentFile.checkHeader(path);
+		const verifyAfterOpen = DocumentFile.checkHeader(path);
 		const database = new DatabaseSync(path);
 		try {
 			DocumentFile.configure(database);
+			if (verifyAfterOpen) DocumentFile.assertApplicationId(path, database);
 			const version = readUserVersion(database);
 			DocumentFile.assertSupported(path, version);
-			migrate(database);
-			return new DocumentFile(path, database);
+			if (migrate(database).length > 0) database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+			return DocumentFile.adopt(path, database, options.session !== false);
 		} catch (error) {
 			database.close();
 			throw asStoreError(error, path);
 		}
 	}
 
-	private static checkHeader(path: string): void {
+	private static adopt(path: string, database: DatabaseSync, session: boolean): DocumentFile {
+		const probe = new DocumentFile(path, database, false, false);
+		const meta = probe.readMeta();
+		const recovered = meta.has(SESSION_KEY);
+		const file = new DocumentFile(path, database, session, recovered);
+		file.unsaved = meta.get(UNSAVED_KEY) === '1';
+		if (session) {
+			file.markSessionOpen();
+			file.pruneLog(Date.now());
+		}
+		return file;
+	}
+
+	/**
+	 * Refuse from the header alone what is clearly not ours. A header that says "no application id"
+	 * next to a non-empty WAL may just be stale (the id sits in the WAL after a crash), so that
+	 * case is let through and verified through SQL after opening: returns true for it.
+	 */
+	private static checkHeader(path: string): boolean {
 		try {
-			const header = requireDesignFile(path);
+			const header = readHeader(path);
+			if (header.applicationId === 0 && DocumentFile.hasPendingWal(path)) return true;
+			requireDesignFile(path);
 			DocumentFile.assertSupported(path, header.userVersion);
+			return false;
 		} catch (error) {
 			throw asStoreError(error, path);
 		}
+	}
+
+	private static hasPendingWal(path: string): boolean {
+		try {
+			return statSync(`${path}-wal`).size > 0;
+		} catch {
+			return false;
+		}
+	}
+
+	private static assertApplicationId(path: string, database: DatabaseSync): void {
+		const row = database.prepare('PRAGMA application_id').get();
+		if (row !== undefined && row.application_id === APPLICATION_ID) return;
+		throw new StoreError('NOT_A_DESIGN_FILE', `${path} is a database, but not a design file`);
 	}
 
 	private static assertSupported(path: string, version: number): void {
@@ -179,7 +255,9 @@ export class DocumentFile {
 			name: this.requiredMeta(meta, 'name'),
 			schemaVersion: Number(this.requiredMeta(meta, 'schema_version')),
 			createdAt: Number(this.requiredMeta(meta, 'created_at')),
-			modifiedAt: Number(this.requiredMeta(meta, 'modified_at'))
+			modifiedAt: Number(this.requiredMeta(meta, 'modified_at')),
+			recovered: this.recovered,
+			unsaved: this.unsaved
 		};
 	}
 
@@ -243,19 +321,109 @@ export class DocumentFile {
 		return this.database !== null;
 	}
 
-	/** Checkpoint the WAL into the main file and close. Safe to call twice. */
+	/**
+	 * Clear the unclean-session marker, checkpoint the WAL into the main file and close. Safe to
+	 * call twice. Not calling it (a crash) is exactly what leaves the marker for the next open.
+	 */
 	close(): void {
 		const database = this.database;
 		if (database === null) return;
-		this.database = null;
 		try {
+			if (this.ownsSession) {
+				this.pruneLog(Date.now());
+				database.prepare('DELETE FROM meta WHERE key = ?').run(SESSION_KEY);
+			}
 			database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
 		} finally {
+			this.database = null;
 			database.close();
 		}
 	}
 
+	// ---------- persistence ----------
+
+	/**
+	 * Persist one committed document transaction: only the rows its changes touch are written,
+	 * plus one row in the transaction log, all in one SQLite transaction. Committing a
+	 * transaction that is already logged does nothing (a retry after a lost reply).
+	 */
+	commit(transaction: Transaction, now = Date.now()): WriteStats {
+		const stats = this.transact((database) => {
+			const written = writeTransaction(database, transaction, now);
+			if (!written.duplicate) this.touchMeta(database, now);
+			return written;
+		});
+		this.commitsSincePrune += 1;
+		if (this.commitsSincePrune >= PRUNE_EVERY_COMMITS) this.pruneLog(now);
+		return stats;
+	}
+
+	/**
+	 * Save: fold the WAL into the main file and clear the unsaved marker. Everything was already
+	 * persisted per transaction; this makes the file self-contained and marks the document saved.
+	 */
+	checkpoint(now = Date.now()): FileInfo {
+		const database = this.requireOpen();
+		this.transact((open) => {
+			this.setMeta(open, UNSAVED_KEY, '0');
+			this.setMeta(open, 'modified_at', String(now));
+		});
+		this.unsaved = false;
+		database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+		return this.info();
+	}
+
+	/** The newest `limit` log entries, oldest first. */
+	transactionLog(limit = TRANSACTION_LOG_LIMIT): LoggedTransaction[] {
+		const rows = this.requireOpen()
+			.prepare(
+				'SELECT seq, id, created_at, origin, label, data FROM transactions ORDER BY seq DESC LIMIT ?'
+			)
+			.all(limit);
+		return rows.reverse().map((row) => {
+			const data: unknown = JSON.parse(textOf(row, 'data'));
+			if (typeof data !== 'object' || data === null) {
+				throw new StoreError('CORRUPT', `log entry ${textOf(row, 'id')} is not an object`);
+			}
+			const logged = data as { changes: Transaction['changes']; undo: Transaction['undo'] };
+			return {
+				seq: Number(row.seq),
+				id: textOf(row, 'id'),
+				createdAt: Number(row.created_at),
+				origin: textOf(row, 'origin'),
+				label: textOf(row, 'label'),
+				changes: logged.changes,
+				undo: logged.undo
+			};
+		});
+	}
+
+	/** Drop log entries beyond the row cap or older than the age limit. */
+	pruneLog(now = Date.now()): number {
+		this.commitsSincePrune = 0;
+		return pruneTransactionLog(this.requireOpen(), now);
+	}
+
 	// ---------- internals ----------
+
+	private markSessionOpen(): void {
+		this.setMeta(this.requireOpen(), SESSION_KEY, String(Date.now()));
+	}
+
+	private touchMeta(database: DatabaseSync, now: number): void {
+		this.setMeta(database, 'modified_at', String(now));
+		if (this.unsaved) return;
+		this.setMeta(database, UNSAVED_KEY, '1');
+		this.unsaved = true;
+	}
+
+	private setMeta(database: DatabaseSync, key: string, value: string): void {
+		database
+			.prepare(
+				'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value'
+			)
+			.run(key, value);
+	}
 
 	/** The open connection, for the persistence layer that extends this class's work. */
 	requireOpen(): DatabaseSync {

@@ -66,7 +66,9 @@ const bridge: DesktopBridge = {
 		open: (path) => invoke('store:open', { path }),
 		create: (request) => invoke('store:create', request),
 		load: () => invoke('store:load'),
-		close: () => invoke('store:close')
+		close: () => invoke('store:close'),
+		commit: (transactions) => invoke('store:commit', { transactions }),
+		checkpoint: () => invoke('store:checkpoint')
 	},
 	events: { on: subscribe },
 	system: {

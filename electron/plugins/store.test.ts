@@ -1,9 +1,11 @@
 import { DatabaseSync } from 'node:sqlite';
-import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { IpcResult, LoadedDocument, StoreInfo } from '../bridge';
+import type { CommitResult, IpcResult, LoadedDocument, StoreInfo } from '../bridge';
+import { planSetProps } from '../../src/lib/document/changes';
+import { TransactionRecorder } from '../store/testRecorder';
 import { bootMinimalKernel, settle, type TestKernel } from '../kernel/testing';
 import type { FakeWindow } from '../kernel/fakeHost';
 import { DocumentFile } from '../store/documentFile';
@@ -164,6 +166,90 @@ describe('main-store plugin', () => {
 		await kernel.root.fiber.dispose();
 		await settle();
 		expect(file.isOpen).toBe(false);
+	});
+
+	it('persists committed transactions in order and a reopened file shows them', async () => {
+		const kernel = await boot();
+		const target = path.join(directory, 'edit.ndesign');
+		const document = richDocument();
+		value(await call<StoreInfo>(kernel, 'store:create', { path: target, document }));
+		const recorder = new TransactionRecorder(document);
+		const [heroId] = Object.values(document.nodes)
+			.filter((node) => node.name === 'Hero')
+			.map((node) => node.id);
+		const first = recorder.edit('Rename', planSetProps(recorder.store, heroId, { name: 'Banner' }));
+		const second = recorder.edit('Resize', planSetProps(recorder.store, heroId, { width: 640 }));
+
+		const result = value(
+			await call<CommitResult>(kernel, 'store:commit', { transactions: [first, second] })
+		);
+		expect(result).toEqual({ committed: 2, documentRows: 2 });
+		// a retry of the same message (lost reply) changes nothing
+		expect(
+			value(await call<CommitResult>(kernel, 'store:commit', { transactions: [first, second] }))
+		).toEqual({ committed: 0, documentRows: 0 });
+		expect(value(await call<LoadedDocument>(kernel, 'store:load')).document).toEqual(
+			recorder.document
+		);
+
+		await kernel.root.store.close(kernel.window.sender);
+		await settle();
+		const reopened = DocumentFile.open(target);
+		expect(reopened.load()).toEqual(recorder.document);
+		reopened.close();
+	});
+
+	it('refuses a malformed transaction before touching the file, and commits need an open file', async () => {
+		const kernel = await boot();
+		expect(failureOf(await call(kernel, 'store:commit', { transactions: [] }))).toMatch(
+			/no document file open/
+		);
+		value(
+			await call<StoreInfo>(kernel, 'store:create', { path: path.join(directory, 'm.ndesign') })
+		);
+		const bad = { id: 't', origin: 'user', label: 'x', changes: [{ t: 'nope' }], undo: [] };
+		expect(failureOf(await call(kernel, 'store:commit', { transactions: [bad] }))).toMatch(
+			/^INVALID_PAYLOAD/
+		);
+		const missingNode = {
+			id: 't2',
+			origin: 'user',
+			label: 'x',
+			changes: [{ t: 'set', id: 'ghost', set: { name: 'x' }, prev: {} }],
+			undo: []
+		};
+		expect(failureOf(await call(kernel, 'store:commit', { transactions: [missingNode] }))).toMatch(
+			/^HANDLER_FAILED: .*missing node ghost/
+		);
+	});
+
+	it('checkpoint saves: clears the unsaved marker; a crashed file reopens as recovered', async () => {
+		const kernel = await boot();
+		const target = path.join(directory, 'save.ndesign');
+		const document = richDocument();
+		value(await call<StoreInfo>(kernel, 'store:create', { path: target, document }));
+		const recorder = new TransactionRecorder(document);
+		const [heroId] = Object.values(document.nodes)
+			.filter((node) => node.name === 'Hero')
+			.map((node) => node.id);
+		value(
+			await call<CommitResult>(kernel, 'store:commit', {
+				transactions: [recorder.edit('Rename', planSetProps(recorder.store, heroId, { name: 'A' }))]
+			})
+		);
+		expect(kernel.root.store.current(kernel.window.sender).info().unsaved).toBe(true);
+		const saved = value(await call<StoreInfo>(kernel, 'store:checkpoint'));
+		expect(saved.unsaved).toBe(false);
+
+		const crashed = path.join(directory, 'crashed.ndesign');
+		copyFileSync(target, crashed);
+		for (const suffix of ['-wal', '-shm']) {
+			if (existsSync(`${target}${suffix}`))
+				copyFileSync(`${target}${suffix}`, `${crashed}${suffix}`);
+		}
+		const reopened = DocumentFile.open(crashed);
+		expect(reopened.info().recovered).toBe(true);
+		reopened.close();
 	});
 
 	it('a golden file copied from the fixtures opens through IPC', async () => {

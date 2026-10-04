@@ -239,6 +239,15 @@ describe('refusing files', () => {
 		expect(storeErrorCode(() => DocumentFile.open(foreign))).toBe('NOT_A_DESIGN_FILE');
 
 		expect(storeErrorCode(() => DocumentFile.open(filePath('missing')))).toBe('NOT_FOUND');
+
+		// A header without an application id next to a pending WAL may just be stale; the file
+		// is then verified through SQL after opening, and still refused when it is not ours.
+		const stale = filePath('stale');
+		const staleDatabase = new DatabaseSync(stale);
+		staleDatabase.exec('CREATE TABLE t (a)');
+		staleDatabase.close();
+		writeFileSync(`${stale}-wal`, Buffer.alloc(64));
+		expect(storeErrorCode(() => DocumentFile.open(stale))).toBe('NOT_A_DESIGN_FILE');
 		expect(readFileSync(text, 'utf8').startsWith('hello')).toBe(true);
 	});
 });

@@ -9,6 +9,7 @@ import coreRegions from './core-regions';
 import desktopBridge from './desktop-bridge';
 import documentPlugin from './document';
 import selection from './selection';
+import fileSession from './file-session';
 import history from './history';
 import placeholderShell from './placeholder-shell';
 import titlebar from './titlebar';
@@ -21,6 +22,7 @@ export const builtinPlugins: Plugin[] = [
 	documentPlugin,
 	selection,
 	history,
+	fileSession,
 	variablesCore,
 	coreContextKeys,
 	coreCommands,

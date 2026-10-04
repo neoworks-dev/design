@@ -3,8 +3,8 @@
 // opening another file, or unloading the plugin closes (and checkpoints) the database.
 
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
-import type { DesignDocument } from '../../src/lib/document/types';
-import type { LoadedDocument, StoreInfo } from '../bridge';
+import type { DesignDocument, Transaction } from '../../src/lib/document/types';
+import type { CommitResult, LoadedDocument, StoreInfo } from '../bridge';
 import { route } from '../kernel/route';
 import type { SenderHandle } from '../kernel/host';
 import { DocumentFile } from '../store/documentFile';
@@ -47,6 +47,25 @@ export class StoreService extends Service {
 	load(sender: SenderHandle): LoadedDocument {
 		const file = this.current(sender);
 		return { info: file.info(), document: file.load() };
+	}
+
+	/** Persist `transactions` in order, each as its own SQLite transaction. */
+	commit(sender: SenderHandle, transactions: Transaction[]): CommitResult {
+		const file = this.current(sender);
+		let committed = 0;
+		let documentRows = 0;
+		for (const transaction of transactions) {
+			const stats = file.commit(transaction);
+			if (stats.duplicate) continue;
+			committed += 1;
+			documentRows += stats.documentRows;
+		}
+		return { committed, documentRows };
+	}
+
+	/** Save: checkpoint the sender's file and clear its unsaved marker. */
+	checkpoint(sender: SenderHandle): StoreInfo {
+		return this.current(sender).checkpoint();
 	}
 
 	async close(sender: SenderHandle): Promise<void> {
@@ -102,5 +121,9 @@ export const mainStorePlugin: Plugin.Object = {
 		);
 		route(ctx, 'store:load', (_payload, event) => store.load(event.sender));
 		route(ctx, 'store:close', (_payload, event) => store.close(event.sender));
+		route(ctx, 'store:commit', (request, event) =>
+			store.commit(event.sender, request.transactions)
+		);
+		route(ctx, 'store:checkpoint', (_payload, event) => store.checkpoint(event.sender));
 	}
 };

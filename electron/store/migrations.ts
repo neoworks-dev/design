@@ -68,6 +68,7 @@ function createVersion1(database: DatabaseSync): void {
 			label TEXT NOT NULL,
 			data TEXT NOT NULL
 		);
+		CREATE UNIQUE INDEX transactions_by_id ON transactions (id);
 
 		CREATE TABLE thumbnails (
 			key TEXT PRIMARY KEY NOT NULL,

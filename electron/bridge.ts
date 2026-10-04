@@ -6,7 +6,7 @@
 // methods to `DesktopBridge` and `preload.ts`, and register the routes from a main plugin with
 // `route()`.
 
-import type { DesignDocument } from '../src/lib/document/types';
+import type { DesignDocument, Transaction } from '../src/lib/document/types';
 
 // ---------- shared value types ----------
 
@@ -37,10 +37,21 @@ export interface StoreInfo {
 	/** Milliseconds since the epoch. */
 	createdAt: number;
 	modifiedAt: number;
+	/** The previous session left the file without closing it cleanly (crash or kill). */
+	recovered: boolean;
+	/** Edits were committed since the last Save (checkpoint), possibly in an earlier session. */
+	unsaved: boolean;
 }
 export interface LoadedDocument {
 	info: StoreInfo;
 	document: DesignDocument;
+}
+/** What persisting a batch of transactions cost, for the autosave status and tests. */
+export interface CommitResult {
+	/** Transactions applied (duplicates of already logged ones are not counted). */
+	committed: number;
+	/** Node and entity rows written. */
+	documentRows: number;
 }
 export interface CreateStoreRequest {
 	path: string;
@@ -94,6 +105,10 @@ export interface IpcContract {
 	'store:create': { payload: CreateStoreRequest; result: StoreInfo };
 	'store:load': { payload: void; result: LoadedDocument };
 	'store:close': { payload: void; result: void };
+	/** Persist committed transactions, in order, each as one SQLite transaction. */
+	'store:commit': { payload: { transactions: Transaction[] }; result: CommitResult };
+	/** Save: fold the WAL into the file and clear the unsaved marker. */
+	'store:checkpoint': { payload: void; result: StoreInfo };
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -138,6 +153,10 @@ export interface DesktopBridge {
 		/** The whole document of the open file. */
 		load(): Promise<LoadedDocument>;
 		close(): Promise<void>;
+		/** Persist committed document transactions, oldest first. */
+		commit(transactions: Transaction[]): Promise<CommitResult>;
+		/** Save: checkpoint the file and clear its unsaved marker. */
+		checkpoint(): Promise<StoreInfo>;
 	};
 	events: {
 		/** Subscribe to a main-to-renderer push; the returned function unsubscribes. */
