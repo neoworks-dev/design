@@ -19,6 +19,7 @@ import documentPlugin from './document';
 import selection from './selection';
 import spatial from './spatial';
 import hitTest from './hit-test';
+import snapping from './snapping';
 import fileSession from './file-session';
 import history from './history';
 import recentFiles from './recent-files';
@@ -48,6 +49,7 @@ export const builtinPlugins: Plugin[] = [
 	selection,
 	spatial,
 	hitTest,
+	snapping,
 	history,
 	fileSession,
 	recentFiles,
