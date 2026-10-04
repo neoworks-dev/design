@@ -22,6 +22,7 @@ import type { NodeId } from '../document/types';
 import type { SurfaceResetReason } from '../renderer/surface';
 import type { Camera } from '../viewport/camera';
 import type { CanvasWheelEvent } from '../viewport/wheel';
+import type { Point } from '../tools/protocol';
 import type { Size } from './types';
 import type { StoreInfo } from '../../../electron/bridge';
 
@@ -44,6 +45,13 @@ declare module '@neoworks/extension-system' {
 		 * reveals that sidebar if it is collapsed.
 		 */
 		'panels/tab-activated'(side: 'left' | 'right', tabId: string): void;
+
+		/**
+		 * Dispatch mode: waterfall. The point a creation tool starts a shape at. The snapping
+		 * service transforms `next()`'s result to a snapped point; without it the point is as is.
+		 * Call as `ctx.waterfall('tools/snap-point', point, () => point)`.
+		 */
+		'tools/snap-point'(point: Point, next: () => Point): Point;
 
 		/** Dispatch mode: emit. The tool in use changed (activation, temporary tool, revert). */
 		'tools/change'(toolId: string, previousToolId: string): void;

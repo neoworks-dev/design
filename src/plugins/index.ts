@@ -28,6 +28,8 @@ import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
+import toolShapes from './tool-shapes';
+import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
 import nodeCommands from './node-commands';
@@ -59,6 +61,8 @@ export const builtinPlugins: Plugin[] = [
 	coreTools,
 	canvasInput,
 	viewTools,
+	toolShapes,
+	toolFrame,
 	workbenchLayout,
 	titlebar,
 	placeholderShell,

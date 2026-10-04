@@ -5,9 +5,7 @@ import FileTab from './FileTab.svelte';
 import PlaceholderText from './PlaceholderText.svelte';
 import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
 import CursorIcon from 'phosphor-svelte/lib/CursorIcon';
-import FrameCornersIcon from 'phosphor-svelte/lib/FrameCornersIcon';
 import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
-import SquareIcon from 'phosphor-svelte/lib/SquareIcon';
 import TextTIcon from 'phosphor-svelte/lib/TextTIcon';
 
 // Stand-in content for the workbench regions until the real plugins (layers panel, property
@@ -81,24 +79,6 @@ export default {
 
 		const tools: ToolContribution[] = [
 			{ id: 'move', title: 'Move', icon: CursorIcon, shortcut: 'V', group: 'move', order: 0 },
-			{
-				id: 'frame',
-				title: 'Frame',
-				icon: FrameCornersIcon,
-				shortcut: 'F',
-				group: 'create',
-				order: 10,
-				cursor: 'crosshair'
-			},
-			{
-				id: 'rectangle',
-				title: 'Rectangle',
-				icon: SquareIcon,
-				shortcut: 'R',
-				group: 'create',
-				order: 11,
-				cursor: 'crosshair'
-			},
 			{
 				id: 'pen',
 				title: 'Pen',
