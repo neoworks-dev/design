@@ -20,7 +20,8 @@ export interface NudgePlan {
 	blockedByAutoLayout: NodeId[];
 }
 
-function parentDelta(
+/** A screen-axis delta expressed in the node's parent space. */
+export function parentDelta(
 	reader: DocumentReader,
 	node: Node,
 	deltaX: number,
@@ -33,7 +34,7 @@ function parentDelta(
 	return { x: a * deltaX + c * deltaY, y: b * deltaX + d * deltaY };
 }
 
-function translated(transform: Matrix2x3, x: number, y: number): Matrix2x3 {
+export function translated(transform: Matrix2x3, x: number, y: number): Matrix2x3 {
 	const [[a, c, e], [b, d, f]] = transform;
 	return [
 		[a, c, e + x],

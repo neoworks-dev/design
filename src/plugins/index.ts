@@ -17,6 +17,7 @@ import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import fonts from './fonts';
 import documentPlugin from './document';
+import duplicate from './duplicate';
 import selection from './selection';
 import fileSession from './file-session';
 import history from './history';
@@ -69,5 +70,6 @@ export const builtinPlugins: Plugin[] = [
 	nudge,
 	zOrder,
 	grouping,
-	nodeCommands
+	nodeCommands,
+	duplicate
 ];

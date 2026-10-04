@@ -3,7 +3,7 @@
 
 import { generateNodeId, type IdGenerator } from './ids';
 import { keyBetween } from './fractionalIndex';
-import type { DocumentStore } from './store';
+import type { DocumentReader } from './store';
 import type { Node, NodeChange, NodeId } from './types';
 
 export interface CloneOptions {
@@ -25,7 +25,7 @@ export interface CloneResult {
 }
 
 export function cloneSubtree(
-	store: DocumentStore,
+	store: DocumentReader,
 	rootId: NodeId,
 	options: CloneOptions = {}
 ): CloneResult {
@@ -41,6 +41,7 @@ export function cloneSubtree(
 		const copy = structuredClone(original);
 		remapReferences(copy, idMap);
 		copy.id = lookup(idMap, original.id);
+		if (copy.type === 'COMPONENT' || copy.type === 'COMPONENT_SET') copy.key = copy.id;
 		if (original.id === rootId) {
 			copy.parentId = parentId;
 			copy.index = index;
@@ -55,7 +56,7 @@ export function cloneSubtree(
 	return { rootId: lookup(idMap, rootId), nodes, idMap, changes };
 }
 
-function indexAfter(store: DocumentStore, node: Node): string {
+function indexAfter(store: DocumentReader, node: Node): string {
 	const siblings = store.childNodes(node.parentId);
 	const position = siblings.findIndex((sibling) => sibling.id === node.id);
 	const next = siblings[position + 1];
@@ -63,7 +64,7 @@ function indexAfter(store: DocumentStore, node: Node): string {
 	return keyBetween(node.index, next.index);
 }
 
-function lookup(idMap: Map<NodeId, NodeId>, id: NodeId): NodeId {
+export function lookup(idMap: Map<NodeId, NodeId>, id: NodeId): NodeId {
 	const mapped = idMap.get(id);
 	if (mapped === undefined) throw new Error(`id not in clone map: ${id}`);
 	return mapped;
@@ -73,7 +74,7 @@ function lookup(idMap: Map<NodeId, NodeId>, id: NodeId): NodeId {
  * References that point inside the cloned subtree follow the copy; references that point outside
  * (a main component elsewhere, a prototype destination on another frame) stay as they are.
  */
-function remapReferences(node: Node, idMap: Map<NodeId, NodeId>): void {
+export function remapReferences(node: Node, idMap: Map<NodeId, NodeId>): void {
 	if (node.componentRef !== undefined && idMap.has(node.componentRef)) {
 		node.componentRef = lookup(idMap, node.componentRef);
 	}
