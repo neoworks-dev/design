@@ -39,6 +39,7 @@ import grouping from './grouping';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import selectionCommands from './selection-commands';
+import transformHandles from './transform-handles';
 import zOrder from './z-order';
 
 export const builtinPlugins: Plugin[] = [
@@ -70,6 +71,7 @@ export const builtinPlugins: Plugin[] = [
 	canvasInput,
 	viewTools,
 	toolMove,
+	transformHandles,
 	toolShapes,
 	toolFrame,
 	workbenchLayout,
