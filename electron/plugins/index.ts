@@ -5,6 +5,7 @@ import type { PluginEntry } from '../kernel/boot';
 import type { ElectronHost } from '../kernel/host';
 import { mainAppPlugin } from './app';
 import { mainAssetsPlugin } from './assets';
+import { mainClipboardPlugin } from './clipboard';
 import { mainDialogsPlugin } from './dialogs';
 import { mainFilesPlugin } from './files';
 import { mainElectronPlugin } from './electron';
@@ -31,6 +32,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainWindowPlugin, config: options.window },
 		{ plugin: mainAppPlugin },
 		{ plugin: mainDialogsPlugin },
+		{ plugin: mainClipboardPlugin },
 		{ plugin: mainFontsPlugin },
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin },

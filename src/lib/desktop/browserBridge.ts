@@ -5,6 +5,7 @@
 import type {
 	AppPathName,
 	BootReport,
+	ClipboardContent,
 	DesktopBridge,
 	IpcEventChannel,
 	IpcEvents
@@ -34,6 +35,8 @@ function unavailable(what: string): Promise<never> {
 export function createBrowserBridge(): BrowserBridge {
 	const listeners = new Map<IpcEventChannel, Set<(payload: never) => void>>();
 	let maximized = false;
+	// The browser has no OS clipboard access here: copies stay inside the page.
+	let clipboard: ClipboardContent = { text: null, html: null, png: null };
 	const report: BootReport = { kernel: 'main', loaded: [], failed: [], pending: [] };
 
 	return {
@@ -55,6 +58,17 @@ export function createBrowserBridge(): BrowserBridge {
 		dialogs: {
 			openFile: () => Promise.resolve(null),
 			saveFile: () => Promise.resolve(null)
+		},
+		clipboard: {
+			read: () => Promise.resolve({ ...clipboard }),
+			write: (content) => {
+				clipboard = {
+					text: content.text === undefined ? null : content.text,
+					html: content.html === undefined ? null : content.html,
+					png: content.png === undefined ? null : content.png
+				};
+				return Promise.resolve();
+			}
 		},
 		fonts: {
 			list: () => Promise.resolve([]),

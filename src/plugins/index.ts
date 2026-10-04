@@ -18,6 +18,7 @@ import desktopBridge from './desktop-bridge';
 import fonts from './fonts';
 import documentPlugin from './document';
 import align from './align';
+import clipboard from './clipboard';
 import duplicate from './duplicate';
 import selection from './selection';
 import fileSession from './file-session';
@@ -73,5 +74,6 @@ export const builtinPlugins: Plugin[] = [
 	grouping,
 	nodeCommands,
 	duplicate,
-	align
+	align,
+	clipboard
 ];
