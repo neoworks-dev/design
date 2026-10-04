@@ -10,9 +10,11 @@
 
 import type { Context } from '@neoworks/extension-system';
 import type { NodeId } from '../document';
+import type { SelectionSnapshot } from '../services/selection';
 import type { ToolContribution } from '../registries/tools.svelte';
-import { PointerGesture, type ToolPointerEvent } from '../tools/protocol';
-import { enterAt, pickAt } from './pick';
+import { PointerGesture, type Point, type ToolPointerEvent } from '../tools/protocol';
+import { marqueeSelect, rectBetween, toggleInto } from './marquee';
+import { enterAt, isDeepSelect, pickAt } from './pick';
 
 /** What the move tool shows besides the selection itself; the overlay component reads it. */
 export class MoveToolState {
@@ -40,7 +42,7 @@ const DOUBLE_CLICK = 2;
 type Press =
 	| { kind: 'none' }
 	| { kind: 'object'; targetId: NodeId; onClick: () => void }
-	| { kind: 'empty'; shift: boolean };
+	| { kind: 'empty'; shift: boolean; before: SelectionSnapshot; startWorld: Point };
 
 export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers {
 	const gesture = new PointerGesture();
@@ -69,12 +71,15 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 				hover(ctx, event);
 				return;
 			}
-			gesture.move(event.screen);
+			const update = gesture.move(event.screen);
+			if (update.phase !== 'dragging') return;
+			if (press.kind === 'empty') marqueeTo(ctx, state, press, event);
 		},
 		onPointerUp(): void {
 			const result = gesture.release();
 			const finished = press;
 			press = { kind: 'none' };
+			state.marquee = null;
 			if (result !== 'click') return;
 			if (finished.kind === 'object') finished.onClick();
 			if (finished.kind === 'empty' && !finished.shift) ctx.selection.clear();
@@ -84,6 +89,7 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 		},
 		onCancel(): boolean {
 			if (gesture.phase === 'idle') return false;
+			if (press.kind === 'empty' && state.marquee !== null) ctx.selection.restore(press.before);
 			reset();
 			return true;
 		},
@@ -103,6 +109,25 @@ function hover(ctx: Context, event: ToolPointerEvent): void {
 	ctx.selection.setHover(id);
 }
 
+/** Live marquee: the selection follows the rectangle; Shift toggles against the old selection. */
+function marqueeTo(
+	ctx: Context,
+	state: MoveToolState,
+	press: Extract<Press, { kind: 'empty' }>,
+	event: ToolPointerEvent
+): void {
+	state.marquee = rectBetween(press.startWorld, event.world);
+	const scopeId = ctx.selection.scopeId;
+	const found = marqueeSelect(ctx.document.reader, {
+		pageId: ctx.document.currentPageId,
+		scopeId: scopeId === null ? ctx.document.currentPageId : scopeId,
+		rect: state.marquee,
+		deep: isDeepSelect(event)
+	});
+	const ids = press.shift ? toggleInto(press.before.ids, found) : found;
+	ctx.selection.select(ids, 'replace', { source: 'canvas' });
+}
+
 function enter(ctx: Context, event: ToolPointerEvent): void {
 	const result = enterAt(ctx, event.world);
 	if (result.kind === 'entered') {
@@ -114,7 +139,14 @@ function enter(ctx: Context, event: ToolPointerEvent): void {
 
 function pressAt(ctx: Context, event: ToolPointerEvent): Press {
 	const targetId = pickAt(ctx, event.world, event);
-	if (targetId === undefined) return { kind: 'empty', shift: event.shiftKey };
+	if (targetId === undefined) {
+		return {
+			kind: 'empty',
+			shift: event.shiftKey,
+			before: ctx.selection.snapshot(),
+			startWorld: event.world
+		};
+	}
 	const selected = ctx.selection.has(targetId);
 	if (event.shiftKey) return pressWithShift(ctx, targetId, selected);
 	if (selected) return pressOnSelected(ctx, targetId);
