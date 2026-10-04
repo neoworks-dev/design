@@ -105,3 +105,58 @@ Tables (sketch):
   crash-safe autosave.
 - WAL mode. Schema migrations keyed by `meta.schema_version`.
 - Export/import as zip-of-JSON can be added as a separate plugin for diffing and sharing.
+
+## 7. Provisional answers to the open questions (#2)
+
+Status: **provisional** — chosen to unblock implementation, awaiting maintainer sign-off on #2.
+Anything here may change; code should keep these choices localized.
+
+**Touched groups.** One group per inspector section, so "reset" in a section maps to one group:
+`name`, `visibility` (visible, locked), `geometry` (width, height, transform, constraints,
+min/max, layoutSizing*, layoutPositioning), `corners`, `fills`, `strokes`, `effects`,
+`blend` (opacity, blendMode, isMask, maskType), `auto-layout` (all AutoLayoutProps + layoutGrids),
+`text-content` (paragraph text), `text-style` (run styles, defaultStyle, paragraph props, text
+resize/align), `vector` (network), `prototype` (reactions), `component-properties`
+(componentProperties on nested instances), `plugin-data`. A variable binding belongs to the group
+of the property it binds.
+
+**Cycle prevention.** Rejected at write time in `document.apply`: inserting an instance of main
+component M anywhere inside M (directly or via nested instances' mains) throws, so UI, plugins
+and AI all get it. UI additionally greys out the offending components in the assets panel.
+
+**Nested instance sync.** Counterparts are resolved by `componentRef` chains, innermost main
+first; the outer main's change propagates only where the inner instance hasn't touched the group.
+On swap, touched groups carry over to nodes matching by name path; unmatched overrides are
+dropped (Figma behaviour).
+
+**File.** Extension `.ndesign`, MIME `application/vnd.neoworks.design+sqlite`, macOS UTI
+`dev.neoworks.design`. SQLite `application_id` pragma = `0x4E574453` ("NWDS") as the magic
+marker; `user_version` = schema version.
+
+**SQLite.** One row per node; `data` holds the node JSON minus columns (`id`, `parent_id`, `idx`,
+`type`). Pragmas: `journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`. Transaction log
+pruned to the last 1000 transactions or 30 days. Every transaction is persisted, so **Save** =
+WAL checkpoint + clear the "unsaved" marker; there is no unsaved in-memory state. Untitled
+documents live as a SQLite file in `<userData>/untitled/` until "Save as" moves it.
+
+**Text.** Lists are paragraph properties (`list`, `listLevel`); links are a `hyperlink` on the
+run style; fonts are referenced by `{ family, style }` on the run style. A missing font keeps its
+reference in the document; the renderer substitutes at draw time and the UI flags it — the
+substitution is never persisted. Normalization merges adjacent runs whose styles, `textStyleId`
+and `boundVariables` are all deep-equal.
+
+**Vectors.** Vector network is canonical, stored as JSON (`vertices`, `segments`, `regions`).
+Flatten and boolean results are VECTOR nodes with a network (booleans stay live
+BOOLEAN_OPERATION nodes until flattened).
+
+**Prototyping.** Reactions are node properties (`reactions`); flow starting points live on the
+page node. No separate table.
+
+**Libraries.** v1 is single-file: components, styles and variables come from the open file only.
+Cross-file libraries are deferred; the assets panel does not design for team libraries.
+
+**Variables.** Scopes are enforced in the UI picker only (binding a mismatched scope via API is
+allowed). `codeSyntax` is stored and shown in inspect, no other behaviour. A binding whose
+variable no longer matches the property type resolves to the raw property value and is flagged
+in the inspector. Instances inherit modes like any subtree; `explicitVariableModes` on an
+instance overrides its main's.
