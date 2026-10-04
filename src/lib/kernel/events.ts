@@ -39,6 +39,12 @@ declare module '@neoworks/extension-system' {
 		/** Dispatch mode: emit. The built-in plugins finished booting; `report` says how each went. */
 		'kernel/booted'(report: BootReport): void;
 
+		/**
+		 * Dispatch mode: emit. The list of available fonts changed (system fonts listed); text
+		 * that was drawn with a fallback should be laid out again.
+		 */
+		'fonts/changed'(): void;
+
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;
 	}

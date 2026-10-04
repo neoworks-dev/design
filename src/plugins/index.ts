@@ -12,6 +12,7 @@ import coreRegions from './core-regions';
 import coreTools from './core-tools';
 import debug from './debug';
 import desktopBridge from './desktop-bridge';
+import fonts from './fonts';
 import placeholderShell from './placeholder-shell';
 import titlebar from './titlebar';
 import workbenchLayout from './workbench-layout';
@@ -20,6 +21,7 @@ export const builtinPlugins: Plugin[] = [
 	coreRegions,
 	debug,
 	desktopBridge,
+	fonts,
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,

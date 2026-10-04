@@ -63,6 +63,10 @@ const bridge: DesktopBridge = {
 		openFile: (options) => invoke('dialogs:openFile', options),
 		saveFile: (options) => invoke('dialogs:saveFile', options)
 	},
+	fonts: {
+		list: () => invoke('fonts:list'),
+		load: (ref) => invoke('fonts:load', ref)
+	},
 	events: { on: subscribe },
 	system: {
 		platform: process.platform,

@@ -4,6 +4,7 @@
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fontDirectories, scanFonts } from '../fonts/scan';
 import type {
 	ElectronHost,
 	OpenDialogRequest,
@@ -157,6 +158,10 @@ export function createRealHost(): ElectronHost {
 			writeText: (name, text) => {
 				fs.writeFileSync(path.join(app.getPath('userData'), name), text);
 			}
+		},
+		fonts: {
+			scan: () => scanFonts(fontDirectories(process.platform, app.getPath('home'), process.env)),
+			read: async (file) => new Uint8Array(await fs.promises.readFile(file))
 		},
 		createWindow,
 		windows: () => [...handles.values()],

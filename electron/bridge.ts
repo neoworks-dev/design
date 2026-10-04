@@ -26,6 +26,12 @@ export interface SaveFileOptions {
 	filters?: FileFilter[];
 }
 
+/** A font face by name; what documents reference (data-model §3). */
+export interface FontRef {
+	family: string;
+	style: string;
+}
+
 export interface BootFailure {
 	plugin: string;
 	message: string;
@@ -68,6 +74,8 @@ export interface IpcContract {
 	'app:bootReport': { payload: void; result: BootReport | null };
 	'dialogs:openFile': { payload: OpenFileOptions | undefined; result: string[] | null };
 	'dialogs:saveFile': { payload: SaveFileOptions | undefined; result: string | null };
+	'fonts:list': { payload: void; result: FontRef[] };
+	'fonts:load': { payload: FontRef; result: Uint8Array | null };
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -105,6 +113,12 @@ export interface DesktopBridge {
 	dialogs: {
 		openFile(options?: OpenFileOptions): Promise<string[] | null>;
 		saveFile(options?: SaveFileOptions): Promise<string | null>;
+	};
+	fonts: {
+		/** Installed font faces, sorted by family then style. */
+		list(): Promise<FontRef[]>;
+		/** The font file's bytes, or `null` when no installed face has that family and style. */
+		load(ref: FontRef): Promise<Uint8Array | null>;
 	};
 	events: {
 		/** Subscribe to a main-to-renderer push; the returned function unsubscribes. */

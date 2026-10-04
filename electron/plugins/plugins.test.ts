@@ -46,6 +46,7 @@ describe('standard kernel test: mount, assert contributions, dispose, state iden
 		['main-window', (snapshot) => expect(snapshot.handlers).toContain('window:close')],
 		['main-app', (snapshot) => expect(snapshot.handlers).toContain('app:quit')],
 		['main-dialogs', (snapshot) => expect(snapshot.handlers).toContain('dialogs:saveFile')],
+		['main-fonts', (snapshot) => expect(snapshot.handlers).toContain('fonts:load')],
 		['main-protocol', (snapshot) => expect(snapshot.protocolSchemes).toEqual(['app'])]
 	];
 

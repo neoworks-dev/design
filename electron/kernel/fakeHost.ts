@@ -7,6 +7,7 @@ import type {
 	AppEventName,
 	AppEvents,
 	ElectronHost,
+	HostFontFile,
 	IpcInvokeEvent,
 	IpcListener,
 	OpenDialogRequest,
@@ -148,6 +149,8 @@ export interface FakeHostOptions {
 	displays?: Rect[];
 	/** Files that already exist in the fake user data directory. */
 	files?: Record<string, string>;
+	/** Installed fonts: file path to its family, style and bytes. */
+	fonts?: Record<string, { family: string; style: string; bytes: Uint8Array }>;
 }
 
 export class FakeHost implements ElectronHost {
@@ -158,6 +161,10 @@ export class FakeHost implements ElectronHost {
 	readonly openedExternal: string[] = [];
 	/** Text files in the fake user data directory, by name. */
 	readonly files = new Map<string, string>();
+	/** Installed fonts by file path; tests add and remove entries. */
+	readonly installedFonts = new Map<string, { family: string; style: string; bytes: Uint8Array }>();
+	scanCount = 0;
+	readCount = 0;
 	displays: Rect[] = [{ x: 0, y: 0, width: 1920, height: 1080 }];
 	readonly fetched: string[] = [];
 	quitCount = 0;
@@ -172,6 +179,8 @@ export class FakeHost implements ElectronHost {
 
 	constructor(options: FakeHostOptions = {}) {
 		const platform = options.platform === undefined ? 'linux' : options.platform;
+		for (const [file, font] of Object.entries(options.fonts ?? {}))
+			this.installedFonts.set(file, font);
 		if (options.displays) this.displays = options.displays;
 		for (const [name, text] of Object.entries(options.files ?? {})) this.files.set(name, text);
 		this.app.platform = platform;
@@ -261,6 +270,23 @@ export class FakeHost implements ElectronHost {
 		readText: (name) => this.files.get(name),
 		writeText: (name, text) => {
 			this.files.set(name, text);
+		}
+	};
+
+	readonly fonts: ElectronHost['fonts'] = {
+		scan: () => {
+			this.scanCount += 1;
+			const files: HostFontFile[] = [];
+			for (const [file, font] of this.installedFonts) {
+				files.push({ family: font.family, style: font.style, file });
+			}
+			return Promise.resolve(files);
+		},
+		read: (file) => {
+			this.readCount += 1;
+			const font = this.installedFonts.get(file);
+			if (!font) return Promise.reject(new Error(`ENOENT: ${file}`));
+			return Promise.resolve(font.bytes);
 		}
 	};
 
