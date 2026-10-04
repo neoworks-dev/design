@@ -94,3 +94,72 @@ describe('CanvasKitBackend', () => {
 		expect(result.drawn).toBe(false);
 	});
 });
+
+describe('pixel preview', () => {
+	function renderAt(pixelPreview: boolean): RenderSurface {
+		const tracker = new SkiaTracker();
+		const surface = RenderSurface.offscreen(canvasKit, tracker, 400, 400);
+		const backend = new CanvasKitBackend(canvasKit, tracker, surface);
+		const halfPixelRectangle = new StoreSceneSource(
+			buildDocument([
+				page(
+					'P',
+					[
+						rectangle({
+							id: 'edge',
+							width: 20,
+							height: 20,
+							transform: translation(10.5, 10),
+							fills: [solid(0, 0, 0)]
+						})
+					],
+					{ id: 'p' }
+				)
+			])
+		);
+		backend.render({
+			source: halfPixelRectangle,
+			view: { x: 0, y: 0, scale: 8 },
+			size: { width: 400, height: 400 },
+			devicePixelRatio: 1,
+			pixelPreview
+		});
+		return surface;
+	}
+
+	it('draws the half covered edge pixel as one whole 8 x 8 square instead of a sharp edge', () => {
+		const preview = renderAt(true);
+		// world x 10 (screen 80..87) is half covered at 1x: the same grey for all 8 screen pixels
+		const inside = pixelAt(preview, 84, 120)[0];
+		expect(inside).toBeGreaterThan(100);
+		expect(inside).toBeLessThan(160);
+		for (let column = 80; column < 88; column += 1) {
+			expect(pixelAt(preview, column, 120)[0]).toBe(inside);
+		}
+		// the next world pixel is fully covered
+		expect(pixelAt(preview, 90, 120)[0]).toBe(0);
+	});
+
+	it('is a sharp edge at the real position without the preview', () => {
+		const normal = renderAt(false);
+		// the edge is at screen x 84: left of it the page, right of it black
+		expect(pixelAt(normal, 82, 120)[0]).toBe(245);
+		expect(pixelAt(normal, 86, 120)[0]).toBe(0);
+	});
+
+	it('does nothing at or below 100%', () => {
+		const tracker = new SkiaTracker();
+		const surface = RenderSurface.offscreen(canvasKit, tracker, 200, 200);
+		const backend = new CanvasKitBackend(canvasKit, tracker, surface);
+		const result = backend.render({
+			source: sceneSource(),
+			view: { x: 0, y: 0, scale: 1 },
+			size: { width: 200, height: 200 },
+			devicePixelRatio: 1,
+			pixelPreview: true
+		});
+		expect(result.drawn).toBe(true);
+		expect(pixelAt(surface, 20, 20)).toEqual([255, 0, 0, 255]);
+		expect(tracker.liveCount).toBe(1);
+	});
+});

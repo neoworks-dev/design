@@ -30,6 +30,7 @@ import imageCache from './image-cache';
 import recentFiles from './recent-files';
 import overlay from './overlay';
 import paintShaders from './paint-shaders';
+import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
@@ -52,6 +53,7 @@ export const builtinPlugins: Plugin[] = [
 	sceneFixture,
 	viewport,
 	overlay,
+	pixelGrid,
 	debug,
 	desktopBridge,
 	fonts,

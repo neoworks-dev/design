@@ -28,6 +28,11 @@ export interface FrameRequest {
 	source: SceneSource;
 	/** Without it every node is drawn. */
 	culling?: SceneCulling;
+	/**
+	 * Render at one pixel per document unit and magnify with nearest neighbour (pixel preview).
+	 * Only has an effect when the view is magnified (scale above 1).
+	 */
+	pixelPreview?: boolean;
 	view: ViewTransform;
 	/** Canvas size in CSS pixels. */
 	size: Size;

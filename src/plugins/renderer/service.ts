@@ -64,6 +64,7 @@ export class RendererService extends Service implements Renderer {
 	private totalFrameMilliseconds = 0;
 	private shownPageId: NodeId | null = null;
 	private culling: SceneCulling | undefined;
+	private pixelPreviewOn = false;
 	/** What the backend draws with; features add their part through `registerDrawHooks`. */
 	readonly drawHooks = new DrawHookRegistry();
 
@@ -150,6 +151,17 @@ export class RendererService extends Service implements Renderer {
 			};
 		}, 'renderer/culling');
 		return () => void dispose();
+	}
+
+	get pixelPreview(): boolean {
+		return this.pixelPreviewOn;
+	}
+
+	/** Pixel preview: 1x rendering magnified with nearest neighbour while zoomed in. */
+	setPixelPreview(enabled: boolean): void {
+		if (this.pixelPreviewOn === enabled) return;
+		this.pixelPreviewOn = enabled;
+		this.requestFrame('pixel-preview');
 	}
 
 	/** Where the camera comes from; the viewport plugin sets it. Identity until then. */
@@ -254,6 +266,7 @@ export class RendererService extends Service implements Renderer {
 			result = target.backend.render({
 				source,
 				culling: this.culling,
+				pixelPreview: this.pixelPreviewOn,
 				view: this.viewProvider(),
 				size: target.size,
 				devicePixelRatio: target.devicePixelRatio
