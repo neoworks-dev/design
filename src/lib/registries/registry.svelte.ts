@@ -18,7 +18,8 @@
 // `Object.create(service)` by `ctx.isolate` / `ctx.intercept`. Svelte compiles `$state` fields
 // into private class fields, and reading one through a derived object throws. A service
 // therefore keeps its registry in a plain readonly field and delegates to it; the registry
-// itself is never re-created that way.
+// itself is never re-created that way. The same goes for `#private` members of a service: a
+// call through a derived object throws "Receiver must be an instance". Use TS `private`.
 
 export interface RegistryEntry {
 	id: string;
