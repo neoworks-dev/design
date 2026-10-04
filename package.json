@@ -20,7 +20,8 @@
 		"lint": "prettier --check . && (oxlint --type-aware; a=$?; eslint .; b=$?; exit $((a | b)))",
 		"format": "prettier --write .",
 		"lint:fix": "oxlint --type-aware --fix; eslint . --fix",
-		"qa": "bun scripts/qa.ts"
+		"qa": "bun scripts/qa.ts",
+		"proof": "bun scripts/proof.ts"
 	},
 	"build": {
 		"appId": "dev.neoworks.design",
