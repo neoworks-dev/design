@@ -84,6 +84,11 @@ export class RendererService extends Service implements Renderer {
 		return this.source;
 	}
 
+	/** The attached canvas element, for the input router. */
+	get canvasElement(): HTMLCanvasElement | undefined {
+		return this.target?.element;
+	}
+
 	/** CSS size of the attached canvas; 0 x 0 while none is attached. */
 	get canvasSize(): Size {
 		if (!this.target) return { width: 0, height: 0 };
@@ -140,9 +145,12 @@ export class RendererService extends Service implements Renderer {
 			};
 			this.target = target;
 			this.requestFrame('canvas attached');
+			this.ctx.emit('renderer/canvas-change', element);
 			return () => {
 				backend.dispose();
-				if (this.target === target) this.target = undefined;
+				if (this.target !== target) return;
+				this.target = undefined;
+				this.ctx.emit('renderer/canvas-change', undefined);
 			};
 		}, 'renderer/canvas');
 		return () => void disposeEffect();

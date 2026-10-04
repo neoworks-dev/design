@@ -22,6 +22,7 @@ import type { NodeId } from '../document/types';
 import type { SurfaceResetReason } from '../renderer/surface';
 import type { Camera } from '../viewport/camera';
 import type { CanvasWheelEvent } from '../viewport/wheel';
+import type { Point } from '../tools/protocol';
 import type { Size } from './types';
 import type { StoreInfo } from '../../../electron/bridge';
 
@@ -44,6 +45,13 @@ declare module '@neoworks/extension-system' {
 		 * reveals that sidebar if it is collapsed.
 		 */
 		'panels/tab-activated'(side: 'left' | 'right', tabId: string): void;
+
+		/**
+		 * Dispatch mode: waterfall. The point a creation tool starts a shape at. The snapping
+		 * service transforms `next()`'s result to a snapped point; without it the point is as is.
+		 * Call as `ctx.waterfall('tools/snap-point', point, () => point)`.
+		 */
+		'tools/snap-point'(point: Point, next: () => Point): Point;
 
 		/** Dispatch mode: emit. The tool in use changed (activation, temporary tool, revert). */
 		'tools/change'(toolId: string, previousToolId: string): void;
@@ -81,8 +89,8 @@ declare module '@neoworks/extension-system' {
 
 		/**
 		 * Dispatch mode: emit. A wheel or trackpad event over the canvas. A listener that acts on it
-		 * calls `event.preventDefault()` (the viewport does for pan and zoom). The canvas input
-		 * router will own this later.
+		 * calls `event.preventDefault()` (the viewport does for pan and zoom). Emitted by the
+		 * canvas input router (plugin `canvas-input`).
 		 */
 		'canvas/wheel'(event: CanvasWheelEvent): void;
 
@@ -91,6 +99,12 @@ declare module '@neoworks/extension-system' {
 		 * canvas input router will own this; until then a listener opens the `canvas-empty` menu.
 		 */
 		'canvas/contextmenu'(event: MouseEvent): void;
+
+		/**
+		 * Dispatch mode: emit. The renderer's canvas element was attached or detached (`undefined`).
+		 * The canvas input router follows it to attach its DOM listeners.
+		 */
+		'renderer/canvas-change'(element: HTMLCanvasElement | undefined): void;
 
 		/**
 		 * Dispatch mode: emit. The renderer's Skia surface was rebuilt (WebGL context restored or

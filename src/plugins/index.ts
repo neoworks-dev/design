@@ -3,6 +3,7 @@
 
 import type { Plugin } from '@neoworks/extension-system';
 import assetsStore from './assets-store';
+import canvasInput from './canvas-input';
 import canvaskit from './canvaskit';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
@@ -26,6 +27,9 @@ import sceneFixture from './scene-fixture';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
+import viewTools from './view-tools';
+import toolShapes from './tool-shapes';
+import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
 import nodeCommands from './node-commands';
@@ -55,6 +59,10 @@ export const builtinPlugins: Plugin[] = [
 	corePanels,
 	coreInspectors,
 	coreTools,
+	canvasInput,
+	viewTools,
+	toolShapes,
+	toolFrame,
 	workbenchLayout,
 	titlebar,
 	placeholderShell,
