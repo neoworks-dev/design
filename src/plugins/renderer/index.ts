@@ -31,6 +31,7 @@ export default {
 		ctx.effect(() => () => renderer.stop(), 'renderer/frame loop');
 
 		ctx.on('renderer/surface-reset', (reason) => renderer.noteSurfaceReset(reason));
+		ctx.on('renderer/need-frame', (reason) => renderer.requestFrame(reason));
 
 		ctx.effect(
 			() =>

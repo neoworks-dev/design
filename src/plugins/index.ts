@@ -21,6 +21,7 @@ import documentScene from './document-scene';
 import selection from './selection';
 import fileSession from './file-session';
 import history from './history';
+import imageCache from './image-cache';
 import recentFiles from './recent-files';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
@@ -47,6 +48,7 @@ export const builtinPlugins: Plugin[] = [
 	desktopBridge,
 	fonts,
 	assetsStore,
+	imageCache,
 	documentPlugin,
 	documentScene,
 	selection,
