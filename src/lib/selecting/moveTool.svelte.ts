@@ -12,8 +12,14 @@ import type { Context } from '@neoworks/extension-system';
 import type { NodeId } from '../document';
 import type { SelectionSnapshot } from '../services/selection';
 import type { ToolContribution } from '../registries/tools.svelte';
-import { PointerGesture, type Point, type ToolPointerEvent } from '../tools/protocol';
+import {
+	PointerGesture,
+	type Point,
+	type ToolKeyEvent,
+	type ToolPointerEvent
+} from '../tools/protocol';
 import { marqueeSelect, rectBetween, toggleInto } from './marquee';
+import { MoveSession } from './moveSession';
 import { enterAt, isDeepSelect, pickAt } from './pick';
 
 /** What the move tool shows besides the selection itself; the overlay component reads it. */
@@ -47,8 +53,12 @@ type Press =
 export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers {
 	const gesture = new PointerGesture();
 	let press: Press = { kind: 'none' };
+	let session: MoveSession | undefined;
+	let pressWorld: Point = { x: 0, y: 0 };
 
 	const reset = (): void => {
+		session?.cancel();
+		session = undefined;
 		gesture.cancel();
 		press = { kind: 'none' };
 		state.marquee = null;
@@ -64,6 +74,7 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 				return;
 			}
 			gesture.press(event.screen);
+			pressWorld = event.world;
 			press = pressAt(ctx, event);
 		},
 		onPointerMove(event: ToolPointerEvent): void {
@@ -74,12 +85,17 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 			const update = gesture.move(event.screen);
 			if (update.phase !== 'dragging') return;
 			if (press.kind === 'empty') marqueeTo(ctx, state, press, event);
+			if (press.kind !== 'object') return;
+			if (update.startedDragging) session = MoveSession.begin(ctx, state, pressWorld, event);
+			session?.update(event.world, event);
 		},
 		onPointerUp(): void {
 			const result = gesture.release();
 			const finished = press;
 			press = { kind: 'none' };
 			state.marquee = null;
+			if (result === 'drag') session?.commit();
+			session = undefined;
 			if (result !== 'click') return;
 			if (finished.kind === 'object') finished.onClick();
 			if (finished.kind === 'empty' && !finished.shift) ctx.selection.clear();
@@ -92,6 +108,18 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 			if (press.kind === 'empty' && state.marquee !== null) ctx.selection.restore(press.before);
 			reset();
 			return true;
+		},
+		onKey(event: ToolKeyEvent): boolean {
+			if (session === undefined) return false;
+			if (event.code === 'Space') session.setPinned(true);
+			else if (event.key === 'Shift') session.refresh({ ...event, shiftKey: true });
+			else return false;
+			return true;
+		},
+		onKeyUp(event: ToolKeyEvent): void {
+			if (session === undefined) return;
+			if (event.code === 'Space') session.setPinned(false);
+			else if (event.key === 'Shift') session.refresh({ ...event, shiftKey: false });
 		},
 		onDeactivate(): void {
 			reset();
