@@ -17,6 +17,6 @@ export function sequentialIdGenerator(prefix = 'id'): IdGenerator {
 	let counter = 0;
 	return () => {
 		counter += 1;
-		return `${prefix}-${counter}`;
+		return `${prefix}${counter}`;
 	};
 }

@@ -2,6 +2,7 @@
 // fixtures, so a freshly created node always passes the schema.
 
 import { generateNodeId } from './ids';
+import { identityMatrix } from './matrix';
 import type {
 	AutoLayoutProps,
 	BaseProps,
@@ -11,7 +12,6 @@ import type {
 	FrameLikeProps,
 	GeometryProps,
 	LayoutProps,
-	Matrix2x3,
 	Node,
 	NodeOfType,
 	NodeType,
@@ -19,13 +19,6 @@ import type {
 	ShapeProps,
 	TextStyle
 } from './types';
-
-function identityMatrix(): Matrix2x3 {
-	return [
-		[1, 0, 0],
-		[0, 1, 0]
-	];
-}
 
 export function defaultTextStyle(): TextStyle {
 	return {
