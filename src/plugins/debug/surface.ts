@@ -16,6 +16,7 @@ export const DEBUG_SERVICE_NAMES = [
 	'keymap',
 	'contextKeys',
 	'desktop',
+	'fonts',
 	'menus',
 	'panels',
 	'inspectors',

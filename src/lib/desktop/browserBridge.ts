@@ -52,6 +52,10 @@ export function createBrowserBridge(): BrowserBridge {
 			openFile: () => Promise.resolve(null),
 			saveFile: () => Promise.resolve(null)
 		},
+		fonts: {
+			list: () => Promise.resolve([]),
+			load: () => Promise.resolve(null)
+		},
 		events: {
 			on: (channel, listener) => {
 				const set = listeners.get(channel) ?? new Set<(payload: never) => void>();

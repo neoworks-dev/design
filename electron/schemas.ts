@@ -22,6 +22,8 @@ const saveFileOptions = z
 	})
 	.optional();
 
+const fontRef = z.strictObject({ family: z.string().min(1), style: z.string().min(1) });
+
 export type PayloadSchemas = {
 	[Channel in IpcChannel]: z.ZodType<IpcContract[Channel]['payload']>;
 };
@@ -36,5 +38,7 @@ export const payloadSchemas: PayloadSchemas = {
 	'app:quit': z.void(),
 	'app:bootReport': z.void(),
 	'dialogs:openFile': openFileOptions,
-	'dialogs:saveFile': saveFileOptions
+	'dialogs:saveFile': saveFileOptions,
+	'fonts:list': z.void(),
+	'fonts:load': fontRef
 };

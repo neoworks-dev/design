@@ -108,6 +108,13 @@ export interface SaveDialogRequest {
 	filters?: FileFilter[];
 }
 
+/** An installed font file as the host found it. */
+export interface HostFontFile {
+	family: string;
+	style: string;
+	file: string;
+}
+
 export interface ElectronHost {
 	ipcMain: IpcMainApi;
 	app: AppApi;
@@ -127,6 +134,11 @@ export interface ElectronHost {
 	userData: {
 		readText(name: string): string | undefined;
 		writeText(name: string, text: string): void;
+	};
+	/** Installed system fonts; `scan` reads the font directories, `read` returns a file's bytes. */
+	fonts: {
+		scan(): Promise<HostFontFile[]>;
+		read(file: string): Promise<Uint8Array>;
 	};
 	createWindow: (options: WindowOptions) => WindowHandle;
 	windows: () => WindowHandle[];

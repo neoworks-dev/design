@@ -6,6 +6,7 @@ import type { ElectronHost } from '../kernel/host';
 import { mainAppPlugin } from './app';
 import { mainDialogsPlugin } from './dialogs';
 import { mainElectronPlugin } from './electron';
+import { mainFontsPlugin } from './fonts';
 import { mainIpcPlugin } from './ipc';
 import { mainProtocolPlugin } from './protocol';
 import { mainWindowPlugin, type WindowsConfig } from './windows';
@@ -24,6 +25,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainProtocolPlugin, config: { buildDirectory: options.buildDirectory } },
 		{ plugin: mainWindowPlugin, config: options.window },
 		{ plugin: mainAppPlugin },
-		{ plugin: mainDialogsPlugin }
+		{ plugin: mainDialogsPlugin },
+		{ plugin: mainFontsPlugin }
 	];
 }

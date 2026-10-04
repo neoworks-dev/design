@@ -10,6 +10,7 @@ import type {
 	AppPathName,
 	BootReport,
 	DesktopBridge,
+	FontRef,
 	IpcErrorCode,
 	IpcEventChannel,
 	IpcEvents,
@@ -117,6 +118,16 @@ export class DesktopService extends Service {
 
 	saveFileDialog(options?: SaveFileOptions): Promise<string | null> {
 		return typed(() => this.bridge.dialogs.saveFile(options));
+	}
+
+	/** Installed system font faces, sorted by family then style. */
+	listSystemFonts(): Promise<FontRef[]> {
+		return typed(() => this.bridge.fonts.list());
+	}
+
+	/** Bytes of an installed font file; `null` when no installed face matches. */
+	loadSystemFont(ref: FontRef): Promise<Uint8Array | null> {
+		return typed(() => this.bridge.fonts.load(ref));
 	}
 
 	/**
