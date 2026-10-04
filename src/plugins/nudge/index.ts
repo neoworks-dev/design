@@ -5,12 +5,6 @@ import { planNudge } from '../../lib/editing/nudge';
 
 declare module '@neoworks/extension-system' {
 	interface Events {
-		/**
-		 * Dispatch mode: emit. An arrow key was pressed with nothing selected: the viewport pans
-		 * by (`deltaX`, `deltaY`) screen pixels (the delta is the nudge step, Shift makes it big).
-		 * Seam for the viewport service (#39): it subscribes and pans.
-		 */
-		'nudge/pan'(deltaX: number, deltaY: number): void;
 		/** Dispatch mode: emit. Nodes did not move because auto layout owns their position. */
 		'nudge/blocked'(ids: NodeId[]): void;
 	}
@@ -44,10 +38,7 @@ function stepOf(value: number | undefined, fallback: number): number {
 }
 
 function nudge(ctx: Context, deltaX: number, deltaY: number): void {
-	if (ctx.selection.count === 0) {
-		ctx.emit('nudge/pan', deltaX, deltaY);
-		return;
-	}
+	if (ctx.selection.count === 0) return;
 	const plan = planNudge(ctx.document.reader, ctx.selection.ids, deltaX, deltaY);
 	if (plan.blockedByAutoLayout.length > 0) ctx.emit('nudge/blocked', plan.blockedByAutoLayout);
 	// One merge key: rapid presses (key repeat included) fold into a single undo step.
@@ -55,7 +46,7 @@ function nudge(ctx: Context, deltaX: number, deltaY: number): void {
 }
 
 // Arrow keys move the selection by `step` px, Shift+arrow by `bigStep`. Moves are in screen axes
-// and skip auto layout children. With an empty selection the arrows pan the viewport instead.
+// and skip auto layout children. With an empty selection the viewport's own arrow bindings pan.
 export default {
 	name: 'nudge',
 	inject: ['document', 'selection', 'commands', 'keymap'],
@@ -68,6 +59,7 @@ export default {
 				title: `Nudge ${direction.name}`,
 				run: () => nudge(ctx, direction.x * step, direction.y * step),
 				keys: [direction.key],
+				when: 'hasSelection',
 				repeat: true
 			});
 			contributeCommand(ctx, {
@@ -75,6 +67,7 @@ export default {
 				title: `Nudge ${direction.name} by a large step`,
 				run: () => nudge(ctx, direction.x * bigStep, direction.y * bigStep),
 				keys: [`Shift+${direction.key}`],
+				when: 'hasSelection',
 				repeat: true
 			});
 		}

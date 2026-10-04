@@ -125,12 +125,12 @@ describe('nudge through the keymap', () => {
 		await cleanup();
 	});
 
-	it('pans the viewport through an event when nothing is selected', async () => {
+	it('leaves arrow keys to other bindings when nothing is selected', async () => {
 		const { ctx, cleanup } = await mountAll();
-		const pan = vi.fn();
-		ctx.on('nudge/pan', pan);
+		const ran = vi.fn();
+		ctx.on('command/run', ran);
 		press(ctx, { key: 'ArrowLeft', shiftKey: true });
-		expect(pan).toHaveBeenCalledWith(-10, 0);
+		expect(ran).not.toHaveBeenCalled();
 		await cleanup();
 	});
 
