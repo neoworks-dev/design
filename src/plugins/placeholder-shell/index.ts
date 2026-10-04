@@ -9,7 +9,7 @@ import ToolbarPlaceholder from './ToolbarPlaceholder.svelte';
 // shrinks to nothing.
 export default {
 	name: 'placeholder-shell',
-	inject: ['regions'],
+	inject: ['regions', 'menus'],
 	apply(ctx: Context): void {
 		ctx.effect(
 			() =>

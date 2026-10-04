@@ -5,6 +5,7 @@ import type { Plugin } from '@neoworks/extension-system';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
 import coreKeymap from './core-keymap';
+import coreMenus from './core-menus';
 import coreRegions from './core-regions';
 import desktopBridge from './desktop-bridge';
 import placeholderShell from './placeholder-shell';
@@ -17,6 +18,7 @@ export const builtinPlugins: Plugin[] = [
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,
+	coreMenus,
 	workbenchLayout,
 	titlebar,
 	placeholderShell

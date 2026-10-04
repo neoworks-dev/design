@@ -5,13 +5,14 @@ import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kerne
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
 import coreKeymap from '../core-keymap';
+import coreMenus from '../core-menus';
 import coreRegions from '../core-regions';
 import placeholderShell from '../placeholder-shell';
 import workbenchLayout from './index';
 import { LAYOUT_STORAGE_KEY } from './layoutState.svelte';
 import { memoryStorage, type MemoryStorage } from './testStorage';
 
-const providers = [coreRegions, coreContextKeys, coreCommands, coreKeymap];
+const providers = [coreRegions, coreContextKeys, coreCommands, coreKeymap, coreMenus];
 
 type ObserverCallback = (entries: { contentRect: { width: number; height: number } }[]) => void;
 
