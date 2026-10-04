@@ -30,15 +30,19 @@ export interface RegistryEntry {
 export class Registry<T extends RegistryEntry> {
 	#entries = $state.raw<T[]>([]);
 	#sorted = $derived(sortEntries(this.#entries));
+	// Writes start from this plain mirror, never from `#entries`: inside an effect teardown Svelte
+	// reads return the value from when the effect last ran, so a disposer running there would
+	// write back a stale list and silently revert newer registrations.
+	#current: T[] = [];
 
 	register(entry: T): () => void {
-		const index = this.#entries.findIndex((existing) => existing.id === entry.id);
+		const index = this.#current.findIndex((existing) => existing.id === entry.id);
 		if (index >= 0) {
-			this.#entries = this.#entries.map((existing, position) =>
-				position === index ? entry : existing
+			this.#commit(
+				this.#current.map((existing, position) => (position === index ? entry : existing))
 			);
 		} else {
-			this.#entries = [...this.#entries, entry];
+			this.#commit([...this.#current, entry]);
 		}
 		return () => this.#removeEntry(entry);
 	}
@@ -67,8 +71,13 @@ export class Registry<T extends RegistryEntry> {
 	}
 
 	#removeEntry(entry: T): void {
-		if (!this.#entries.includes(entry)) return;
-		this.#entries = this.#entries.filter((existing) => existing !== entry);
+		if (!this.#current.includes(entry)) return;
+		this.#commit(this.#current.filter((existing) => existing !== entry));
+	}
+
+	#commit(entries: T[]): void {
+		this.#current = entries;
+		this.#entries = entries;
 	}
 }
 

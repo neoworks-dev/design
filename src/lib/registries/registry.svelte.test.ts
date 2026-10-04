@@ -1,4 +1,4 @@
-import { flushSync } from 'svelte';
+import { flushSync, untrack } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import { Registry, type RegistryEntry } from './registry.svelte';
 
@@ -90,5 +90,23 @@ describe('Registry', () => {
 		flushSync();
 		stop();
 		expect(seen).toEqual([[], ['a'], []]);
+	});
+
+	it('keeps newer entries when a disposer runs in an effect teardown', () => {
+		const registry = new Registry<Item>();
+		let tool = $state('rectangle');
+		const cleanup = $effect.root(() => {
+			$effect(() => {
+				const label = tool;
+				return untrack(() => registry.register({ id: 'tool', label }));
+			});
+		});
+		flushSync();
+		registry.register({ id: 'other', label: 'new' });
+		tool = 'move';
+		flushSync();
+		expect(registry.get('other')?.label).toBe('new');
+		expect(registry.get('tool')?.label).toBe('move');
+		cleanup();
 	});
 });
