@@ -69,6 +69,7 @@ export function createCreationTool(
 	const stop = (): void => {
 		gesture.cancel();
 		preview.shape = null;
+		ctx.emit('tools/snap-release');
 	};
 
 	return {
@@ -78,20 +79,26 @@ export function createCreationTool(
 		onPointerDown(event: ToolPointerEvent): void {
 			if (event.button !== PRIMARY_BUTTON) return;
 			startScreen = event.screen;
-			startWorld = ctx.waterfall('tools/snap-point', event.world, () => event.world);
+			startWorld = snapPoint(ctx, event.world);
 			gesture.press(event.screen);
 		},
 		onPointerMove(event: ToolPointerEvent): void {
 			if (gesture.phase === 'idle') return;
 			const update = gesture.move(event.screen);
 			if (update.phase !== 'dragging') return;
+			snapPoint(ctx, event.world);
 			preview.shape = shapeBetween(spec.geometry, startScreen, event.screen, event);
 		},
 		onPointerUp(event: ToolPointerEvent): void {
 			const result = gesture.release();
 			preview.shape = null;
 			if (result === 'none') return;
-			createNode(ctx, spec, prepare(ctx, spec, result, startWorld, event));
+			const snapped = {
+				...event,
+				world: result === 'drag' ? snapPoint(ctx, event.world) : event.world
+			};
+			ctx.emit('tools/snap-release');
+			createNode(ctx, spec, prepare(ctx, spec, result, startWorld, snapped));
 		},
 		onDeactivate: stop,
 		onCancel(): boolean {
@@ -100,6 +107,10 @@ export function createCreationTool(
 			return true;
 		}
 	};
+}
+
+function snapPoint(ctx: Context, point: Point): Point {
+	return ctx.waterfall('tools/snap-point', point, () => point);
 }
 
 function shapeBetween(

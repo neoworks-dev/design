@@ -53,6 +53,15 @@ declare module '@neoworks/extension-system' {
 		 */
 		'tools/snap-point'(point: Point, next: () => Point): Point;
 
+		/**
+		 * Dispatch mode: emit. Double click (or Enter) on a text or vector node: whoever owns that
+		 * editor starts it. Nothing listens until the text and vector editing issues land.
+		 */
+		'canvas/edit-request'(id: string, editor: 'text' | 'vector'): void;
+
+		/** Dispatch mode: emit. A creation tool finished or cancelled; snap guides can go. */
+		'tools/snap-release'(): void;
+
 		/** Dispatch mode: emit. The tool in use changed (activation, temporary tool, revert). */
 		'tools/change'(toolId: string, previousToolId: string): void;
 

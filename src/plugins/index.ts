@@ -37,6 +37,7 @@ import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
+import toolMove from './tool-move';
 import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
@@ -44,6 +45,8 @@ import grouping from './grouping';
 import mask from './mask';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
+import selectionCommands from './selection-commands';
+import transformHandles from './transform-handles';
 import zOrder from './z-order';
 
 export const builtinPlugins: Plugin[] = [
@@ -77,12 +80,15 @@ export const builtinPlugins: Plugin[] = [
 	coreTools,
 	canvasInput,
 	viewTools,
+	toolMove,
+	transformHandles,
 	toolShapes,
 	toolFrame,
 	workbenchLayout,
 	titlebar,
 	placeholderShell,
 	nudge,
+	selectionCommands,
 	zOrder,
 	grouping,
 	mask,

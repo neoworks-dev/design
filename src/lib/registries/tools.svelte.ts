@@ -81,8 +81,12 @@ export interface ToolContribution {
 	onPointerDown?(event: ToolPointerEvent): void;
 	onPointerMove?(event: ToolPointerEvent): void;
 	onPointerUp?(event: ToolPointerEvent): void;
+	/** The pointer left the canvas (hover feedback ends). */
+	onPointerLeave?(): void;
 	/** Return true when the key was used. */
 	onKey?(event: ToolKeyEvent): boolean | void;
+	/** A key came up on the canvas (Space released during a gesture). */
+	onKeyUp?(event: ToolKeyEvent): void;
 	onActivate?(): void;
 	onDeactivate?(): void;
 	/** Esc: abort the operation in progress and return true; return false when idle. */
@@ -324,6 +328,14 @@ export class ToolsService extends Service {
 
 	pointerUp(event: ToolPointerEvent): void {
 		this.activeTool()?.onPointerUp?.(event);
+	}
+
+	pointerLeave(): void {
+		this.activeTool()?.onPointerLeave?.();
+	}
+
+	keyUp(event: ToolKeyEvent): void {
+		this.activeTool()?.onKeyUp?.(event);
 	}
 
 	/** Returns whether the active tool used the key. */

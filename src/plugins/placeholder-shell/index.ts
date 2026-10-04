@@ -4,7 +4,6 @@ import type { ToolContribution } from '../../lib/registries/tools.svelte';
 import FileTab from './FileTab.svelte';
 import PlaceholderText from './PlaceholderText.svelte';
 import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
-import CursorIcon from 'phosphor-svelte/lib/CursorIcon';
 import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 import TextTIcon from 'phosphor-svelte/lib/TextTIcon';
 
@@ -78,7 +77,6 @@ export default {
 		ctx.on('canvas/contextmenu', (event) => ctx.menus.openFromEvent('canvas-empty', event));
 
 		const tools: ToolContribution[] = [
-			{ id: 'move', title: 'Move', icon: CursorIcon, shortcut: 'V', group: 'move', order: 0 },
 			{
 				id: 'pen',
 				title: 'Pen',
