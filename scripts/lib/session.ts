@@ -1,5 +1,14 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	openSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync
+} from 'node:fs';
 import { createServer } from 'node:net';
 import path from 'node:path';
 import { CdpSession, isAppPage, listTargets } from './cdp';
@@ -116,12 +125,30 @@ function prepareDirectories(fresh: boolean): void {
 }
 
 function compile(options: StartOptions): void {
-	const needsBuild = !existsSync(path.join(projectRoot, 'build/index.html'));
-	if (!options.dev && (options.build || needsBuild)) {
+	if (!options.dev && (options.build || isBuildStale())) {
 		run('bun', ['run', 'build']);
 		return;
 	}
 	run('bun', ['run', 'electron:compile']);
+}
+
+// A build older than any renderer or main source would launch yesterday's app.
+function isBuildStale(): boolean {
+	const buildIndex = path.join(projectRoot, 'build/index.html');
+	if (!existsSync(buildIndex)) return true;
+	const builtAt = statSync(buildIndex).mtimeMs;
+	const sourceRoots = ['src', 'electron', 'static'].map((name) => path.join(projectRoot, name));
+	return sourceRoots.some((root) => newestModification(root) > builtAt);
+}
+
+function newestModification(directory: string): number {
+	if (!existsSync(directory)) return 0;
+	let newest = 0;
+	for (const entry of readdirSync(directory, { withFileTypes: true, recursive: true })) {
+		if (!entry.isFile() || entry.parentPath.includes(`${path.sep}dist`)) continue;
+		newest = Math.max(newest, statSync(path.join(entry.parentPath, entry.name)).mtimeMs);
+	}
+	return newest;
 }
 
 function run(command: string, args: string[]): void {

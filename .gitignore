@@ -16,3 +16,4 @@ node_modules/
 
 # Mobbin reference images are licensed to us, not redistributable (public repo).
 /docs/references/
+/.claude/worktrees/
