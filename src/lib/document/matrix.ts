@@ -24,6 +24,24 @@ export function transformPoint(matrix: Matrix2x3, x: number, y: number): { x: nu
 	return { x: a * x + c * y + e, y: b * x + d * y + f };
 }
 
+export function translationMatrix(x: number, y: number): Matrix2x3 {
+	return [
+		[1, 0, x],
+		[0, 1, y]
+	];
+}
+
+/** Inverse of `matrix`; a singular matrix (zero scale) has none, so it returns `null`. */
+export function invertMatrix(matrix: Matrix2x3): Matrix2x3 | null {
+	const [[a, c, e], [b, d, f]] = matrix;
+	const determinant = a * d - b * c;
+	if (determinant === 0) return null;
+	return [
+		[d / determinant, -c / determinant, (c * f - d * e) / determinant],
+		[-b / determinant, a / determinant, (b * e - a * f) / determinant]
+	];
+}
+
 /** Axis-aligned bounds of the box (0, 0, width, height) after `matrix`. */
 export function transformedBounds(matrix: Matrix2x3, width: number, height: number): Rect {
 	const corners = [

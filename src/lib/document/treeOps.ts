@@ -2,7 +2,7 @@
 // rejecting invalid ones (cycles, wrong parent kind) up front. Nothing here mutates.
 
 import { keyBetween, rebalancedKeys } from './fractionalIndex';
-import type { DocumentStore } from './store';
+import type { DocumentReader } from './store';
 import type { NodeChange, NodeId, NodeType } from './types';
 
 const CONTAINER_TYPES: readonly NodeType[] = [
@@ -25,7 +25,7 @@ export function canHaveChildren(type: NodeType): boolean {
  * `ignoreId` (the node being moved). 0 is first; a position past the end appends.
  */
 export function indexAtPosition(
-	store: DocumentStore,
+	store: DocumentReader,
 	parentId: NodeId | null,
 	position: number,
 	ignoreId?: NodeId
@@ -45,7 +45,7 @@ export function indexAtPosition(
  * Throws when the move would create a cycle or breaks a structural rule.
  */
 export function planMove(
-	store: DocumentStore,
+	store: DocumentReader,
 	id: NodeId,
 	parentId: NodeId | null,
 	position: number
@@ -63,11 +63,15 @@ export function planMove(
 }
 
 /** Reorder `id` among its current siblings. */
-export function planReorder(store: DocumentStore, id: NodeId, position: number): NodeChange {
+export function planReorder(store: DocumentReader, id: NodeId, position: number): NodeChange {
 	return planMove(store, id, store.requireNode(id).parentId, position);
 }
 
-export function assertValidParent(store: DocumentStore, id: NodeId, parentId: NodeId | null): void {
+export function assertValidParent(
+	store: DocumentReader,
+	id: NodeId,
+	parentId: NodeId | null
+): void {
 	const node = store.requireNode(id);
 	if (node.type === 'PAGE') {
 		if (parentId !== null) throw new Error(`page ${id} must stay a root`);
@@ -84,7 +88,7 @@ export function assertValidParent(store: DocumentStore, id: NodeId, parentId: No
 }
 
 /** Fresh evenly spaced indexes for all children of `parentId`, keeping their order. */
-export function planRebalance(store: DocumentStore, parentId: NodeId | null): NodeChange[] {
+export function planRebalance(store: DocumentReader, parentId: NodeId | null): NodeChange[] {
 	const siblings = store.childNodes(parentId);
 	const keys = rebalancedKeys(siblings.length);
 	return siblings.map((sibling, position) => ({
@@ -98,7 +102,7 @@ export function planRebalance(store: DocumentStore, parentId: NodeId | null): No
 }
 
 /** The longest sibling index under `parentId`; a rebalance trigger for callers. */
-export function longestIndexLength(store: DocumentStore, parentId: NodeId | null): number {
+export function longestIndexLength(store: DocumentReader, parentId: NodeId | null): number {
 	let longest = 0;
 	for (const sibling of store.childNodes(parentId)) {
 		longest = Math.max(longest, sibling.index.length);
