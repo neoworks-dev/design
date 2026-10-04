@@ -12,3 +12,4 @@ export * from './cache';
 export * from './store';
 export * from './treeOps';
 export * from './clone';
+export * from './text';
