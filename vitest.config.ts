@@ -1,5 +1,4 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 // Compiles .svelte / .svelte.ts so rune registries and components run under test. Not the
@@ -12,8 +11,7 @@ export default defineConfig({
 	plugins: [svelte({ compilerOptions: { runes: true } })],
 	resolve: {
 		dedupe: ['svelte'],
-		conditions: ['browser'],
-		alias: { $lib: fileURLToPath(new URL('./src/lib', import.meta.url)) }
+		conditions: ['browser']
 	},
 	ssr: {
 		resolve: { conditions: ['browser'], externalConditions: ['browser'] }
