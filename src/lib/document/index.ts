@@ -21,3 +21,4 @@ export * from './variables';
 export * from './rtree';
 export * from './shapeGeometry';
 export * from './sceneIndex';
+export * from './hitTest';

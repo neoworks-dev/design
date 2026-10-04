@@ -115,7 +115,8 @@ export class SceneIndex {
 		rect: Rect,
 		options: { kind?: BoundsKind; contained?: boolean } = {}
 	): NodeId[] {
-		const kind = options.kind ?? 'render';
+		let kind: BoundsKind = 'render';
+		if (options.kind !== undefined) kind = options.kind;
 		const query = boxOfRect(rect);
 		const ids = this.collect(pageId, query, kind);
 		if (!options.contained) return ids;

@@ -18,6 +18,7 @@ import fonts from './fonts';
 import documentPlugin from './document';
 import selection from './selection';
 import spatial from './spatial';
+import hitTest from './hit-test';
 import fileSession from './file-session';
 import history from './history';
 import recentFiles from './recent-files';
@@ -46,6 +47,7 @@ export const builtinPlugins: Plugin[] = [
 	documentPlugin,
 	selection,
 	spatial,
+	hitTest,
 	history,
 	fileSession,
 	recentFiles,
