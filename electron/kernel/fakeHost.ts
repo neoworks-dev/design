@@ -1,0 +1,283 @@
+// An in-memory ElectronHost for tests: a fake `ipcMain` with a handler registry, a scriptable app,
+// windows, protocol and dialogs. `snapshot()` is the observable state the standard mount /
+// unmount / state-identical plugin test compares.
+
+import type { AppPathName } from '../bridge';
+import type {
+	AppEventName,
+	AppEvents,
+	ElectronHost,
+	IpcInvokeEvent,
+	IpcListener,
+	OpenDialogRequest,
+	RendererObserver,
+	SaveDialogRequest,
+	SenderHandle,
+	WindowEventName,
+	WindowHandle,
+	WindowOptions
+} from './host';
+
+export const TRUSTED_URL = 'app://design/';
+
+function compareText(left: string, right: string): number {
+	return left.localeCompare(right);
+}
+function compareEntries(left: [string, unknown], right: [string, unknown]): number {
+	return compareText(left[0], right[0]);
+}
+
+export class FakeWindow implements WindowHandle {
+	readonly sender: SenderHandle;
+	readonly sent: { channel: string; payload: unknown }[] = [];
+	readonly loadedUrls: string[] = [];
+	maximized = false;
+	minimized = false;
+	focusCount = 0;
+	destroyed = false;
+	devToolsOpened = false;
+	newWindowHandler: ((url: string) => void) | null = null;
+	observers = new Set<RendererObserver>();
+	loadFailuresRemaining = 0;
+	private listeners = new Map<WindowEventName, Set<() => void>>();
+
+	constructor(
+		readonly id: number,
+		readonly options: WindowOptions,
+		private readonly onDestroyed: (window: FakeWindow) => void
+	) {
+		this.sender = { id };
+	}
+
+	loadURL(url: string): Promise<void> {
+		this.loadedUrls.push(url);
+		if (this.loadFailuresRemaining > 0) {
+			this.loadFailuresRemaining -= 1;
+			return Promise.reject(new Error('ERR_CONNECTION_REFUSED'));
+		}
+		return Promise.resolve();
+	}
+	minimize(): void {
+		this.minimized = true;
+	}
+	maximize(): void {
+		this.maximized = true;
+		this.fire('maximize');
+	}
+	unmaximize(): void {
+		this.maximized = false;
+		this.fire('unmaximize');
+	}
+	restore(): void {
+		this.minimized = false;
+	}
+	focus(): void {
+		this.focusCount += 1;
+	}
+	close(): void {
+		if (this.destroyed) return;
+		this.destroyed = true;
+		this.fire('closed');
+		this.onDestroyed(this);
+	}
+	isMaximized(): boolean {
+		return this.maximized;
+	}
+	isMinimized(): boolean {
+		return this.minimized;
+	}
+	isDestroyed(): boolean {
+		return this.destroyed;
+	}
+	send(channel: string, payload: unknown): void {
+		this.sent.push({ channel, payload });
+	}
+	on(event: WindowEventName, listener: () => void): () => void {
+		const set = this.listeners.get(event) ?? new Set<() => void>();
+		set.add(listener);
+		this.listeners.set(event, set);
+		return () => {
+			set.delete(listener);
+		};
+	}
+	onNewWindowRequest(handler: (url: string) => void): void {
+		this.newWindowHandler = handler;
+	}
+	openDevTools(): void {
+		this.devToolsOpened = true;
+	}
+	observeRenderer(observer: RendererObserver): () => void {
+		this.observers.add(observer);
+		return () => {
+			this.observers.delete(observer);
+		};
+	}
+	listenerCount(event: WindowEventName): number {
+		return this.listeners.get(event)?.size ?? 0;
+	}
+	fire(event: WindowEventName): void {
+		for (const listener of Array.from(this.listeners.get(event) ?? [])) listener();
+	}
+}
+
+export interface FakeHostOptions {
+	platform?: NodeJS.Platform;
+	/** When true, `whenReady()` stays pending until `becomeReady()`. */
+	deferReady?: boolean;
+}
+
+export class FakeHost implements ElectronHost {
+	readonly handlers = new Map<string, IpcListener>();
+	readonly openWindows: FakeWindow[] = [];
+	readonly protocolHandlers = new Map<string, (request: { url: string }) => Promise<Response>>();
+	readonly appListeners = new Map<AppEventName, Set<(...args: never[]) => void>>();
+	readonly openedExternal: string[] = [];
+	readonly fetched: string[] = [];
+	quitCount = 0;
+	version = '1.2.3';
+	openDialogResult: string[] | null = null;
+	saveDialogResult: string | null = null;
+	lastOpenDialogRequest: OpenDialogRequest | null = null;
+	lastSaveDialogRequest: SaveDialogRequest | null = null;
+	private nextWindowId = 1;
+	private resolveReady: () => void = () => {};
+	private readyPromise: Promise<void>;
+
+	constructor(options: FakeHostOptions = {}) {
+		const platform = options.platform === undefined ? 'linux' : options.platform;
+		this.app.platform = platform;
+		if (options.deferReady) {
+			this.readyPromise = new Promise<void>((resolve) => {
+				this.resolveReady = resolve;
+			});
+		} else {
+			this.readyPromise = Promise.resolve();
+		}
+	}
+
+	becomeReady(): void {
+		this.resolveReady();
+	}
+
+	readonly ipcMain = {
+		handle: (channel: string, listener: IpcListener): void => {
+			if (this.handlers.has(channel)) {
+				throw new Error(`Attempted to register a second handler for '${channel}'`);
+			}
+			this.handlers.set(channel, listener);
+		},
+		removeHandler: (channel: string): void => {
+			this.handlers.delete(channel);
+		}
+	};
+
+	readonly app: ElectronHost['app'] = {
+		whenReady: () => this.readyPromise,
+		on: (event, listener) => {
+			const set = this.appListeners.get(event) ?? new Set<(...args: never[]) => void>();
+			set.add(listener);
+			this.appListeners.set(event, set);
+		},
+		off: (event, listener) => {
+			this.appListeners.get(event)?.delete(listener);
+		},
+		quit: () => {
+			this.quitCount += 1;
+		},
+		getVersion: () => this.version,
+		getPath: (name: AppPathName) => `/fake/${name}`,
+		requestSingleInstanceLock: () => true,
+		platform: 'linux'
+	};
+
+	readonly protocol: ElectronHost['protocol'] = {
+		handle: (scheme, handler) => {
+			this.protocolHandlers.set(scheme, handler);
+		},
+		unhandle: (scheme) => {
+			this.protocolHandlers.delete(scheme);
+		}
+	};
+
+	readonly net: ElectronHost['net'] = {
+		fetch: (url) => {
+			this.fetched.push(url);
+			return Promise.resolve(new Response('ok'));
+		}
+	};
+
+	readonly shell: ElectronHost['shell'] = {
+		openExternal: (url) => {
+			this.openedExternal.push(url);
+			return Promise.resolve();
+		}
+	};
+
+	readonly dialog: ElectronHost['dialog'] = {
+		showOpenDialog: (request) => {
+			this.lastOpenDialogRequest = request;
+			return Promise.resolve(this.openDialogResult);
+		},
+		showSaveDialog: (request) => {
+			this.lastSaveDialogRequest = request;
+			return Promise.resolve(this.saveDialogResult);
+		}
+	};
+
+	createWindow = (options: WindowOptions): FakeWindow => {
+		const window = new FakeWindow(this.nextWindowId, options, (closed) => {
+			const position = this.openWindows.indexOf(closed);
+			if (position >= 0) this.openWindows.splice(position, 1);
+		});
+		this.nextWindowId += 1;
+		this.openWindows.push(window);
+		return window;
+	};
+
+	windows = (): WindowHandle[] => [...this.openWindows];
+
+	windowFromSender = (sender: SenderHandle): WindowHandle | null => {
+		const found = this.openWindows.find((window) => window.sender.id === sender.id);
+		if (!found) return null;
+		return found;
+	};
+
+	// ---------- test drivers ----------
+
+	emitAppEvent<Name extends AppEventName>(event: Name, ...args: Parameters<AppEvents[Name]>): void {
+		for (const listener of Array.from(this.appListeners.get(event) ?? [])) {
+			(listener as (...callArgs: unknown[]) => void)(...args);
+		}
+	}
+
+	/** An invoke event from the first open window's top frame on the trusted origin. */
+	trustedEvent(window: FakeWindow = this.openWindows[0]): IpcInvokeEvent {
+		return { sender: window.sender, senderFrame: { url: TRUSTED_URL, parent: null } };
+	}
+
+	/** Calls the registered handler like `ipcRenderer.invoke` would. */
+	invoke(channel: string, payload?: unknown, event?: IpcInvokeEvent): Promise<unknown> {
+		const handler = this.handlers.get(channel);
+		if (!handler) return Promise.reject(new Error(`No handler registered for '${channel}'`));
+		return Promise.resolve(handler(event === undefined ? this.trustedEvent() : event, payload));
+	}
+
+	/** Everything a plugin can leave behind in the host; equal before mount and after unmount. */
+	snapshot(): Record<string, unknown> {
+		const appListenerCounts: Record<string, number> = {};
+		for (const [event, set] of [...this.appListeners.entries()].sort(compareEntries)) {
+			if (set.size > 0) appListenerCounts[event] = set.size;
+		}
+		return {
+			handlers: [...this.handlers.keys()].sort(compareText),
+			appListeners: appListenerCounts,
+			protocolSchemes: [...this.protocolHandlers.keys()].sort(compareText),
+			openWindows: this.openWindows.length,
+			windowListeners: this.openWindows.map((window) => ({
+				closed: window.listenerCount('closed'),
+				maximize: window.listenerCount('maximize'),
+				unmaximize: window.listenerCount('unmaximize')
+			}))
+		};
+	}
+}
