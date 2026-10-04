@@ -1,22 +1,23 @@
 <script lang="ts">
-	import { Button } from '@neoworks-dev/ui';
+	import { onMount } from 'svelte';
+	import { boot, rootContext } from '../lib/kernel/app';
+	import { provideKernel } from '../lib/kernel/context';
+	import RegionHost from '../lib/kernel/RegionHost.svelte';
 
-	const platform = window.desktop?.system.platform ?? 'browser';
+	provideKernel(rootContext);
+
+	let booted = $state(false);
+
+	// `data-ready` tells tooling (bun run qa) the app is safe to drive. It is set once every
+	// plugin settled, whether or not some failed: a broken plugin must not look like a hang.
+	onMount(() => {
+		void boot().then(() => {
+			booted = true;
+			document.documentElement.dataset.ready = 'true';
+		});
+	});
 </script>
 
-<header class="app-drag border-line-faint flex h-10 items-center justify-between border-b px-3">
-	<span class="text-sm font-medium">Untitled</span>
-	<div class="app-no-drag flex gap-1">
-		<Button onclick={() => window.desktop?.window.minimize()}>–</Button>
-		<Button onclick={() => window.desktop?.window.toggleMaximize()}>□</Button>
-		<Button onclick={() => window.desktop?.window.close()}>×</Button>
-	</div>
-</header>
-
-<div class="flex min-h-0 flex-1">
-	<aside class="border-line-faint w-60 border-r p-3 text-sm">Layers</aside>
-	<main class="flex flex-1 items-center justify-center text-sm opacity-60">
-		Canvas — running on {platform}
-	</main>
-	<aside class="border-line-faint w-60 border-l p-3 text-sm">Design</aside>
-</div>
+{#if booted}
+	<RegionHost region="root" emptyMessage="No layout plugin loaded" />
+{/if}

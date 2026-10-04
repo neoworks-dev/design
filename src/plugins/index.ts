@@ -2,5 +2,6 @@
 // plugins declare `inject` and activate when their providers appear.
 
 import type { Plugin } from '@neoworks/extension-system';
+import coreRegions from './core-regions';
 
-export const builtinPlugins: Plugin[] = [];
+export const builtinPlugins: Plugin[] = [coreRegions];
