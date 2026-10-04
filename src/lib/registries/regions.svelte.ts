@@ -11,6 +11,7 @@
 
 import { Service, type Context } from '@neoworks/extension-system';
 import type { Component } from 'svelte';
+import { callerContext } from '../kernel/caller';
 import { Registry, type RegistryEntry } from './registry.svelte';
 
 export interface RegionContribution extends RegistryEntry {
@@ -50,11 +51,11 @@ export class RegionsService extends Service {
 	}
 
 	/**
-	 * Register a contribution. Called through a plugin's `ctx.regions`, `this.ctx` is that
-	 * plugin's context, so the component later renders with the owning plugin's `ctx`.
+	 * Register a contribution. The component later renders with the calling plugin's own `ctx`
+	 * (see callerContext), so `getKernel()` in it sees exactly what that plugin injected.
 	 */
 	register(contribution: RegionContribution): () => void {
-		return this.registry.register({ ...contribution, ctx: this.ctx });
+		return this.registry.register({ ...contribution, ctx: callerContext(this, this.ctx) });
 	}
 
 	/** Reactive: visible contributions of one region, ordered. */

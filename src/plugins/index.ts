@@ -6,5 +6,14 @@ import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
 import coreKeymap from './core-keymap';
 import coreRegions from './core-regions';
+import placeholderShell from './placeholder-shell';
+import workbenchLayout from './workbench-layout';
 
-export const builtinPlugins: Plugin[] = [coreRegions, coreContextKeys, coreCommands, coreKeymap];
+export const builtinPlugins: Plugin[] = [
+	coreRegions,
+	coreContextKeys,
+	coreCommands,
+	coreKeymap,
+	workbenchLayout,
+	placeholderShell
+];
