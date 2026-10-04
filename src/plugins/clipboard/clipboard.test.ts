@@ -8,6 +8,7 @@ import clipboard from '.';
 interface Modifiers {
 	ctrl?: boolean;
 	shift?: boolean;
+	alt?: boolean;
 }
 
 function press(ctx: Context, key: string, modifiers: Modifiers = {}): boolean {
@@ -15,7 +16,7 @@ function press(ctx: Context, key: string, modifiers: Modifiers = {}): boolean {
 		key,
 		ctrlKey: modifiers.ctrl === true,
 		metaKey: false,
-		altKey: false,
+		altKey: modifiers.alt === true,
 		shiftKey: modifiers.shift === true,
 		repeat: false
 	});
@@ -34,10 +35,13 @@ describePlugin('clipboard', clipboard, {
 		expect(chords).toContain('ctrl+v>clipboard.paste');
 		expect(chords).toContain('ctrl+shift+v>clipboard.paste-over-selection');
 		expect(chords).toContain('ctrl+shift+r>clipboard.paste-replace');
-		for (const id of ['paste-here', 'paste-in-place']) {
-			expect(ctx.commands.has(`clipboard.${id}`)).toBe(true);
-		}
+		expect(chords).toContain('ctrl+shift+c>clipboard.copy-as-png');
+		expect(chords).toContain('ctrl+alt+c>clipboard.copy-properties');
+		expect(chords).toContain('ctrl+alt+v>clipboard.paste-properties');
+		const ids = ['paste-here', 'paste-in-place', 'copy-as-svg', 'copy-as-css'];
+		for (const id of ids) expect(ctx.commands.has(`clipboard.${id}`)).toBe(true);
 		expect(ctx.menus.has('context/canvas-empty')).toBe(true);
+		expect(ctx.menus.has('context/copy-as')).toBe(true);
 	}
 });
 

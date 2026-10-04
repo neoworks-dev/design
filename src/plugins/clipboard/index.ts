@@ -2,7 +2,9 @@ import type { Context } from '@neoworks/extension-system';
 import type { NodeId } from '../../lib/document';
 import { contributeCommand, type MenuPlacement } from '../../lib/editing/contribute';
 import type { PasteMode } from '../../lib/editing/paste';
+import { contributeCopyAs } from './copyAs';
 import { copySelection, cutSelection, pasteClipboard } from './flows';
+import { contributeProperties } from './properties';
 
 declare module '@neoworks/extension-system' {
 	interface Events {
@@ -111,5 +113,7 @@ export default {
 				menus: pasteMenus(command.order, command.passTarget === true)
 			});
 		}
+		contributeCopyAs(ctx);
+		contributeProperties(ctx);
 	}
 };
