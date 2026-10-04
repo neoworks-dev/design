@@ -50,6 +50,12 @@ declare module '@neoworks/extension-system' {
 		 */
 		'document/append'(request: AppendRequest, next: () => Change[]): Change[];
 
+		/**
+		 * Dispatch mode: emit. A batch (one `apply` or one `transaction()`) is about to apply its
+		 * first change; the document is still unchanged. History captures the selection here.
+		 */
+		'document/begin'(meta: ApplyMeta): void;
+
 		/** Dispatch mode: emit. A transaction was committed. The one source of document change news. */
 		'document/change'(event: DocumentChangeEvent): void;
 
@@ -58,6 +64,9 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. The current page changed. */
 		'document/currentpagechange'(pageId: string, previousPageId: string | null): void;
+
+		/** Dispatch mode: emit. The undo or redo stack changed (canUndo, canRedo, entries). */
+		'history/change'(): void;
 
 		/** Dispatch mode: emit. The selection set changed; fires once per change. */
 		'selection/change'(ids: readonly string[], previousIds: readonly string[]): void;

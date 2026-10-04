@@ -9,6 +9,7 @@ import coreRegions from './core-regions';
 import desktopBridge from './desktop-bridge';
 import documentPlugin from './document';
 import selection from './selection';
+import history from './history';
 import placeholderShell from './placeholder-shell';
 import titlebar from './titlebar';
 import workbenchLayout from './workbench-layout';
@@ -18,6 +19,7 @@ export const builtinPlugins: Plugin[] = [
 	desktopBridge,
 	documentPlugin,
 	selection,
+	history,
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,

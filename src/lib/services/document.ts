@@ -305,6 +305,11 @@ export class DocumentService extends Service {
 	private openBatch(meta: ApplyMeta): Batch {
 		const batch: Batch = { id: generateNodeId(), meta, applied: [], derived: [] };
 		this.state.batch = batch;
+		try {
+			this.ctx.emit('document/begin', meta);
+		} catch (error) {
+			this.ctx.logger.error(error);
+		}
 		return batch;
 	}
 
