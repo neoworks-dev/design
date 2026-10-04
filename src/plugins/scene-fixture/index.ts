@@ -1,6 +1,7 @@
 import type { Context } from '@neoworks/extension-system';
 import { currentEnvironment, isFixtureEnabled } from './enabled';
-import { buildFixtureDocument, SHAPES_PAGE_ID } from './fixture';
+import { buildFixtureDocument, FIXTURE_FILE_ID, SHAPES_PAGE_ID } from './fixture';
+import { attachFixtureImages } from './images';
 
 export interface SceneFixtureConfig {
 	/** Overrides detection (tests). By default: dev server or a `?qa=1` QA session. */
@@ -28,6 +29,12 @@ function loadFixture(ctx: Context, config: SceneFixtureConfig | undefined): void
 // the real path (document -> document-scene adapter -> renderer). Unloading puts the previous
 // document back. A production build opened normally never loads it.
 //
+// When `blobs` exists the fixture's pictures are stored in the open file and the image paints
+// point at them; without it they keep a pending hash and draw as placeholders.
+//
+// When `blobs` exists the fixture's pictures are stored in the open file and the image paints
+// point at them; without it they keep a pending hash and draw as placeholders.
+//
 // The file session starts a blank document asynchronously after boot, which would replace the
 // fixture. The first replacement that is not ours therefore loads the fixture again, once.
 export default {
@@ -43,6 +50,15 @@ export default {
 			loading = true;
 			loadFixture(ctx, config);
 			loading = false;
+		});
+		ctx.inject(['blobs'], (withBlobs) => {
+			const attach = (): void => {
+				if (withBlobs.document.documentId !== FIXTURE_FILE_ID) return;
+				// before the file session has opened a file the store refuses; the next replace retries
+				attachFixtureImages(withBlobs).catch((error: unknown) => withBlobs.logger.warn(error));
+			};
+			withBlobs.on('document/replace', attach);
+			attach();
 		});
 		ctx.effect(() => {
 			const previous = ctx.document.snapshot;

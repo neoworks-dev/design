@@ -23,6 +23,7 @@ import fileSession from './file-session';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
+import paintShaders from './paint-shaders';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
@@ -49,6 +50,7 @@ export const builtinPlugins: Plugin[] = [
 	fonts,
 	assetsStore,
 	imageCache,
+	paintShaders,
 	documentPlugin,
 	documentScene,
 	selection,

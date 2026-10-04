@@ -6,13 +6,17 @@
 // so a screenshot of the fit-all view shows everything.
 
 import type {
+	ColorStop,
 	DesignDocument,
+	GradientPaint,
+	ImagePaint,
 	Matrix2x3,
 	Paint,
 	Stroke,
 	StrokeWeights,
 	VectorNetwork
 } from '../../lib/document';
+import { pngBytes } from '../../lib/renderer/pngFixture';
 import {
 	buildDocument,
 	frame,
@@ -432,8 +436,152 @@ function fillsFrame(): NodeSpec {
 	]);
 }
 
+// ---------- gradients and images ----------
+
+/** Image hash of fixture paints until the scene-fixture plugin has stored the bytes in the file. */
+export const FIXTURE_PENDING_IMAGE = 'fixture-pending-image';
+export const FIXTURE_MISSING_IMAGE = 'fixture-missing-image';
+export const FIXTURE_IMAGE_NODE_IDS = [
+	'image-fill',
+	'image-fit',
+	'image-crop',
+	'image-tile',
+	'image-rotated',
+	'image-with-overlay'
+];
+
+/** A 60 x 40 picture that shows orientation: a red corner, blue left half, green right half. */
+export function fixtureImageBytes(): Uint8Array {
+	return pngBytes(60, 40, (x, y) => {
+		if (x < 14 && y < 14) return [237, 66, 54, 255];
+		if (x < 30) return [33, 117, 245, 255];
+		return [26, 179, 107, 255];
+	});
+}
+
+function stop(position: number, red: number, green: number, blue: number, alpha = 1): ColorStop {
+	return { position, color: { r: red, g: green, b: blue, a: alpha } };
+}
+
+const IDENTITY: Matrix2x3 = [
+	[1, 0, 0],
+	[0, 1, 0]
+];
+
+function gradient(
+	type: GradientPaint['type'],
+	stops: ColorStop[],
+	transform: Matrix2x3 = IDENTITY,
+	opacity = 1
+): GradientPaint {
+	return {
+		type,
+		visible: true,
+		opacity,
+		blendMode: 'NORMAL',
+		gradientTransform: transform,
+		gradientStops: stops
+	};
+}
+
+function imagePaint(
+	hash: string,
+	scaleMode: ImagePaint['scaleMode'],
+	extra: Partial<ImagePaint> = {}
+): ImagePaint {
+	return {
+		type: 'IMAGE',
+		visible: true,
+		opacity: 1,
+		blendMode: 'NORMAL',
+		imageHash: hash,
+		scaleMode,
+		...extra
+	};
+}
+
+const SUNSET = [stop(0, 0.98, 0.84, 0.2), stop(0.5, 0.93, 0.26, 0.21), stop(1, 0.55, 0.3, 0.9)];
+
+function paintsFrame(): NodeSpec {
+	const cell = (id: string, column: number, row: number, props = {}): NodeSpec =>
+		shape('RECTANGLE', id, 30 + column * 120, 30 + row * 130, { fills: [], ...props });
+	const diagonal: Matrix2x3 = [
+		[0.5, 0.5, 0],
+		[-0.5, 0.5, 0.5]
+	];
+	const zoom: Matrix2x3 = [
+		[0.5, 0, 0.25],
+		[0, 0.5, 0.25]
+	];
+	return artboard('frame-paints', 'Gradients and images', 700, 480, 640, 420, [
+		cell('gradient-linear', 0, 0, { fills: [gradient('GRADIENT_LINEAR', SUNSET)] }),
+		cell('gradient-diagonal', 1, 0, { fills: [gradient('GRADIENT_LINEAR', SUNSET, diagonal)] }),
+		node('ELLIPSE', {
+			id: 'gradient-radial',
+			name: 'gradient-radial',
+			width: 100,
+			height: 100,
+			transform: translation(270, 30),
+			fills: [gradient('GRADIENT_RADIAL', SUNSET)]
+		}),
+		cell('gradient-angular', 3, 0, {
+			fills: [
+				gradient('GRADIENT_ANGULAR', [
+					stop(0, 1, 0.3, 0.2),
+					stop(0.5, 0.2, 0.4, 1),
+					stop(1, 1, 0.3, 0.2)
+				])
+			],
+			cornerRadius: 50
+		}),
+		cell('gradient-diamond', 4, 0, { fills: [gradient('GRADIENT_DIAMOND', SUNSET)] }),
+		cell('image-fill', 0, 1, { fills: [imagePaint(FIXTURE_PENDING_IMAGE, 'FILL')] }),
+		cell('image-fit', 1, 1, {
+			fills: [PALE, imagePaint(FIXTURE_PENDING_IMAGE, 'FIT')]
+		}),
+		cell('image-crop', 2, 1, {
+			fills: [imagePaint(FIXTURE_PENDING_IMAGE, 'CROP', { imageTransform: zoom })]
+		}),
+		cell('image-tile', 3, 1, {
+			fills: [imagePaint(FIXTURE_PENDING_IMAGE, 'TILE', { scalingFactor: 0.5 })]
+		}),
+		cell('image-rotated', 4, 1, {
+			fills: [imagePaint(FIXTURE_PENDING_IMAGE, 'FILL', { rotation: 90 })]
+		}),
+		cell('image-missing', 0, 2, { fills: [imagePaint(FIXTURE_MISSING_IMAGE, 'FILL')] }),
+		cell('gradient-stroke', 1, 2, {
+			fills: [PALE],
+			strokes: [stroke(gradient('GRADIENT_LINEAR', SUNSET), 16, { align: 'INSIDE' })]
+		}),
+		cell('gradient-opacity', 2, 2, {
+			fills: [
+				RED,
+				gradient('GRADIENT_LINEAR', [stop(0, 1, 1, 1), stop(1, 0.13, 0.46, 0.96)], IDENTITY, 0.7)
+			]
+		}),
+		cell('image-with-overlay', 3, 2, {
+			fills: [
+				imagePaint(FIXTURE_PENDING_IMAGE, 'FILL'),
+				gradient(
+					'GRADIENT_LINEAR',
+					[stop(0, 0, 0, 0, 0), stop(1, 0, 0, 0, 0.8)],
+					[
+						[0, 1, 0],
+						[-1, 0, 1]
+					]
+				)
+			]
+		}),
+		cell('gradient-fade', 4, 2, {
+			fills: [gradient('GRADIENT_RADIAL', [stop(0, 0.55, 0.3, 0.9, 1), stop(1, 0.55, 0.3, 0.9, 0)])]
+		})
+	]);
+}
+
 function shapesPage(): NodeSpec {
-	return page('Shapes', [shapesFrame(), fillsFrame(), strokesFrame()], { id: SHAPES_PAGE_ID });
+	return page('Shapes', [shapesFrame(), fillsFrame(), strokesFrame(), paintsFrame()], {
+		id: SHAPES_PAGE_ID
+	});
 }
 
 function addThemeVariables(document: DesignDocument): void {
