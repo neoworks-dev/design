@@ -17,6 +17,7 @@ import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import fonts from './fonts';
 import documentPlugin from './document';
+import align from './align';
 import duplicate from './duplicate';
 import selection from './selection';
 import fileSession from './file-session';
@@ -71,5 +72,6 @@ export const builtinPlugins: Plugin[] = [
 	zOrder,
 	grouping,
 	nodeCommands,
-	duplicate
+	duplicate,
+	align
 ];

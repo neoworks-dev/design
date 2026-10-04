@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createNode } from '../lib/document';
 import { describePlugin, mountPlugin } from '../lib/kernel/testing';
 import { editingProviders, at } from '../lib/editing/fixtures/editingFixture';
+import align from './align';
 import duplicate from './duplicate';
 
 function boundKeys(ctx: Context): string[] {
@@ -94,6 +95,50 @@ describe('duplicate through the keymap', () => {
 		press(ctx, 'd', { ctrl: true });
 		const [copy] = ctx.selection.ids;
 		expect(ctx.document.get(copy)).toMatchObject({ type: 'COMPONENT', key: copy });
+		await cleanup();
+	});
+});
+
+describePlugin('align', align, {
+	providers: editingProviders(),
+	contributes: ({ ctx }) => {
+		const chords = boundKeys(ctx);
+		const expected: Record<string, string> = {
+			'alt+a': 'align.left',
+			'alt+d': 'align.right',
+			'alt+w': 'align.top',
+			'alt+s': 'align.bottom',
+			'alt+h': 'align.horizontal-center',
+			'alt+v': 'align.vertical-center',
+			'alt+shift+h': 'align.distribute-horizontal',
+			'alt+shift+v': 'align.distribute-vertical',
+			'ctrl+alt+shift+t': 'align.tidy-up'
+		};
+		for (const [chord, command] of Object.entries(expected)) {
+			expect(chords).toContain(`${chord}>${command}`);
+			expect(ctx.commands.has(command)).toBe(true);
+		}
+	}
+});
+
+describe('align through the keymap', () => {
+	it('aligns the selection left with Alt+A in one undo step', async () => {
+		const { ctx, cleanup } = await mountPlugin(align, { providers: editingProviders() });
+		ctx.selection.select(['a', 'b', 'c']);
+		press(ctx, 'a', { alt: true });
+		for (const id of ['a', 'b', 'c']) expect(ctx.document.absoluteBounds(id).x).toBe(100);
+		ctx.history.undo();
+		expect(ctx.document.absoluteBounds('c').x).toBe(140);
+		await cleanup();
+	});
+
+	it('distributes three nodes with Alt+Shift+H and tidies up with Ctrl+Alt+Shift+T', async () => {
+		const { ctx, cleanup } = await mountPlugin(align, { providers: editingProviders() });
+		ctx.selection.select(['a', 'b', 'c']);
+		press(ctx, 'H', { alt: true, shift: true });
+		expect(ctx.document.absoluteBounds('b').x).toBe(120);
+		press(ctx, 'T', { ctrl: true, alt: true, shift: true });
+		expect(ctx.history.canUndo).toBe(true);
 		await cleanup();
 	});
 });
