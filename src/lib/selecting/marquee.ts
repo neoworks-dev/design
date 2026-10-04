@@ -37,7 +37,7 @@ export function rectContains(outer: Rect, inner: Rect): boolean {
 	return inner.y + inner.height <= outer.y + outer.height;
 }
 
-function isSelectable(node: Node): boolean {
+export function isSelectable(node: Node): boolean {
 	if (node.type === 'PAGE') return false;
 	return node.visible && !node.locked;
 }

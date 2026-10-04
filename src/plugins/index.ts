@@ -38,6 +38,7 @@ import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
+import selectionCommands from './selection-commands';
 import zOrder from './z-order';
 
 export const builtinPlugins: Plugin[] = [
@@ -75,6 +76,7 @@ export const builtinPlugins: Plugin[] = [
 	titlebar,
 	placeholderShell,
 	nudge,
+	selectionCommands,
 	zOrder,
 	grouping,
 	nodeCommands
