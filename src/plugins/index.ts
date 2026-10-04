@@ -17,6 +17,7 @@ import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import effects from './effects';
 import fonts from './fonts';
+import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import selection from './selection';
@@ -62,6 +63,7 @@ export const builtinPlugins: Plugin[] = [
 	documentScene,
 	selection,
 	spatial,
+	headlessRenderer,
 	hitTest,
 	snapping,
 	history,

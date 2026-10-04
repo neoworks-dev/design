@@ -157,6 +157,20 @@ export class RenderSurface {
 		}
 	}
 
+	/** Encodes the last flushed frame. `quality` (0-100) applies to JPEG and WEBP. */
+	encode(format: 'PNG' | 'JPEG' | 'WEBP', quality: number): Uint8Array | null {
+		if (this.surface === null || this.contextLost) return null;
+		const image = this.surface.makeImageSnapshot();
+		try {
+			// the stock CanvasKit build only ships the PNG encoder and returns null/undefined otherwise
+			const bytes = image.encodeToBytes(this.canvasKit.ImageFormat[format], quality);
+			if (bytes === null || bytes === undefined) return null;
+			return bytes;
+		} finally {
+			image.delete();
+		}
+	}
+
 	dispose(): void {
 		if (this.disposed) return;
 		this.disposed = true;

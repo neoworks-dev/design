@@ -1,7 +1,7 @@
-import type { Node, NodeId } from '../../lib/document';
-import type { SceneChange, SceneListener, SceneSource } from '../../lib/renderer/sceneSource';
-import type { DocumentService } from '../../lib/services/document';
-import type { VariablesService } from '../../lib/services/variables';
+import type { Node, NodeId } from '../document';
+import type { SceneChange, SceneListener, SceneSource } from '../renderer/sceneSource';
+import type { DocumentService } from './document';
+import type { VariablesService } from './variables';
 
 /**
  * The renderer's view of the live document: the current page of `ctx.document`, with every node

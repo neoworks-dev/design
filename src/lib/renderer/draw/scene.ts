@@ -20,6 +20,16 @@ export function drawScene(context: DrawContext): FrameResult {
 	return { drawn: true, drawnNodes: context.counters.drawnNodes, layers: context.counters.layers };
 }
 
+/** Draws one node and its subtree where the canvas currently is (export). */
+export function drawNodeSubtree(context: DrawContext, id: NodeId): void {
+	drawNode(context, id);
+}
+
+/** Draws every node of a page, whatever the source's current page is (export). */
+export function drawPageContents(context: DrawContext, pageId: NodeId): void {
+	drawChildren(context, pageId);
+}
+
 function drawChildren(context: DrawContext, parentId: NodeId): void {
 	drawSiblings(context, context.source.children(parentId));
 }
