@@ -218,6 +218,32 @@ export class HistoryService extends Service {
 		this.finishGroup(open);
 	}
 
+	/**
+	 * Abort a gesture: close the group, revert everything it committed and leave no history
+	 * entry (and no redo entry). A group nested in another one cannot be cancelled alone.
+	 */
+	cancelGroup(handle: GroupHandle): void {
+		if (handle.closed) return;
+		const open = this.state.group;
+		if (!open || open.depth > 1) {
+			this.endGroup(handle);
+			return;
+		}
+		handle.closed = true;
+		this.state.group = null;
+		this.state.groupOpen = false;
+		const changes = open.transactions.flatMap((transaction) => transaction.changes);
+		if (changes.length > 0) {
+			this.document.apply(invertChanges(changes), {
+				origin: 'user',
+				label: `Cancel ${open.label}`,
+				replay: 'undo'
+			});
+		}
+		this.selection.restore(open.selectionBefore);
+		this.announce();
+	}
+
 	// ---------- recording (wired by the plugin) ----------
 
 	/** `document/begin`: remember the selection as it was before the coming change. */

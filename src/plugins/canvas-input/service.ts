@@ -56,7 +56,10 @@ export class CanvasInputService extends Service {
 		element.addEventListener('pointermove', move);
 		element.addEventListener('pointerup', up);
 		element.addEventListener('pointercancel', up);
+		const leave = (): void => this.ctx.tools.pointerLeave();
+		element.addEventListener('pointerleave', leave);
 		return () => {
+			element.removeEventListener('pointerleave', leave);
 			element.removeEventListener('pointerdown', down);
 			element.removeEventListener('pointermove', move);
 			element.removeEventListener('pointerup', up);
@@ -124,26 +127,37 @@ export class CanvasInputService extends Service {
 
 	// ---------- keyboard and focus ----------
 
+	private keyEvent(event: KeyboardEvent): ToolKeyEvent {
+		return {
+			key: event.key,
+			code: event.code,
+			repeat: event.repeat,
+			shiftKey: event.shiftKey,
+			altKey: event.altKey,
+			ctrlKey: event.ctrlKey,
+			metaKey: event.metaKey,
+			preventDefault: () => event.preventDefault()
+		};
+	}
+
 	private listenKeyboard(element: HTMLCanvasElement): () => void {
 		const keydown = (event: KeyboardEvent): void => {
 			this.modifiers.update(event);
-			const toolEvent: ToolKeyEvent = {
-				key: event.key,
-				code: event.code,
-				repeat: event.repeat,
-				shiftKey: event.shiftKey,
-				altKey: event.altKey,
-				ctrlKey: event.ctrlKey,
-				metaKey: event.metaKey,
-				preventDefault: () => event.preventDefault()
-			};
-			if (!this.ctx.tools.keyDown(toolEvent)) return;
+			if (!this.ctx.tools.keyDown(this.keyEvent(event))) return;
 			event.preventDefault();
 			// The window-level keymap must not see a key the tool used.
 			event.stopPropagation();
 		};
+		const keyup = (event: KeyboardEvent): void => {
+			this.modifiers.update(event);
+			this.ctx.tools.keyUp(this.keyEvent(event));
+		};
 		element.addEventListener('keydown', keydown);
-		return () => element.removeEventListener('keydown', keydown);
+		element.addEventListener('keyup', keyup);
+		return () => {
+			element.removeEventListener('keydown', keydown);
+			element.removeEventListener('keyup', keyup);
+		};
 	}
 
 	// The canvas needs tabindex to take focus; the previous value comes back on dispose.

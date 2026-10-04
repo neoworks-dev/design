@@ -31,6 +31,7 @@ import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
+import toolMove from './tool-move';
 import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
@@ -67,6 +68,7 @@ export const builtinPlugins: Plugin[] = [
 	coreTools,
 	canvasInput,
 	viewTools,
+	toolMove,
 	toolShapes,
 	toolFrame,
 	workbenchLayout,

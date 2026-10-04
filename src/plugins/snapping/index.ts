@@ -36,6 +36,14 @@ export default {
 			state,
 			thresholdOf(config?.thresholdPixels)
 		);
+		// Creation tools snap the corner they place; guides go when the tool finishes or changes.
+		ctx.on('tools/snap-point', (point, next) => {
+			const base = next();
+			const outcome = snapping.snap({ x: base.x, y: base.y, width: 0, height: 0 });
+			return { x: base.x + outcome.delta.x, y: base.y + outcome.delta.y };
+		});
+		ctx.on('tools/snap-release', () => snapping.release());
+		ctx.on('tools/change', () => snapping.release());
 		contributeCommand(ctx, {
 			id: 'snapping.toggle',
 			title: 'Snap to objects',
