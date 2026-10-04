@@ -18,6 +18,17 @@ export const windowsConfigSchema = z.strictObject({
 });
 export type WindowsConfig = z.infer<typeof windowsConfigSchema>;
 
+/** The renderer's debug plugin looks for this query parameter (src/plugins/debug/enabled.ts). */
+export const QA_QUERY_PARAMETER = 'qa';
+
+/** The page to load: in a QA session it carries `?qa=1`, which switches the debug hook on. */
+export function entryUrlFor(config: WindowsConfig): string {
+	if (!config.qaSession) return config.entryUrl;
+	const url = new URL(config.entryUrl);
+	url.searchParams.set(QA_QUERY_PARAMETER, '1');
+	return url.toString();
+}
+
 const LOAD_RETRY_ATTEMPTS = 30;
 const LOAD_RETRY_DELAY_MS = 500;
 
@@ -94,8 +105,9 @@ export class WindowsService extends Service {
 	private loadEntry(window: WindowHandle): () => void {
 		let cancelled = false;
 		let retryTimer: ReturnType<typeof setTimeout> | undefined;
+		const entryUrl = entryUrlFor(this.config);
 		const attemptLoad = (attempt: number): void => {
-			window.loadURL(this.config.entryUrl).catch(() => {
+			window.loadURL(entryUrl).catch(() => {
 				if (cancelled || !this.config.devServer || attempt >= LOAD_RETRY_ATTEMPTS) return;
 				retryTimer = setTimeout(() => attemptLoad(attempt + 1), LOAD_RETRY_DELAY_MS);
 			});

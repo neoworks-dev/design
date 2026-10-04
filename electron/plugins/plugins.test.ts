@@ -168,6 +168,7 @@ describe('main-window', () => {
 		await bootMainKernel(root, mainPlugins(options));
 		await settle();
 		const window = firstWindow(host);
+		expect(window.loadedUrls).toEqual(['app://design/?qa=1']);
 		expect(window.observers.size).toBe(1);
 		await root.fiber.dispose();
 		expect(window.observers.size).toBe(0);
