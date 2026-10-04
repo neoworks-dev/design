@@ -75,6 +75,14 @@ const bridge: DesktopBridge = {
 		commit: (transactions) => invoke('store:commit', { transactions }),
 		checkpoint: () => invoke('store:checkpoint')
 	},
+	assets: {
+		put: (request) => invoke('assets:put', request),
+		get: (hash) => invoke('assets:get', { hash }),
+		collect: () => invoke('assets:collect'),
+		embedFont: (ref, bytes) => invoke('assets:embedFont', { ...ref, bytes }),
+		fontBytes: (ref) => invoke('assets:fontBytes', ref),
+		embeddedFonts: () => invoke('assets:embeddedFonts')
+	},
 	files: {
 		newUntitled: () => invoke('files:newUntitled'),
 		open: (path) => invoke('files:open', { path }),
@@ -83,6 +91,9 @@ const bridge: DesktopBridge = {
 		saveAs: (path) => invoke('files:saveAs', { path }),
 		offerRecovery: () => invoke('files:offerRecovery'),
 		launchRequest: () => invoke('files:launchRequest'),
+		recent: () => invoke('files:recent'),
+		clearRecent: () => invoke('files:clearRecent'),
+		setThumbnail: (thumbnail) => invoke('files:setThumbnail', thumbnail),
 		flushed: (requestId) => invoke('files:flushed', { requestId }),
 		pathForFile: (file) => webUtils.getPathForFile(file)
 	},

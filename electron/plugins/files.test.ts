@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { planSetProps } from '../../src/lib/document/changes';
 import type { DesignDocument } from '../../src/lib/document/types';
-import type { CommitResult, IpcResult, LoadedDocument, StoreInfo } from '../bridge';
+import type { CommitResult, IpcResult, LoadedDocument, RecentFile, StoreInfo } from '../bridge';
 import type { FakeWindow } from '../kernel/fakeHost';
 import { bootMinimalKernel, settle, type TestKernel } from '../kernel/testing';
 import { DocumentFile } from '../store/documentFile';
@@ -94,6 +94,9 @@ describe('main-files plugin', () => {
 				'files:saveAs',
 				'files:offerRecovery',
 				'files:launchRequest',
+				'files:recent',
+				'files:clearRecent',
+				'files:setThumbnail',
 				'files:flushed'
 			])
 		);
@@ -496,5 +499,79 @@ describe('opening on the OS request', () => {
 			.filter((message) => message.channel === 'files:open-request')
 			.map((message) => message.payload);
 		expect(requests).toEqual([{ path: '/x/finder.ndesign' }, { path: '/x/second.ndesign' }]);
+	});
+});
+
+describe('recent files', () => {
+	function makeDesign(name: string): string {
+		const target = path.join(directory, name);
+		DocumentFile.create(target, richDocument()).close();
+		return target;
+	}
+
+	async function recentPaths(kernel: Kernel): Promise<string[]> {
+		return value(await call<RecentFile[]>(kernel, 'files:recent')).map((entry) => entry.path);
+	}
+
+	it('lists opened files newest first and reopening moves a file to the front', async () => {
+		const first = makeDesign('a.ndesign');
+		const second = makeDesign('b.ndesign');
+		const kernel = await boot();
+		loaded(await call(kernel, 'files:open', { path: first }));
+		loaded(await call(kernel, 'files:open', { path: second }));
+		expect(await recentPaths(kernel)).toEqual([second, first]);
+		loaded(await call(kernel, 'files:open', { path: first }));
+		expect(await recentPaths(kernel)).toEqual([first, second]);
+		expect(kernel.host.osRecentDocuments).toEqual([first, second, first]);
+	});
+
+	it('records Save As destinations but never untitled documents', async () => {
+		const kernel = await boot();
+		loaded(await call(kernel, 'files:newUntitled'));
+		expect(await recentPaths(kernel)).toEqual([]);
+		const target = path.join(directory, 'saved.ndesign');
+		value(await call(kernel, 'files:saveAs', { path: target }));
+		expect(await recentPaths(kernel)).toEqual([target]);
+	});
+
+	it('prunes files that vanished when the list is read', async () => {
+		const kept = makeDesign('kept.ndesign');
+		const gone = makeDesign('gone.ndesign');
+		const kernel = await boot();
+		loaded(await call(kernel, 'files:open', { path: gone }));
+		loaded(await call(kernel, 'files:open', { path: kept }));
+		rmSync(gone);
+		expect(await recentPaths(kernel)).toEqual([kept]);
+		const reboot = await boot();
+		expect(await recentPaths(reboot)).toEqual([kept]);
+	});
+
+	it('caps the list at 20 entries', async () => {
+		const kernel = await boot();
+		for (let index = 0; index < 22; index += 1) {
+			loaded(await call(kernel, 'files:open', { path: makeDesign(`f${index}.ndesign`) }));
+		}
+		const paths = await recentPaths(kernel);
+		expect(paths).toHaveLength(20);
+		expect(paths[0]).toBe(path.join(directory, 'f21.ndesign'));
+	});
+
+	it('clearRecent empties the list and the OS list', async () => {
+		const kernel = await boot();
+		loaded(await call(kernel, 'files:open', { path: makeDesign('a.ndesign') }));
+		value(await call(kernel, 'files:clearRecent'));
+		expect(await recentPaths(kernel)).toEqual([]);
+		expect(kernel.host.osRecentDocuments).toEqual([]);
+	});
+
+	it('returns the stored thumbnail of each file, null until one was written', async () => {
+		const target = makeDesign('a.ndesign');
+		const kernel = await boot();
+		loaded(await call(kernel, 'files:open', { path: target }));
+		expect(value(await call<RecentFile[]>(kernel, 'files:recent'))[0].thumbnail).toBeNull();
+		const thumbnail = { mime: 'image/png', width: 2, height: 3, bytes: new Uint8Array([1, 2, 3]) };
+		value(await call(kernel, 'files:setThumbnail', thumbnail));
+		const [entry] = value(await call<RecentFile[]>(kernel, 'files:recent'));
+		expect(entry.thumbnail).toEqual(thumbnail);
 	});
 });

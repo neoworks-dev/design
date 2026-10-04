@@ -127,6 +127,7 @@ export class FileSessionService extends Service {
 		this.state.info = info;
 		this.state.savedRevision = info.unsaved ? -1 : this.document.revision;
 		this.publishKeys();
+		this.ctx.emit('file/attached', info);
 	}
 
 	/** Stop persisting. Pending transactions are sent first so none are lost. */
@@ -202,9 +203,11 @@ export class FileSessionService extends Service {
 		if (destination === null) return false;
 		await this.flush();
 		const revision = this.document.revision;
-		this.state.info = await this.desktop.filesSaveAs(destination);
+		const saved = await this.desktop.filesSaveAs(destination);
+		this.state.info = saved;
 		this.state.savedRevision = revision;
 		this.publishKeys();
+		this.ctx.emit('file/attached', saved);
 		return true;
 	}
 
