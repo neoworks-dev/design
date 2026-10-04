@@ -32,6 +32,9 @@ declare module '@neoworks/extension-system' {
 		 */
 		'panels/tab-activated'(side: 'left' | 'right', tabId: string): void;
 
+		/** Dispatch mode: emit. The tool in use changed (activation, temporary tool, revert). */
+		'tools/change'(toolId: string, previousToolId: string): void;
+
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;
 	}

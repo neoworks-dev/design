@@ -8,12 +8,21 @@ import coreKeymap from '../core-keymap';
 import coreMenus from '../core-menus';
 import corePanels from '../core-panels';
 import coreRegions from '../core-regions';
+import coreTools from '../core-tools';
 import placeholderShell from '../placeholder-shell';
 import workbenchLayout from './index';
 import { LAYOUT_STORAGE_KEY } from './layoutState.svelte';
 import { memoryStorage, type MemoryStorage } from './testStorage';
 
-const providers = [coreRegions, coreContextKeys, coreCommands, coreKeymap, coreMenus, corePanels];
+const providers = [
+	coreRegions,
+	coreContextKeys,
+	coreCommands,
+	coreKeymap,
+	coreMenus,
+	corePanels,
+	coreTools
+];
 
 type ObserverCallback = (entries: { contentRect: { width: number; height: number } }[]) => void;
 

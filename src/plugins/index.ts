@@ -9,6 +9,7 @@ import coreMenus from './core-menus';
 import coreInspectors from './core-inspectors';
 import corePanels from './core-panels';
 import coreRegions from './core-regions';
+import coreTools from './core-tools';
 import desktopBridge from './desktop-bridge';
 import placeholderShell from './placeholder-shell';
 import titlebar from './titlebar';
@@ -23,6 +24,7 @@ export const builtinPlugins: Plugin[] = [
 	coreMenus,
 	corePanels,
 	coreInspectors,
+	coreTools,
 	workbenchLayout,
 	titlebar,
 	placeholderShell
