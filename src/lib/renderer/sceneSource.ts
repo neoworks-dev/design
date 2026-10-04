@@ -2,19 +2,11 @@
 // document *service*, so the renderer works today on a hand-built fixture and later on the real
 // document without changes.
 //
-// THE SEAM. Once the document service (`ctx.document`: `apply()`, `document/change` events, pages,
-// variable resolver) exists, one small adapter plugin implements SceneSource over it and hands it
-// to the renderer with `ctx.renderer.setSceneSource(source)`:
-//
-//   currentPageId()  <- ctx.document.currentPageId
-//   getNode / children <- ctx.document's DocumentStore (`store.getNode`, `store.children`)
-//   resolve(node)    <- the variable resolver (D6); identity until it exists
-//   subscribe(fn)    <- ctx.on('document/change', (transaction) =>
-//                         fn({ kind: 'changes', changes: transaction.changes })), and
-//                       `{ kind: 'reset' }` for page switches, file open and variable-mode changes.
-//
-// `scene-fixture` (dev/QA only) is the only other implementation: `StoreSceneSource` over a
-// DocumentStore built by `buildDocument`.
+// THE SEAM. The `document-scene` plugin implements SceneSource over `ctx.document` (current page,
+// nodes resolved through `ctx.variables`) and hands it to the renderer with
+// `ctx.renderer.setSceneSource(source)`: `document/change` becomes `{ kind: 'changes' }`; page
+// switches and `document/replace` become `{ kind: 'reset' }`. `StoreSceneSource` (a plain
+// DocumentStore) remains for tests and headless drawing.
 
 import type { Change, Node, NodeId } from '../document/types';
 

@@ -14,7 +14,7 @@ export interface RendererConfig {
 const canvasKitBackend: BackendFactory = (ctx, element) => {
 	const { kit, tracker } = ctx.canvaskit;
 	const surface = ctx.canvaskit.createSurface(element);
-	return new CanvasKitBackend(kit, tracker, surface);
+	return new CanvasKitBackend(kit, tracker, surface, ctx.renderer.drawHooks);
 };
 
 // Provides `renderer` and fills the `canvas` region with the canvas it draws on. The scene comes
@@ -31,6 +31,7 @@ export default {
 		ctx.effect(() => () => renderer.stop(), 'renderer/frame loop');
 
 		ctx.on('renderer/surface-reset', (reason) => renderer.noteSurfaceReset(reason));
+		ctx.on('renderer/need-frame', (reason) => renderer.requestFrame(reason));
 
 		ctx.effect(
 			() =>

@@ -3,6 +3,7 @@ import type { NodeId } from '../../lib/document/types';
 import type { Size } from '../../lib/kernel/types';
 import type { SurfaceResetReason } from '../../lib/renderer/surface';
 import { FrameScheduler, type FrameDriver } from '../../lib/renderer/frameScheduler';
+import { DrawHookRegistry, type DrawHooks } from '../../lib/renderer/draw/hooks';
 import type { SceneChange, SceneSource } from '../../lib/renderer/sceneSource';
 import {
 	IDENTITY_VIEW,
@@ -57,6 +58,8 @@ export class RendererService extends Service implements Renderer {
 	private readonly frameStats = emptyStats();
 	private totalFrameMilliseconds = 0;
 	private shownPageId: NodeId | null = null;
+	/** What the backend draws with; features add their part through `registerDrawHooks`. */
+	readonly drawHooks = new DrawHookRegistry();
 
 	constructor(
 		ctx: Context,
@@ -113,6 +116,19 @@ export class RendererService extends Service implements Renderer {
 				this.announcePage(null);
 			};
 		}, 'renderer/scene source');
+		return () => void dispose();
+	}
+
+	/** Adds drawing hooks (gradient shaders, effects, text); the returned disposer removes them. */
+	registerDrawHooks(hooks: Partial<DrawHooks>): () => void {
+		const dispose = this.ctx.effect(() => {
+			const unregister = this.drawHooks.register(hooks);
+			this.requestFrame('draw-hooks');
+			return () => {
+				unregister();
+				this.requestFrame('draw-hooks');
+			};
+		}, 'renderer/draw hooks');
 		return () => void dispose();
 	}
 

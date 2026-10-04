@@ -107,6 +107,13 @@ declare module '@neoworks/extension-system' {
 		'renderer/canvas-change'(element: HTMLCanvasElement | undefined): void;
 
 		/**
+		 * Dispatch mode: emit. Something the scene shows changed outside the document (an image
+		 * finished decoding, a font loaded): draw a frame. The renderer requests one on the next
+		 * animation frame with `reason` recorded in its stats.
+		 */
+		'renderer/need-frame'(reason: string): void;
+
+		/**
 		 * Dispatch mode: emit. The renderer's Skia surface was rebuilt (WebGL context restored or
 		 * the canvas resized); everything drawn on it is gone and the next frame redraws it all.
 		 */

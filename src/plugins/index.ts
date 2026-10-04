@@ -17,13 +17,16 @@ import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import fonts from './fonts';
 import documentPlugin from './document';
+import documentScene from './document-scene';
 import selection from './selection';
 import spatial from './spatial';
 import hitTest from './hit-test';
 import snapping from './snapping';
 import fileSession from './file-session';
 import history from './history';
+import imageCache from './image-cache';
 import recentFiles from './recent-files';
+import paintShaders from './paint-shaders';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
@@ -49,7 +52,10 @@ export const builtinPlugins: Plugin[] = [
 	desktopBridge,
 	fonts,
 	assetsStore,
+	imageCache,
+	paintShaders,
 	documentPlugin,
+	documentScene,
 	selection,
 	spatial,
 	hitTest,

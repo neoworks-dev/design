@@ -219,6 +219,10 @@ export function createRealHost(): ElectronHost {
 			showMessageBox: async (request: MessageBoxRequest) => {
 				const answer = qaAnswer('DESIGN_QA_MESSAGE_BOX');
 				if (answer !== undefined) return Number(answer);
+				// Nobody sees a native box on the virtual display, so say in the log what is waiting.
+				if (process.env.DESIGN_QA === '1') {
+					process.stdout.write(`[qa] native message box waiting: ${request.message}\n`);
+				}
 				const result = await dialog.showMessageBox({
 					type: 'question',
 					message: request.message,

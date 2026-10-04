@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import HostRoot from '../../lib/kernel/fixtures/HostRoot.svelte';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import type { FrameDriver } from '../../lib/renderer/frameScheduler';
+import type { SceneSource } from '../../lib/renderer/sceneSource';
 import type { FrameRequest, FrameResult, RenderBackend } from '../../lib/renderer/types';
 import { absoluteBoundsOf } from '../../lib/renderer/bounds';
 import type { CanvasWheelEvent } from '../../lib/viewport/wheel';
@@ -12,6 +13,10 @@ import coreContextKeys from '../core-context-keys';
 import coreKeymap from '../core-keymap';
 import coreMenus from '../core-menus';
 import coreRegions from '../core-regions';
+import documentPlugin from '../document';
+import documentScene from '../document-scene';
+import selection from '../selection';
+import variablesCore from '../variables-core';
 import debug from '../debug';
 import renderer from '../renderer';
 import sceneFixture from '../scene-fixture';
@@ -76,15 +81,25 @@ function providers(): Plugin[] {
 		coreKeymap,
 		coreMenus,
 		fakeCanvasKit,
+		documentPlugin,
+		variablesCore,
+		selection,
 		configuredRenderer,
+		documentScene,
 		{
 			...sceneFixture,
-			apply: (ctx: Context) => sceneFixture.apply(ctx, { enabled: true })
+			apply: (ctx: Context) => sceneFixture.apply(ctx, { enabled: true, startPage: FIRST_PAGE_ID })
 		} as Plugin
 	];
 }
 
 let mounted: MountedPlugin | undefined;
+
+function sceneSourceOf(ctx: Context): SceneSource {
+	const source = ctx.renderer.sceneSource;
+	if (!source) throw new Error('no scene source');
+	return source;
+}
 
 afterEach(async () => {
 	await mounted?.cleanup();
@@ -198,9 +213,9 @@ describe('viewport service', () => {
 		const fitScale = ctx.viewport.zoom;
 		expect(fitScale).toBeLessThan(1);
 
-		ctx['scene-fixture'].select(['frame-b']);
+		ctx.selection.select(['frame-b']);
 		await ctx.commands.run('viewport.zoom-to-selection');
-		const frameB = absoluteBoundsOf(ctx['scene-fixture'].source, 'frame-b');
+		const frameB = absoluteBoundsOf(sceneSourceOf(ctx), 'frame-b');
 		expect(frameB).toEqual({ x: 600, y: 100, width: 300, height: 300 });
 		const topLeft = ctx.viewport.worldToScreen({ x: 600, y: 100 });
 		const bottomRight = ctx.viewport.worldToScreen({ x: 900, y: 400 });
@@ -221,7 +236,7 @@ describe('viewport service', () => {
 	it('next and previous frame walk the top-level frames and wrap around', async () => {
 		const { ctx } = await mountViewport();
 		const centreOf = (id: string): { x: number; y: number } => {
-			const bounds = absoluteBoundsOf(ctx['scene-fixture'].source, id);
+			const bounds = absoluteBoundsOf(sceneSourceOf(ctx), id);
 			if (!bounds) throw new Error(`no bounds for ${id}`);
 			return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
 		};
@@ -287,21 +302,20 @@ describe('viewport service', () => {
 
 	it('restores the camera of a page when it is shown again, and fits a page seen first', async () => {
 		const { ctx } = await mountViewport();
-		const source = ctx['scene-fixture'].source;
 		await ctx.commands.run('viewport.zoom-100');
 		ctx.viewport.panBy(-123, 45);
 		const firstPageCamera = ctx.viewport.camera;
 
-		source.showPage(SECOND_PAGE_ID);
+		ctx.document.setCurrentPage(SECOND_PAGE_ID);
 		expect(ctx.viewport.pageId).toBe(SECOND_PAGE_ID);
 		const secondPageCamera = ctx.viewport.camera;
 		expect(secondPageCamera).not.toEqual(firstPageCamera);
 		expect(secondPageCamera.scale).toBeLessThanOrEqual(256);
 		ctx.viewport.zoomAt({ x: 10, y: 10 }, 3);
 
-		source.showPage(FIRST_PAGE_ID);
+		ctx.document.setCurrentPage(FIRST_PAGE_ID);
 		expect(ctx.viewport.camera).toEqual(firstPageCamera);
-		source.showPage(SECOND_PAGE_ID);
+		ctx.document.setCurrentPage(SECOND_PAGE_ID);
 		expect(ctx.viewport.camera.scale).toBe(3);
 	});
 

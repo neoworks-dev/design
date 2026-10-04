@@ -4,6 +4,7 @@
 
 import type { CanvasKit } from 'canvaskit-wasm';
 import { createDrawContext } from './draw/context';
+import { DEFAULT_DRAW_HOOKS, type DrawHooks } from './draw/hooks';
 import { drawScene } from './draw/scene';
 import { pageBackground } from './draw/background';
 import type { SkiaTracker } from './ownership';
@@ -16,7 +17,8 @@ export class CanvasKitBackend implements RenderBackend {
 	constructor(
 		private readonly canvasKit: CanvasKit,
 		private readonly tracker: SkiaTracker,
-		private readonly surface: RenderSurface
+		private readonly surface: RenderSurface,
+		private readonly hooks: DrawHooks = DEFAULT_DRAW_HOOKS
 	) {}
 
 	resize(pixelWidth: number, pixelHeight: number): void {
@@ -34,7 +36,7 @@ export class CanvasKitBackend implements RenderBackend {
 				canvas.scale(devicePixelRatio, devicePixelRatio);
 				canvas.translate(view.x, view.y);
 				canvas.scale(view.scale, view.scale);
-				const context = createDrawContext(this.canvasKit, canvas, scope, request);
+				const context = createDrawContext(this.canvasKit, canvas, scope, request, this.hooks);
 				result = drawScene(context);
 				canvas.restore();
 			});

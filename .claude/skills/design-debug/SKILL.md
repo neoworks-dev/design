@@ -141,6 +141,13 @@ In QA mode, main mirrors the renderer console into its own stdout with a `[rende
 prefix, so `.qa/main.log` holds both halves in order. Renderer crashes show up as
 `[renderer:gone]`. In `--dev` mode, the vite output is in `.qa/vite.log`.
 
+Native dialogs can't be clicked on the virtual display. A waiting message box logs
+`[qa] native message box waiting: ...` and blocks whatever asked (e.g. the crash-recovery prompt
+for an untitled file a killed session left in `.qa/profile/untitled/`: no file is open, and saving
+or `blobs.put` fail with "no document file open"). Start with `--fresh`, or answer dialogs through
+the environment: `DESIGN_QA_MESSAGE_BOX=<button index>`, `DESIGN_QA_OPEN_PATH`,
+`DESIGN_QA_SAVE_PATH`.
+
 ## Raw CDP
 
 `qa status` prints the endpoint (`http://127.0.0.1:<port>/json/list`). Anything that speaks CDP
