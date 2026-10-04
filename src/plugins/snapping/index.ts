@@ -16,10 +16,12 @@ function thresholdOf(value: number | undefined): number {
 	return value;
 }
 
-// The `snapping` service: object snapping with guides for the move, resize and draw tools, plus
-// the global "Snap to objects" switch. Guides live in the service state; drawing them is the
-// overlay layer's job (#38, not built yet: it will read `ctx.snapping.guides`). `overlay` joins
-// `inject` when that plugin exists.
+// The `snapping` service: object snapping and equal-spacing guides for the move, resize and draw
+// tools, Alt+hover distance measurement, plus the global "Snap to objects" switch. Guides, gap
+// brackets and the measurement live in reactive service state; drawing them (red lines, x marks,
+// distance labels) is the overlay layer's job (#38, not built yet): it will read
+// `ctx.snapping.guides`, `.gaps` and `.measurement` (`projectMeasurement` gives screen space), and
+// a tool calls `snap` / `measure` / `release`. `overlay` joins `inject` when that plugin exists.
 export default {
 	name: 'snapping',
 	inject: ['document', 'spatial', 'viewport', 'commands', 'menus'],
