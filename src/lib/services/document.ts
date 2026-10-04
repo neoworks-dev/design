@@ -41,6 +41,7 @@ import {
 	type Matrix2x3,
 	type Node,
 	type NodeId,
+	type PageNode,
 	type Rect,
 	type Transaction
 } from '../document';
@@ -263,6 +264,36 @@ export class DocumentService extends Service {
 			documentId: document.id
 		});
 		this.emitPageChangeIfNeeded(previousPage);
+	}
+
+	// ---------- current page ----------
+
+	get currentPageId(): NodeId {
+		this.state.track();
+		const id = this.state.currentPageId;
+		if (id === null) throw new Error('document has no current page');
+		return id;
+	}
+
+	get currentPage(): PageNode {
+		const page = this.require(this.currentPageId);
+		if (page.type !== 'PAGE') throw new Error(`current page ${page.id} is not a page`);
+		return page;
+	}
+
+	pages(): PageNode[] {
+		this.state.track();
+		return this.state.store.pages().filter((node): node is PageNode => node.type === 'PAGE');
+	}
+
+	/** Switch the current page. Not undoable and not in the document: it is view state. */
+	setCurrentPage(pageId: NodeId): void {
+		const page = this.state.store.getNode(pageId);
+		if (!page || page.type !== 'PAGE') throw new Error(`not a page: ${pageId}`);
+		const previous = this.state.currentPageId;
+		if (previous === pageId) return;
+		this.state.currentPageId = pageId;
+		this.ctx.emit('document/currentpagechange', pageId, previous);
 	}
 
 	snapshotState(): Record<string, unknown> {

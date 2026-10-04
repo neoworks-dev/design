@@ -58,5 +58,8 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. The current page changed. */
 		'document/currentpagechange'(pageId: string, previousPageId: string | null): void;
+
+		/** Dispatch mode: emit. The selection set changed; fires once per change. */
+		'selection/change'(ids: readonly string[], previousIds: readonly string[]): void;
 	}
 }
