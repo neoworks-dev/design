@@ -62,6 +62,12 @@ const bridge: DesktopBridge = {
 		openFile: (options) => invoke('dialogs:openFile', options),
 		saveFile: (options) => invoke('dialogs:saveFile', options)
 	},
+	store: {
+		open: (path) => invoke('store:open', { path }),
+		create: (request) => invoke('store:create', request),
+		load: () => invoke('store:load'),
+		close: () => invoke('store:close')
+	},
 	events: { on: subscribe },
 	system: {
 		platform: process.platform,

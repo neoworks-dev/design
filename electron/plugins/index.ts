@@ -8,6 +8,7 @@ import { mainDialogsPlugin } from './dialogs';
 import { mainElectronPlugin } from './electron';
 import { mainIpcPlugin } from './ipc';
 import { mainProtocolPlugin } from './protocol';
+import { mainStorePlugin } from './store';
 import { mainWindowPlugin, type WindowsConfig } from './windows';
 
 export interface MainPluginOptions {
@@ -24,6 +25,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainProtocolPlugin, config: { buildDirectory: options.buildDirectory } },
 		{ plugin: mainWindowPlugin, config: options.window },
 		{ plugin: mainAppPlugin },
-		{ plugin: mainDialogsPlugin }
+		{ plugin: mainDialogsPlugin },
+		{ plugin: mainStorePlugin }
 	];
 }

@@ -3,7 +3,8 @@
 // Main only: the preload is sandboxed and must not import this file.
 
 import { z } from 'zod';
-import type { IpcChannel, IpcContract } from './bridge';
+import type { CreateStoreRequest, IpcChannel, IpcContract } from './bridge';
+import { designDocumentSchema } from '../src/lib/document/schema';
 
 const fileFilter = z.strictObject({ name: z.string(), extensions: z.array(z.string()) });
 const openFileOptions = z
@@ -22,6 +23,12 @@ const saveFileOptions = z
 	})
 	.optional();
 
+const storePath = z.string().min(1);
+const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
+	path: storePath,
+	document: designDocumentSchema.optional()
+});
+
 export type PayloadSchemas = {
 	[Channel in IpcChannel]: z.ZodType<IpcContract[Channel]['payload']>;
 };
@@ -35,5 +42,9 @@ export const payloadSchemas: PayloadSchemas = {
 	'app:quit': z.void(),
 	'app:bootReport': z.void(),
 	'dialogs:openFile': openFileOptions,
-	'dialogs:saveFile': saveFileOptions
+	'dialogs:saveFile': saveFileOptions,
+	'store:open': z.strictObject({ path: storePath }),
+	'store:create': createStoreRequest,
+	'store:load': z.void(),
+	'store:close': z.void()
 };

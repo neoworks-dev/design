@@ -307,7 +307,9 @@ describe('plugin shape rules', () => {
 			expect(plugin.name).toMatch(/^main-/);
 		}
 		const withRoutes = entries.filter((entry) =>
-			['main-window', 'main-app', 'main-dialogs'].includes(entry.plugin.name as string)
+			['main-window', 'main-app', 'main-dialogs', 'main-store'].includes(
+				entry.plugin.name as string
+			)
 		);
 		for (const { plugin } of withRoutes) {
 			const inject = (plugin as Plugin.Object).inject as string[];

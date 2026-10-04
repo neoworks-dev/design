@@ -6,6 +6,8 @@
 // methods to `DesktopBridge` and `preload.ts`, and register the routes from a main plugin with
 // `route()`.
 
+import type { DesignDocument } from '../src/lib/document/types';
+
 // ---------- shared value types ----------
 
 export type AppPathName = 'userData' | 'documents' | 'downloads' | 'temp' | 'home';
@@ -24,6 +26,26 @@ export interface SaveFileOptions {
 	title?: string;
 	defaultPath?: string;
 	filters?: FileFilter[];
+}
+
+/** What a design file says about itself (the `meta` table), without its nodes. */
+export interface StoreInfo {
+	path: string;
+	documentId: string;
+	name: string;
+	schemaVersion: number;
+	/** Milliseconds since the epoch. */
+	createdAt: number;
+	modifiedAt: number;
+}
+export interface LoadedDocument {
+	info: StoreInfo;
+	document: DesignDocument;
+}
+export interface CreateStoreRequest {
+	path: string;
+	/** The document to write into the new file; a blank one when omitted. */
+	document?: DesignDocument;
 }
 
 export interface BootFailure {
@@ -67,6 +89,11 @@ export interface IpcContract {
 	'app:bootReport': { payload: void; result: BootReport | null };
 	'dialogs:openFile': { payload: OpenFileOptions | undefined; result: string[] | null };
 	'dialogs:saveFile': { payload: SaveFileOptions | undefined; result: string | null };
+	/** One open document file per window; these act on the sender's. */
+	'store:open': { payload: { path: string }; result: StoreInfo };
+	'store:create': { payload: CreateStoreRequest; result: StoreInfo };
+	'store:load': { payload: void; result: LoadedDocument };
+	'store:close': { payload: void; result: void };
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -102,6 +129,15 @@ export interface DesktopBridge {
 	dialogs: {
 		openFile(options?: OpenFileOptions): Promise<string[] | null>;
 		saveFile(options?: SaveFileOptions): Promise<string | null>;
+	};
+	store: {
+		/** Open an existing design file as this window's document. */
+		open(path: string): Promise<StoreInfo>;
+		/** Create a new design file (blank unless a document is given) and open it. */
+		create(request: CreateStoreRequest): Promise<StoreInfo>;
+		/** The whole document of the open file. */
+		load(): Promise<LoadedDocument>;
+		close(): Promise<void>;
 	};
 	events: {
 		/** Subscribe to a main-to-renderer push; the returned function unsubscribes. */

@@ -39,6 +39,7 @@ describe('bootMainKernel', () => {
 			'main-electron',
 			'main-ipc',
 			'main-protocol',
+			'main-store',
 			'main-window'
 		]);
 	});
@@ -48,7 +49,7 @@ describe('bootMainKernel', () => {
 		const root = createMainContext({ writeLine: () => {} });
 		const reversed = [...mainPlugins(testPluginOptions(host))].reverse();
 		const report = await bootMainKernel(root, reversed);
-		expect(report.loaded).toHaveLength(6);
+		expect(report.loaded).toHaveLength(7);
 		expect(report.pending).toEqual([]);
 	});
 
@@ -81,6 +82,7 @@ describe('bootMainKernel', () => {
 		expect(report.pending.map((entry) => entry.plugin).sort()).toEqual([
 			'main-app',
 			'main-dialogs',
+			'main-store',
 			'main-window'
 		]);
 		expect(report.loaded.sort()).toEqual(['main-electron', 'main-protocol']);

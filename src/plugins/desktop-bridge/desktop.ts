@@ -9,12 +9,15 @@ import { Service, type Context } from '@neoworks/extension-system';
 import type {
 	AppPathName,
 	BootReport,
+	CreateStoreRequest,
 	DesktopBridge,
 	IpcErrorCode,
 	IpcEventChannel,
 	IpcEvents,
+	LoadedDocument,
 	OpenFileOptions,
-	SaveFileOptions
+	SaveFileOptions,
+	StoreInfo
 } from '../../../electron/bridge';
 
 const ERROR_CODES: readonly IpcErrorCode[] = [
@@ -106,6 +109,25 @@ export class DesktopService extends Service {
 
 	saveFileDialog(options?: SaveFileOptions): Promise<string | null> {
 		return typed(() => this.bridge.dialogs.saveFile(options));
+	}
+
+	/** Open an existing design file as this window's document. */
+	storeOpen(path: string): Promise<StoreInfo> {
+		return typed(() => this.bridge.store.open(path));
+	}
+
+	/** Create a design file (blank unless a document is given) and make it this window's. */
+	storeCreate(request: CreateStoreRequest): Promise<StoreInfo> {
+		return typed(() => this.bridge.store.create(request));
+	}
+
+	/** The whole document of the file this window has open. */
+	storeLoad(): Promise<LoadedDocument> {
+		return typed(() => this.bridge.store.load());
+	}
+
+	storeClose(): Promise<void> {
+		return typed(() => this.bridge.store.close());
 	}
 
 	/**
