@@ -4,7 +4,7 @@
 // exist so callers do not have to.
 
 import { planMove } from './treeOps';
-import type { DocumentStore } from './store';
+import type { DocumentReader } from './store';
 import type { Change, EntityChange, EntityKind, EntityMap, Node, NodeId } from './types';
 
 export function valuesEqual(left: unknown, right: unknown): boolean {
@@ -38,7 +38,7 @@ function changedProperties(
 
 /** Property-level `set` of top-level keys; keys that already hold the value are left out. */
 export function planSetProps(
-	store: DocumentStore,
+	store: DocumentReader,
 	id: NodeId,
 	props: Record<string, unknown>
 ): Change[] {
@@ -58,13 +58,13 @@ export function planInsertAll(nodes: Node[]): Change[] {
 }
 
 /** Delete `id` and everything below it, deepest first so every `del` is of a leaf. */
-export function planRemove(store: DocumentStore, id: NodeId): Change[] {
+export function planRemove(store: DocumentReader, id: NodeId): Change[] {
 	const subtree = [store.requireNode(id), ...store.descendants(id)];
 	return subtree.reverse().map((node) => ({ t: 'del', node }));
 }
 
 export function planMoveNode(
-	store: DocumentStore,
+	store: DocumentReader,
 	id: NodeId,
 	parentId: NodeId | null,
 	position: number
@@ -76,14 +76,14 @@ export function planEntityAdd<K extends EntityKind>(kind: K, entity: EntityMap[K
 	return [{ t: 'entity-add', kind, entity } as EntityChange];
 }
 
-export function planEntityDelete(store: DocumentStore, kind: EntityKind, id: string): Change[] {
+export function planEntityDelete(store: DocumentReader, kind: EntityKind, id: string): Change[] {
 	const entity = store.getEntity(kind, id);
 	if (entity === undefined) throw new Error(`${kind} not found: ${id}`);
 	return [{ t: 'entity-del', kind, entity } as EntityChange];
 }
 
 export function planEntitySet(
-	store: DocumentStore,
+	store: DocumentReader,
 	kind: EntityKind,
 	id: string,
 	props: Record<string, unknown>

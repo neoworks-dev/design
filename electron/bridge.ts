@@ -6,7 +6,7 @@
 // methods to `DesktopBridge` and `preload.ts`, and register the routes from a main plugin with
 // `route()`.
 
-import type { DesignDocument, Transaction } from '../src/lib/document/types';
+import type { AssetRecord, DesignDocument, Transaction } from '../src/lib/document/types';
 
 // ---------- shared value types ----------
 
@@ -64,6 +64,38 @@ export interface CreateStoreRequest {
 	path: string;
 	/** The document to write into the new file; a blank one when omitted. */
 	document?: DesignDocument;
+}
+
+/** An encoded preview image, as stored in a file's `thumbnails` table. */
+export interface Thumbnail {
+	mime: string;
+	width: number;
+	height: number;
+	bytes: Uint8Array;
+}
+/** A document the user opened or saved before, newest first in `files:recent`. */
+export interface RecentFile {
+	path: string;
+	name: string;
+	/** Milliseconds since the epoch. */
+	openedAt: number;
+	/** The file's `file` thumbnail; `null` until the renderer wrote one. */
+	thumbnail: Thumbnail | null;
+}
+
+/** An image to store in the open file's `assets` table. */
+export interface AssetPutRequest {
+	mime: string;
+	bytes: Uint8Array;
+	/** Pixel size after EXIF orientation, when the sender could read it. */
+	width?: number;
+	height?: number;
+}
+export interface AssetPutResult {
+	/** The record to add to the document's `assets` (hash is its `id`). */
+	record: AssetRecord;
+	/** False when the same bytes were already stored. */
+	created: boolean;
 }
 
 export interface BootFailure {
@@ -136,6 +168,23 @@ export interface IpcContract {
 	'files:offerRecovery': { payload: void; result: LoadedDocument | null };
 	/** The file this launch was asked to open (command line, OS), once; `null` otherwise. */
 	'files:launchRequest': { payload: void; result: string | null };
+	/** Recently opened or saved documents, newest first; files that vanished are pruned here. */
+	'files:recent': { payload: void; result: RecentFile[] };
+	/** Forget every recent document (also the OS's list where it has one). */
+	'files:clearRecent': { payload: void; result: void };
+	/** Store the open file's thumbnail (key `file`) so the recent list can show it. */
+	'files:setThumbnail': { payload: Thumbnail; result: void };
+	/** Store image bytes by sha-256 in the open file; the same bytes are stored once. */
+	'assets:put': { payload: AssetPutRequest; result: AssetPutResult };
+	/** The bytes of a stored image; `null` when the file has none under that hash. */
+	'assets:get': { payload: { hash: string }; result: Uint8Array | null };
+	/** Delete stored images nothing references (also done at every Save); the removed hashes. */
+	'assets:collect': { payload: void; result: string[] };
+	/** Embed a font file in the open file (its `fonts` table). */
+	'assets:embedFont': { payload: FontRef & { bytes: Uint8Array }; result: void };
+	'assets:fontBytes': { payload: FontRef; result: Uint8Array | null };
+	/** Faces the open file carries bytes for. */
+	'assets:embeddedFonts': { payload: void; result: FontRef[] };
 	/** Answer to a `files:flush-request` push: the renderer's queue is persisted. */
 	'files:flushed': { payload: { requestId: string }; result: void };
 }
@@ -204,6 +253,14 @@ export interface DesktopBridge {
 		/** Save: checkpoint the file and clear its unsaved marker. */
 		checkpoint(): Promise<StoreInfo>;
 	};
+	assets: {
+		put(request: AssetPutRequest): Promise<AssetPutResult>;
+		get(hash: string): Promise<Uint8Array | null>;
+		collect(): Promise<string[]>;
+		embedFont(ref: FontRef, bytes: Uint8Array): Promise<void>;
+		fontBytes(ref: FontRef): Promise<Uint8Array | null>;
+		embeddedFonts(): Promise<FontRef[]>;
+	};
 	files: {
 		newUntitled(): Promise<LoadedDocument | null>;
 		open(path: string): Promise<LoadedDocument | null>;
@@ -212,6 +269,9 @@ export interface DesktopBridge {
 		saveAs(path: string): Promise<StoreInfo>;
 		offerRecovery(): Promise<LoadedDocument | null>;
 		launchRequest(): Promise<string | null>;
+		recent(): Promise<RecentFile[]>;
+		clearRecent(): Promise<void>;
+		setThumbnail(thumbnail: Thumbnail): Promise<void>;
 		flushed(requestId: string): Promise<void>;
 		/** The path of a file dropped on the window (Electron no longer exposes `File.path`). */
 		pathForFile(file: File): string;

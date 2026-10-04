@@ -182,6 +182,8 @@ export function createRealHost(): ElectronHost {
 			getVersion: () => app.getVersion(),
 			getPath: (name) => app.getPath(name),
 			requestSingleInstanceLock: () => app.requestSingleInstanceLock(),
+			addRecentDocument: (target) => app.addRecentDocument(target),
+			clearRecentDocuments: () => app.clearRecentDocuments(),
 			platform: process.platform
 		},
 		protocol: {

@@ -245,6 +245,9 @@ export class FakeHost implements ElectronHost {
 		}
 	};
 
+	/** What the OS's recent documents list would hold. */
+	readonly osRecentDocuments: string[] = [];
+
 	readonly app: ElectronHost['app'] = {
 		whenReady: () => this.readyPromise,
 		on: (event, listener) => {
@@ -261,6 +264,12 @@ export class FakeHost implements ElectronHost {
 		getVersion: () => this.version,
 		getPath: (name: AppPathName) => this.paths[name] ?? `/fake/${name}`,
 		requestSingleInstanceLock: () => true,
+		addRecentDocument: (target) => {
+			this.osRecentDocuments.push(target);
+		},
+		clearRecentDocuments: () => {
+			this.osRecentDocuments.length = 0;
+		},
 		platform: 'linux'
 	};
 

@@ -68,7 +68,19 @@ class FakeBackend {
 		}
 	};
 
+	assets: DesktopBridge['assets'] = {
+		put: () => Promise.reject(new Error('unused')),
+		get: () => Promise.resolve(null),
+		collect: () => Promise.resolve([]),
+		embedFont: () => Promise.resolve(),
+		fontBytes: () => Promise.resolve(null),
+		embeddedFonts: () => Promise.resolve([])
+	};
+
 	files: DesktopBridge['files'] = {
+		recent: () => Promise.resolve([]),
+		clearRecent: () => Promise.resolve(),
+		setThumbnail: () => Promise.resolve(),
 		newUntitled: () => {
 			this.calls.push('newUntitled');
 			return Promise.resolve(this.newUntitled);

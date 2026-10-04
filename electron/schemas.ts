@@ -24,6 +24,10 @@ const saveFileOptions = z
 	.optional();
 
 const fontRef = z.strictObject({ family: z.string().min(1), style: z.string().min(1) });
+/** One image or font file; more than this is a mistake, not a document. */
+const MAX_BLOB_BYTES = 512 * 1024 * 1024;
+const blobBytes = z.instanceof(Uint8Array).refine((bytes) => bytes.byteLength <= MAX_BLOB_BYTES);
+const pixelSize = z.number().int().positive();
 const storePath = z.string().min(1);
 const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
 	path: storePath,
@@ -65,5 +69,28 @@ export const payloadSchemas: PayloadSchemas = {
 	'files:saveAs': z.strictObject({ path: storePath }),
 	'files:offerRecovery': z.void(),
 	'files:launchRequest': z.void(),
+	'assets:put': z.strictObject({
+		mime: z.string().min(1),
+		bytes: blobBytes,
+		width: pixelSize.optional(),
+		height: pixelSize.optional()
+	}),
+	'assets:get': z.strictObject({ hash: z.string().regex(/^[0-9a-f]{64}$/) }),
+	'assets:collect': z.void(),
+	'assets:embedFont': z.strictObject({
+		family: z.string().min(1),
+		style: z.string().min(1),
+		bytes: blobBytes
+	}),
+	'assets:fontBytes': fontRef,
+	'assets:embeddedFonts': z.void(),
+	'files:recent': z.void(),
+	'files:clearRecent': z.void(),
+	'files:setThumbnail': z.strictObject({
+		mime: z.string().min(1),
+		width: z.number().int().positive(),
+		height: z.number().int().positive(),
+		bytes: z.instanceof(Uint8Array)
+	}),
 	'files:flushed': z.strictObject({ requestId: z.string().min(1) })
 };

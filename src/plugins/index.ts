@@ -2,6 +2,8 @@
 // plugins declare `inject` and activate when their providers appear.
 
 import type { Plugin } from '@neoworks/extension-system';
+import assetsStore from './assets-store';
+import canvasInput from './canvas-input';
 import canvaskit from './canvaskit';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
@@ -19,13 +21,21 @@ import documentScene from './document-scene';
 import selection from './selection';
 import fileSession from './file-session';
 import history from './history';
+import recentFiles from './recent-files';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
+import viewTools from './view-tools';
+import toolShapes from './tool-shapes';
+import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
+import grouping from './grouping';
+import nodeCommands from './node-commands';
+import nudge from './nudge';
+import zOrder from './z-order';
 
 export const builtinPlugins: Plugin[] = [
 	coreRegions,
@@ -36,11 +46,13 @@ export const builtinPlugins: Plugin[] = [
 	debug,
 	desktopBridge,
 	fonts,
+	assetsStore,
 	documentPlugin,
 	documentScene,
 	selection,
 	history,
 	fileSession,
+	recentFiles,
 	variablesCore,
 	coreContextKeys,
 	coreCommands,
@@ -49,7 +61,15 @@ export const builtinPlugins: Plugin[] = [
 	corePanels,
 	coreInspectors,
 	coreTools,
+	canvasInput,
+	viewTools,
+	toolShapes,
+	toolFrame,
 	workbenchLayout,
 	titlebar,
-	placeholderShell
+	placeholderShell,
+	nudge,
+	zOrder,
+	grouping,
+	nodeCommands
 ];
