@@ -11,7 +11,10 @@
 // Names are `<domain>/<verb>`; events of a plugin are prefixed with the plugin id.
 
 import type { BootReport } from './boot.svelte';
+import type { NodeId } from '../document/types';
 import type { SurfaceResetReason } from '../renderer/surface';
+import type { Camera } from '../viewport/camera';
+import type { CanvasWheelEvent } from '../viewport/wheel';
 import type { Size } from './types';
 
 declare module '@neoworks/extension-system' {
@@ -40,8 +43,31 @@ declare module '@neoworks/extension-system' {
 		/** Dispatch mode: emit. The built-in plugins finished booting; `report` says how each went. */
 		'kernel/booted'(report: BootReport): void;
 
-		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
+		/**
+		 * Dispatch mode: emit. The canvas region changed size, in CSS pixels (viewport listens).
+		 * Emitted by the workbench layout and by the renderer when it measures its canvas; equal
+		 * sizes may arrive twice, listeners treat them as idempotent.
+		 */
 		'canvas/resize'(size: Size): void;
+
+		/**
+		 * Dispatch mode: emit. The renderer now shows another page (or none): a page switch, a new
+		 * scene source or the document closing. The viewport swaps the per-page camera on it.
+		 */
+		'scene/page-change'(pageId: NodeId | null): void;
+
+		/**
+		 * Dispatch mode: emit. The camera changed (pan, zoom, page switch); listeners redraw
+		 * anything positioned in screen space.
+		 */
+		'viewport/change'(camera: Camera): void;
+
+		/**
+		 * Dispatch mode: emit. A wheel or trackpad event over the canvas. A listener that acts on it
+		 * calls `event.preventDefault()` (the viewport does for pan and zoom). The canvas input
+		 * router will own this later.
+		 */
+		'canvas/wheel'(event: CanvasWheelEvent): void;
 
 		/**
 		 * Dispatch mode: emit. The user asked for a context menu on the canvas (right click). The

@@ -22,5 +22,9 @@ export default {
 		if (!isEnabled(config)) return;
 		const fixture = new SceneFixtureService(ctx);
 		ctx.renderer.setSceneSource(fixture.source);
+		// There is no selection service yet; QA drives "zoom to selection" through this stand-in.
+		ctx.inject(['viewport'], (withViewport) => {
+			withViewport.viewport.setSelectionProvider(() => fixture.selectedIds());
+		});
 	}
 };

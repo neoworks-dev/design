@@ -17,6 +17,7 @@ import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
 import titlebar from './titlebar';
+import viewport from './viewport';
 import workbenchLayout from './workbench-layout';
 
 export const builtinPlugins: Plugin[] = [
@@ -24,6 +25,7 @@ export const builtinPlugins: Plugin[] = [
 	canvaskit,
 	renderer,
 	sceneFixture,
+	viewport,
 	debug,
 	desktopBridge,
 	coreContextKeys,

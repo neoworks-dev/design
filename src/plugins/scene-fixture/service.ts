@@ -14,10 +14,20 @@ declare module '@neoworks/extension-system' {
  */
 export class SceneFixtureService extends Service {
 	readonly source: StoreSceneSource;
+	/** Stand-in selection for QA (`ctx['scene-fixture'].select([...])`); the viewport reads it. */
+	private selected: string[] = [];
 
 	constructor(ctx: Context) {
 		super(ctx, 'scene-fixture');
 		this.source = new StoreSceneSource(buildFixtureDocument());
+	}
+
+	selectedIds(): readonly string[] {
+		return this.selected;
+	}
+
+	select(ids: string[]): void {
+		this.selected = ids;
 	}
 
 	snapshotState(): { nodes: number; subscribers: number } {

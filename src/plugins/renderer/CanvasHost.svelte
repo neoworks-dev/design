@@ -50,7 +50,27 @@
 				ratioQuery?.removeEventListener('change', onRatioChange);
 			};
 		}, 'renderer/canvas size');
+		// Not passive: pan and zoom handlers must be able to stop the page from scrolling or zooming.
+		const stopForwardingWheel = ctx.effect(() => {
+			const onWheel = (event: WheelEvent): void => {
+				const box = element.getBoundingClientRect();
+				ctx.emit('canvas/wheel', {
+					deltaX: event.deltaX,
+					deltaY: event.deltaY,
+					deltaMode: event.deltaMode,
+					ctrlKey: event.ctrlKey,
+					shiftKey: event.shiftKey,
+					altKey: event.altKey,
+					metaKey: event.metaKey,
+					screen: { x: event.clientX - box.left, y: event.clientY - box.top },
+					preventDefault: () => event.preventDefault()
+				});
+			};
+			element.addEventListener('wheel', onWheel, { passive: false });
+			return () => element.removeEventListener('wheel', onWheel);
+		}, 'renderer/canvas wheel');
 		return () => {
+			stopForwardingWheel();
 			stopWatching();
 			detach();
 		};

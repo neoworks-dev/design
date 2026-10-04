@@ -1,4 +1,5 @@
 import { Service, type Context } from '@neoworks/extension-system';
+import type { NodeId } from '../../lib/document/types';
 import type { Size } from '../../lib/kernel/types';
 import type { SurfaceResetReason } from '../../lib/renderer/surface';
 import { FrameScheduler, type FrameDriver } from '../../lib/renderer/frameScheduler';
@@ -55,6 +56,7 @@ export class RendererService extends Service implements Renderer {
 	private readonly scheduler: FrameScheduler;
 	private readonly frameStats = emptyStats();
 	private totalFrameMilliseconds = 0;
+	private shownPageId: NodeId | null = null;
 
 	constructor(
 		ctx: Context,
@@ -82,6 +84,12 @@ export class RendererService extends Service implements Renderer {
 		return this.source;
 	}
 
+	/** CSS size of the attached canvas; 0 x 0 while none is attached. */
+	get canvasSize(): Size {
+		if (!this.target) return { width: 0, height: 0 };
+		return this.target.size;
+	}
+
 	get framePending(): boolean {
 		return this.scheduler.isPending;
 	}
@@ -91,11 +99,13 @@ export class RendererService extends Service implements Renderer {
 			this.source = source;
 			const unsubscribe = source.subscribe((change) => this.onSceneChange(change));
 			this.requestFrame('scene-source');
+			this.announcePage(source.currentPageId());
 			return () => {
 				unsubscribe();
 				if (this.source !== source) return;
 				this.source = undefined;
 				this.requestFrame('scene-source');
+				this.announcePage(null);
 			};
 		}, 'renderer/scene source');
 		return () => void dispose();
@@ -142,12 +152,14 @@ export class RendererService extends Service implements Renderer {
 	resize(cssWidth: number, cssHeight: number, devicePixelRatio: number): void {
 		const target = this.target;
 		if (!target) return;
+		const sameSize = target.size.width === cssWidth && target.size.height === cssHeight;
 		target.size = { width: cssWidth, height: cssHeight };
 		target.devicePixelRatio = devicePixelRatio;
 		const pixelWidth = Math.max(1, Math.round(cssWidth * devicePixelRatio));
 		const pixelHeight = Math.max(1, Math.round(cssHeight * devicePixelRatio));
 		target.backend.resize(pixelWidth, pixelHeight);
 		this.requestFrame('resize');
+		if (!sameSize) this.ctx.emit('canvas/resize', target.size);
 	}
 
 	requestFrame(reason: string): void {
@@ -173,8 +185,17 @@ export class RendererService extends Service implements Renderer {
 		};
 	}
 
-	private onSceneChange(_change: SceneChange): void {
+	private onSceneChange(change: SceneChange): void {
 		this.requestFrame('scene');
+		if (change.kind !== 'reset') return;
+		if (!this.source) return;
+		this.announcePage(this.source.currentPageId());
+	}
+
+	private announcePage(pageId: NodeId | null): void {
+		if (pageId === this.shownPageId) return;
+		this.shownPageId = pageId;
+		this.ctx.emit('scene/page-change', pageId);
 	}
 
 	private drawFrame(reasons: string[]): void {
