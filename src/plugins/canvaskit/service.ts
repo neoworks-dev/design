@@ -1,8 +1,8 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type { CanvasKit } from 'canvaskit-wasm';
-import { loadCanvasKit, type WasmLocator } from '../../lib/render/canvaskit';
-import { SkiaTracker, type Deletable } from '../../lib/render/ownership';
-import { RenderSurface, type SurfaceOptions } from '../../lib/render/surface';
+import { loadCanvasKit, type WasmLocator } from '../../lib/renderer/canvaskit';
+import { SkiaTracker, type Deletable } from '../../lib/renderer/ownership';
+import { RenderSurface, type SurfaceOptions } from '../../lib/renderer/surface';
 
 declare module '@neoworks/extension-system' {
 	interface Context {

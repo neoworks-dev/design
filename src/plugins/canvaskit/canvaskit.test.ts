@@ -1,9 +1,9 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
 import type { CanvasKit, GrDirectContext } from 'canvaskit-wasm';
 import { afterEach, describe, expect, it } from 'vitest';
-import { nodeWasmLocator } from '../../lib/render/canvaskit.node';
-import { SkiaTracker } from '../../lib/render/ownership';
-import { RenderSurface } from '../../lib/render/surface';
+import { nodeWasmLocator } from '../../lib/renderer/canvaskit.node';
+import { SkiaTracker } from '../../lib/renderer/ownership';
+import { RenderSurface } from '../../lib/renderer/surface';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import canvaskit from './index';
 

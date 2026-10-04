@@ -14,12 +14,16 @@ import coreTools from './core-tools';
 import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import placeholderShell from './placeholder-shell';
+import renderer from './renderer';
+import sceneFixture from './scene-fixture';
 import titlebar from './titlebar';
 import workbenchLayout from './workbench-layout';
 
 export const builtinPlugins: Plugin[] = [
 	coreRegions,
 	canvaskit,
+	renderer,
+	sceneFixture,
 	debug,
 	desktopBridge,
 	coreContextKeys,

@@ -11,7 +11,7 @@
 // Names are `<domain>/<verb>`; events of a plugin are prefixed with the plugin id.
 
 import type { BootReport } from './boot.svelte';
-import type { SurfaceResetReason } from '../render/surface';
+import type { SurfaceResetReason } from '../renderer/surface';
 import type { Size } from './types';
 
 declare module '@neoworks/extension-system' {
@@ -42,6 +42,12 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. The canvas region changed size (viewport listens). */
 		'canvas/resize'(size: Size): void;
+
+		/**
+		 * Dispatch mode: emit. The user asked for a context menu on the canvas (right click). The
+		 * canvas input router will own this; until then a listener opens the `canvas-empty` menu.
+		 */
+		'canvas/contextmenu'(event: MouseEvent): void;
 
 		/**
 		 * Dispatch mode: emit. The renderer's Skia surface was rebuilt (WebGL context restored or

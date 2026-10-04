@@ -1,5 +1,5 @@
 import { Service, type Context } from '@neoworks/extension-system';
-import type { WasmLocator } from '../../lib/render/canvaskit';
+import type { WasmLocator } from '../../lib/renderer/canvaskit';
 import { CanvasKitService } from './service';
 import { bundledWasmLocator } from './wasmUrl';
 
