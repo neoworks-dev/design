@@ -71,6 +71,11 @@ const bridge: DesktopBridge = {
 	exports: {
 		write: (files) => invoke('exports:write', { files })
 	},
+	archive: {
+		export: (suggestedName, entries) => invoke('archive:export', { suggestedName, entries }),
+		read: () => invoke('archive:read'),
+		createFile: (request) => invoke('archive:create', request)
+	},
 	clipboard: {
 		read: () => invoke('clipboard:read'),
 		write: (content) => invoke('clipboard:write', content)

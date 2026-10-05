@@ -2,6 +2,7 @@
 // plugins declare `inject` and activate when their providers appear.
 
 import type { Plugin } from '@neoworks/extension-system';
+import archiveIo from './archive-io';
 import assetsStore from './assets-store';
 import canvasInput from './canvas-input';
 import canvaskit from './canvaskit';
@@ -281,5 +282,6 @@ export const builtinPlugins: Plugin[] = [
 	exportPdf,
 	exportUi,
 	errorUi,
-	versionHistory
+	versionHistory,
+	archiveIo
 ];

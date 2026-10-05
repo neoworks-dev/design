@@ -4,6 +4,7 @@
 import type { PluginEntry } from '../kernel/boot';
 import type { ElectronHost } from '../kernel/host';
 import { mainAiPlugin } from './ai';
+import { mainArchivePlugin } from './archive';
 import { mainAppPlugin } from './app';
 import { mainAssetsPlugin } from './assets';
 import { mainClipboardPlugin } from './clipboard';
@@ -46,6 +47,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainAiPlugin },
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin },
+		{ plugin: mainArchivePlugin },
 		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }
 	];
 }

@@ -8,6 +8,7 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type {
 	AiProviderInfo,
+	ArchiveEntry,
 	AiSendRequest,
 	AiStartRequest,
 	AiToolResultMessage,
@@ -18,6 +19,7 @@ import type {
 	ClipboardContent,
 	ClipboardWrite,
 	CommitResult,
+	CreateFromArchiveRequest,
 	CreateStoreRequest,
 	DiagnosticsReport,
 	DraftFile,
@@ -165,6 +167,21 @@ export class DesktopService extends Service {
 	 */
 	writeExports(files: ExportFileData[]): Promise<string[] | null> {
 		return typed(() => this.bridge.exports.write(files));
+	}
+
+	/** Zip the files and write them where the save dialog says; `null` when cancelled. */
+	archiveExport(suggestedName: string, entries: ArchiveEntry[]): Promise<string | null> {
+		return typed(() => this.bridge.archive.export(suggestedName, entries));
+	}
+
+	/** Pick a design archive; main unzips it. `null` when cancelled. */
+	archiveRead(): Promise<{ path: string; entries: ArchiveEntry[] } | null> {
+		return typed(() => this.bridge.archive.read());
+	}
+
+	/** Create a design file from an imported archive (asks where); the path or `null`. */
+	archiveCreateFile(request: CreateFromArchiveRequest): Promise<string | null> {
+		return typed(() => this.bridge.archive.createFile(request));
 	}
 
 	/** What the OS clipboard holds (text, html and a PNG image, each `null` when absent). */

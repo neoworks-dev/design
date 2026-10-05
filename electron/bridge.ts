@@ -161,6 +161,25 @@ export interface ExportFileData {
 	bytes: Uint8Array;
 }
 
+/** One file of a design archive (a zip of JSON): a relative path and its bytes. */
+export interface ArchiveEntry {
+	path: string;
+	bytes: Uint8Array;
+}
+/** An image to store in a file created from an archive; its hash must match its bytes. */
+export interface ArchiveImageData {
+	hash: string;
+	mime: string;
+	width?: number;
+	height?: number;
+	bytes: Uint8Array;
+}
+export interface CreateFromArchiveRequest {
+	document: DesignDocument;
+	images: ArchiveImageData[];
+	fonts: Array<FontRef & { bytes: Uint8Array }>;
+}
+
 /** What the OS clipboard holds, as far as the app reads it. Absent kinds are `null`. */
 export interface ClipboardContent {
 	text: string | null;
@@ -334,6 +353,18 @@ export interface IpcContract {
 	 * a folder. Resolves with the written paths; `null` when the user cancelled (nothing written).
 	 */
 	'exports:write': { payload: { files: ExportFileData[] }; result: string[] | null };
+	/** Zip `entries` and write them where the native save dialog says; `null` when cancelled. */
+	'archive:export': {
+		payload: { suggestedName: string; entries: ArchiveEntry[] };
+		result: string | null;
+	};
+	/** The native open dialog for a design archive; main unzips it. `null` when cancelled. */
+	'archive:read': { payload: void; result: { path: string; entries: ArchiveEntry[] } | null };
+	/**
+	 * Create a design file from an imported archive at a path the native save dialog gives
+	 * (without opening it). The path, or `null` when cancelled.
+	 */
+	'archive:create': { payload: CreateFromArchiveRequest; result: string | null };
 	'clipboard:read': { payload: void; result: ClipboardContent };
 	'clipboard:write': { payload: ClipboardWrite; result: void };
 	/** Replace the native application menu with the renderer's resolved menu bar. */
@@ -490,6 +521,11 @@ export interface DesktopBridge {
 	};
 	exports: {
 		write(files: ExportFileData[]): Promise<string[] | null>;
+	};
+	archive: {
+		export(suggestedName: string, entries: ArchiveEntry[]): Promise<string | null>;
+		read(): Promise<{ path: string; entries: ArchiveEntry[] } | null>;
+		createFile(request: CreateFromArchiveRequest): Promise<string | null>;
 	};
 	clipboard: {
 		read(): Promise<ClipboardContent>;

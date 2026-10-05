@@ -3,7 +3,14 @@
 // Main only: the preload is sandboxed and must not import this file.
 
 import { z } from 'zod';
-import type { CreateStoreRequest, IpcChannel, IpcContract, NativeMenuItem } from './bridge';
+import { isSafeArchivePath } from './archive/zip';
+import type {
+	CreateFromArchiveRequest,
+	CreateStoreRequest,
+	IpcChannel,
+	IpcContract,
+	NativeMenuItem
+} from './bridge';
 import { designDocumentSchema, transactionSchema } from '../src/lib/document/schema';
 
 const fileFilter = z.strictObject({ name: z.string(), extensions: z.array(z.string()) });
@@ -32,6 +39,26 @@ const storePath = z.string().min(1);
 const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
 	path: storePath,
 	document: designDocumentSchema.optional()
+});
+
+const archiveEntry = z.strictObject({
+	path: z.string().min(1).max(1024).refine(isSafeArchivePath),
+	bytes: blobBytes
+});
+const createFromArchiveRequest: z.ZodType<CreateFromArchiveRequest> = z.strictObject({
+	document: designDocumentSchema,
+	images: z.array(
+		z.strictObject({
+			hash: z.string().min(1),
+			mime: z.string().min(1),
+			width: pixelSize.optional(),
+			height: pixelSize.optional(),
+			bytes: blobBytes
+		})
+	),
+	fonts: z.array(
+		z.strictObject({ family: z.string().min(1), style: z.string().min(1), bytes: blobBytes })
+	)
 });
 
 const nativeMenuItem: z.ZodType<NativeMenuItem> = z.lazy(() =>
@@ -87,6 +114,12 @@ export const payloadSchemas: PayloadSchemas = {
 			.min(1)
 			.max(500)
 	}),
+	'archive:export': z.strictObject({
+		suggestedName: z.string().min(1).max(255),
+		entries: z.array(archiveEntry).min(1).max(100_000)
+	}),
+	'archive:read': z.void(),
+	'archive:create': createFromArchiveRequest,
 	'clipboard:read': z.void(),
 	'clipboard:write': z.strictObject({
 		text: z.string().optional(),
