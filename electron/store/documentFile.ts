@@ -82,6 +82,8 @@ export interface LoggedTransaction {
 	label: string;
 	changes: Transaction['changes'];
 	undo: Transaction['undo'];
+	/** The AI or plugin run behind the transaction, when it had one. */
+	runId?: string;
 }
 
 /** The nodes of one page, the unit the loader streams. */
@@ -472,7 +474,11 @@ export class DocumentFile {
 			if (typeof data !== 'object' || data === null) {
 				throw new StoreError('CORRUPT', `log entry ${textOf(row, 'id')} is not an object`);
 			}
-			const logged = data as { changes: Transaction['changes']; undo: Transaction['undo'] };
+			const logged = data as {
+				changes: Transaction['changes'];
+				undo: Transaction['undo'];
+				runId?: string;
+			};
 			return {
 				seq: Number(row.seq),
 				id: textOf(row, 'id'),
@@ -480,7 +486,8 @@ export class DocumentFile {
 				origin: textOf(row, 'origin'),
 				label: textOf(row, 'label'),
 				changes: logged.changes,
-				undo: logged.undo
+				undo: logged.undo,
+				runId: logged.runId
 			};
 		});
 	}
