@@ -19,18 +19,22 @@ function keepPopupInViewport(element: HTMLElement): void {
 	}
 }
 
-/** A submenu opens to the right of its item; flip to the left when there is no room. */
-function flipSubmenu(element: HTMLElement): void {
+/**
+ * A submenu opens to the right of its item; flip to the left when there is no room. It is
+ * `position: fixed` against the item's rect, because the parent list scrolls and would clip it.
+ */
+function placeSubmenu(element: HTMLElement): void {
+	const anchor = element.parentElement?.getBoundingClientRect();
+	if (!anchor) return;
 	const rect = element.getBoundingClientRect();
-	if (rect.right > window.innerWidth - VIEWPORT_MARGIN) {
-		element.style.left = 'auto';
-		element.style.right = '100%';
-	}
-	const overflow = rect.bottom - (window.innerHeight - VIEWPORT_MARGIN);
-	if (overflow > 0) element.style.top = `${-overflow}px`;
+	let left = anchor.right;
+	if (left + rect.width > window.innerWidth - VIEWPORT_MARGIN) left = anchor.left - rect.width;
+	const maxTop = window.innerHeight - rect.height - VIEWPORT_MARGIN;
+	element.style.left = `${Math.max(VIEWPORT_MARGIN, left)}px`;
+	element.style.top = `${Math.max(VIEWPORT_MARGIN, Math.min(anchor.top, maxTop))}px`;
 }
 
 export const placeWithinViewport: Action<HTMLElement, PlacementMode> = (element, mode) => {
-	if (mode === 'submenu') flipSubmenu(element);
+	if (mode === 'submenu') placeSubmenu(element);
 	else keepPopupInViewport(element);
 };

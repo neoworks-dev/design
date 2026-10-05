@@ -131,8 +131,9 @@
 	bind:this={list}
 	role="menu"
 	tabindex="-1"
-	class="bg-elevated border-line text-default pointer-events-auto min-w-48 rounded-lg border p-1 text-xs shadow-lg outline-none"
+	class="bg-elevated border-line text-default pointer-events-auto max-h-[calc(100vh-8px)] min-w-48 overflow-y-auto rounded-lg border p-1 text-xs shadow-lg outline-none"
 	{onkeydown}
+	onscroll={() => (openSubmenuId = undefined)}
 >
 	{#each items as item (item.id)}
 		{#if item.separatorBefore}
@@ -166,7 +167,7 @@
 				{/if}
 			</button>
 			{#if item.submenu && openSubmenuId === item.id}
-				<div use:placeWithinViewport={'submenu'} class="absolute top-0 left-full pl-0.5">
+				<div use:placeWithinViewport={'submenu'} class="fixed top-0 left-0 z-10 px-0.5">
 					<MenuList
 						items={item.submenu}
 						depth={depth + 1}
