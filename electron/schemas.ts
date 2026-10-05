@@ -74,6 +74,10 @@ export const payloadSchemas: PayloadSchemas = {
 		transactions: z.array(transactionSchema).max(MAX_TRANSACTIONS_PER_COMMIT)
 	}),
 	'store:checkpoint': z.void(),
+	'files:openInTab': z.strictObject({ path: storePath }),
+	'files:newInTab': z.void(),
+	'files:confirmClose': z.void(),
+	'files:discard': z.strictObject({ path: storePath }),
 	'files:newUntitled': z.void(),
 	'files:open': z.strictObject({ path: storePath }),
 	'files:openDialog': z.void(),

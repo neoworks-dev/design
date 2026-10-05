@@ -51,6 +51,7 @@ import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
 import settings from './settings';
 import svgImport from './svg-import';
+import tabs from './tabs';
 import textEdit from './text-edit';
 import textFormat from './text-format';
 import textLayout from './text-layout';
@@ -114,6 +115,7 @@ export const builtinPlugins: Plugin[] = [
 	history,
 	fileSession,
 	recentFiles,
+	tabs,
 	variablesCore,
 	coreContextKeys,
 	coreCommands,

@@ -10,9 +10,14 @@ export interface FixtureEnvironment {
 
 export const QA_QUERY_PARAMETER = 'qa';
 
+/** `?fixture=0` (QA started with DESIGN_QA_FIXTURE=0) opts out, to exercise a real file. */
+export const FIXTURE_QUERY_PARAMETER = 'fixture';
+
 export function isFixtureEnabled(environment: FixtureEnvironment): boolean {
+	const parameters = new URLSearchParams(environment.search);
+	if (parameters.get(FIXTURE_QUERY_PARAMETER) === '0') return false;
 	if (environment.dev) return true;
-	return new URLSearchParams(environment.search).get(QA_QUERY_PARAMETER) === '1';
+	return parameters.get(QA_QUERY_PARAMETER) === '1';
 }
 
 export function currentEnvironment(): FixtureEnvironment {

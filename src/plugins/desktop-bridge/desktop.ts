@@ -230,6 +230,26 @@ export class DesktopService extends Service {
 
 	// ---------- files ----------
 
+	/** Tabs: open `path` as the window's document, keeping the previous one as a tab. */
+	filesOpenInTab(path: string): Promise<LoadedDocument> {
+		return typed(() => this.bridge.files.openInTab(path));
+	}
+
+	/** Tabs: a new untitled document, keeping the previous one as a tab. */
+	filesNewInTab(): Promise<LoadedDocument> {
+		return typed(() => this.bridge.files.newInTab());
+	}
+
+	/** Tabs: may the current document be closed? Asks about untitled edits; false when cancelled. */
+	filesConfirmClose(): Promise<boolean> {
+		return typed(() => this.bridge.files.confirmClose());
+	}
+
+	/** Tabs: delete a closed untitled document's temporary file. */
+	filesDiscard(path: string): Promise<void> {
+		return typed(() => this.bridge.files.discard(path));
+	}
+
 	/** A new empty document in a temporary file; becomes this window's document. */
 	filesNewUntitled(): Promise<LoadedDocument | null> {
 		return typed(() => this.bridge.files.newUntitled());

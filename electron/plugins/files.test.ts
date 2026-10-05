@@ -97,7 +97,11 @@ describe('main-files plugin', () => {
 				'files:recent',
 				'files:clearRecent',
 				'files:setThumbnail',
-				'files:flushed'
+				'files:flushed',
+				'files:openInTab',
+				'files:newInTab',
+				'files:confirmClose',
+				'files:discard'
 			])
 		);
 		expect(mounted.appListeners).toMatchObject({ 'open-file': 1, 'second-instance': 1 });
@@ -207,6 +211,64 @@ describe('open', () => {
 		loaded(await call(kernel, 'files:newUntitled'));
 		loaded(await call(kernel, 'files:open', { path: target }));
 		expect(untitledFiles()).toEqual([]);
+	});
+});
+
+describe('tabs: documents kept in the background', () => {
+	it('opening in a tab keeps the previous untitled file and never asks', async () => {
+		const target = path.join(directory, 'a.ndesign');
+		DocumentFile.create(target, richDocument()).close();
+		const kernel = await boot();
+		const first = loaded(await call(kernel, 'files:newUntitled'));
+		await editUntitled(kernel, first.document);
+		const opened = value(await call<LoadedDocument>(kernel, 'files:openInTab', { path: target }));
+		expect(opened.info.path).toBe(target);
+		expect(kernel.host.messageBoxRequests).toEqual([]);
+		expect(untitledFiles()).toEqual([path.basename(first.info.path)]);
+		// only the active tab's file is open: switching frees the handle of the one left
+		expect(kernel.root.store.openPaths()).toEqual([target]);
+	});
+
+	it('a new tab leaves the previous document alone, and switching back finds its edits', async () => {
+		const kernel = await boot();
+		const first = loaded(await call(kernel, 'files:newUntitled'));
+		await editUntitled(kernel, first.document);
+		const second = value(await call<LoadedDocument>(kernel, 'files:newInTab'));
+		expect(second.info.path).not.toBe(first.info.path);
+		expect(kernel.root.store.openPaths()).toEqual([second.info.path]);
+		expect(untitledFiles()).toHaveLength(2);
+		const back = value(
+			await call<LoadedDocument>(kernel, 'files:openInTab', { path: first.info.path })
+		);
+		expect(back.info.unsaved).toBe(true);
+		expect(Object.values(back.document.nodes).some((node) => node.name === 'Edited')).toBe(true);
+		expect(kernel.root.store.openPaths()).toEqual([first.info.path]);
+	});
+
+	it('confirmClose asks only for an untitled document with edits', async () => {
+		const kernel = await boot();
+		const first = loaded(await call(kernel, 'files:newUntitled'));
+		expect(value(await call<boolean>(kernel, 'files:confirmClose'))).toBe(true);
+		expect(kernel.host.messageBoxRequests).toEqual([]);
+		await editUntitled(kernel, first.document);
+		kernel.host.messageBoxResult = 2;
+		expect(value(await call<boolean>(kernel, 'files:confirmClose'))).toBe(false);
+		kernel.host.messageBoxResult = 1;
+		expect(value(await call<boolean>(kernel, 'files:confirmClose'))).toBe(true);
+	});
+
+	it('discard deletes a closed untitled file, never a saved or an open one', async () => {
+		const target = path.join(directory, 'a.ndesign');
+		DocumentFile.create(target, richDocument()).close();
+		const kernel = await boot();
+		const first = loaded(await call(kernel, 'files:newUntitled'));
+		value(await call(kernel, 'files:discard', { path: first.info.path }));
+		expect(untitledFiles()).toHaveLength(1);
+		const second = value(await call<LoadedDocument>(kernel, 'files:newInTab'));
+		value(await call(kernel, 'files:discard', { path: first.info.path }));
+		expect(untitledFiles()).toEqual([path.basename(second.info.path)]);
+		value(await call(kernel, 'files:discard', { path: target }));
+		expect(existsSync(target)).toBe(true);
 	});
 });
 

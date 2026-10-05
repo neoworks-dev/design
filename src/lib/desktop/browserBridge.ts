@@ -102,6 +102,10 @@ export function createBrowserBridge(): BrowserBridge {
 			embeddedFonts: () => Promise.resolve([])
 		},
 		files: {
+			openInTab: () => unavailable('opening files'),
+			newInTab: () => unavailable('creating documents'),
+			confirmClose: () => Promise.resolve(true),
+			discard: () => Promise.resolve(),
 			newUntitled: () => unavailable('creating documents'),
 			open: () => unavailable('opening files'),
 			openDialog: () => Promise.resolve(null),

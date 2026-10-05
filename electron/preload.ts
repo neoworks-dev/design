@@ -93,6 +93,10 @@ const bridge: DesktopBridge = {
 		embeddedFonts: () => invoke('assets:embeddedFonts')
 	},
 	files: {
+		openInTab: (path) => invoke('files:openInTab', { path }),
+		newInTab: () => invoke('files:newInTab'),
+		confirmClose: () => invoke('files:confirmClose'),
+		discard: (path) => invoke('files:discard', { path }),
 		newUntitled: () => invoke('files:newUntitled'),
 		open: (path) => invoke('files:open', { path }),
 		openDialog: () => invoke('files:openDialog'),

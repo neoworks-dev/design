@@ -99,6 +99,41 @@ export class FilesService extends Service {
 		return this.loaded(sender, info);
 	}
 
+	/**
+	 * Tabs: `target` becomes the sender's document and the one it had is left alone, to be a tab in
+	 * the background. The renderer persisted that document's queue first; main confirms it again.
+	 */
+	async openInTab(sender: SenderHandle, target: string): Promise<LoadedDocument> {
+		await this.flushSender(sender);
+		const info = await this.store.adopt(sender, () => DocumentFile.open(target));
+		this.watchClose(sender);
+		this.recordRecent(info);
+		return this.loaded(sender, info);
+	}
+
+	/** Tabs: like `newUntitled`, without asking about or deleting the previous document. */
+	async newInTab(sender: SenderHandle): Promise<LoadedDocument> {
+		await this.flushSender(sender);
+		const target = this.nextUntitledPath();
+		const info = await this.store.adopt(sender, () =>
+			DocumentFile.create(target, createBlankDocument(UNTITLED_NAME))
+		);
+		this.watchClose(sender);
+		return this.loaded(sender, info);
+	}
+
+	/** Tabs: whether the sender's document may be closed (asks about untitled edits). */
+	async confirmClose(sender: SenderHandle): Promise<boolean> {
+		return (await this.settleCurrent(sender)) === 'proceed';
+	}
+
+	/** Tabs: delete the temporary file of a closed untitled document, unless something has it open. */
+	discard(file: string): void {
+		const resolved = path.resolve(file);
+		if (this.store.openPaths().some((open) => path.resolve(open) === resolved)) return;
+		this.discardIfUntitled(resolved);
+	}
+
 	/** Copy the sender's file to `destination` and carry on editing the copy. */
 	async saveAs(sender: SenderHandle, destination: string): Promise<StoreInfo> {
 		const target = path.resolve(withExtension(destination));
@@ -318,6 +353,12 @@ export class FilesService extends Service {
 		return this.ctx.store;
 	}
 
+	private async flushSender(sender: SenderHandle): Promise<void> {
+		if (!this.store.hasStore(sender)) return;
+		const window = this.ctx.electron.windowFromSender(sender);
+		if (window !== null) await this.requestFlush(window);
+	}
+
 	private currentFile(sender: SenderHandle): string | null {
 		if (!this.store.hasStore(sender)) return null;
 		return path.resolve(this.store.current(sender).path);
@@ -417,6 +458,10 @@ export const mainFilesPlugin: Plugin.Object<FilesConfig> = {
 
 		route(ctx, 'files:newUntitled', (_payload, event) => files.newUntitled(event.sender));
 		route(ctx, 'files:open', (request, event) => files.open(event.sender, request.path));
+		route(ctx, 'files:openInTab', (request, event) => files.openInTab(event.sender, request.path));
+		route(ctx, 'files:newInTab', (_payload, event) => files.newInTab(event.sender));
+		route(ctx, 'files:confirmClose', (_payload, event) => files.confirmClose(event.sender));
+		route(ctx, 'files:discard', (request) => files.discard(request.path));
 		route(ctx, 'files:openDialog', () => files.openDialog());
 		route(ctx, 'files:saveDialog', (request) => files.saveDialog(request.suggestedName));
 		route(ctx, 'files:saveAs', (request, event) => files.saveAs(event.sender, request.path));

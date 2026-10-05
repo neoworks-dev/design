@@ -190,6 +190,20 @@ export interface IpcContract {
 	 * user cancelled leaving an untitled document with edits.
 	 */
 	'files:newUntitled': { payload: void; result: LoadedDocument | null };
+	/**
+	 * Tabs: make `path` the window's document without asking about or discarding the document it
+	 * had (that one stays a tab). Flushes the renderer first. Replaces `files:open` for tabs.
+	 */
+	'files:openInTab': { payload: { path: string }; result: LoadedDocument };
+	/** Tabs: a new untitled document as the window's document; the previous one is left as is. */
+	'files:newInTab': { payload: void; result: LoadedDocument };
+	/**
+	 * Tabs: may the window's document be closed? Flushes the renderer, and for an untitled
+	 * document with edits asks Save / Don't Save / Cancel. `false` when cancelled.
+	 */
+	'files:confirmClose': { payload: void; result: boolean };
+	/** Tabs: delete a closed untitled document's temporary file (a saved file is never touched). */
+	'files:discard': { payload: { path: string }; result: void };
 	/** Open a design file as this window's document and load it; `null` when cancelled as above. */
 	'files:open': { payload: { path: string }; result: LoadedDocument | null };
 	/** The native open dialog filtered to design files; `null` when cancelled. */
@@ -310,6 +324,10 @@ export interface DesktopBridge {
 		embeddedFonts(): Promise<FontRef[]>;
 	};
 	files: {
+		openInTab(path: string): Promise<LoadedDocument>;
+		newInTab(): Promise<LoadedDocument>;
+		confirmClose(): Promise<boolean>;
+		discard(path: string): Promise<void>;
 		newUntitled(): Promise<LoadedDocument | null>;
 		open(path: string): Promise<LoadedDocument | null>;
 		openDialog(): Promise<string | null>;

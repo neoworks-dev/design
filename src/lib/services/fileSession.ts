@@ -34,6 +34,11 @@ export interface FileSessionDesktop {
 	storeCommit(transactions: Transaction[]): Promise<CommitResult>;
 	storeCheckpoint(): Promise<StoreInfo>;
 	filesNewUntitled(): Promise<LoadedDocument | null>;
+	filesOpenInTab(path: string): Promise<LoadedDocument>;
+	filesNewInTab(): Promise<LoadedDocument>;
+	filesConfirmClose(): Promise<boolean>;
+	filesDiscard(path: string): Promise<void>;
+	storeClose(): Promise<void>;
 	filesOpen(path: string): Promise<LoadedDocument | null>;
 	filesOpenDialog(): Promise<string | null>;
 	filesSaveDialog(suggestedName: string): Promise<string | null>;
@@ -125,6 +130,7 @@ export class FileSessionService extends Service {
 	/** Start persisting document changes into the file `info` describes. */
 	attach(info: StoreInfo): void {
 		this.state.info = info;
+		this.state.closed = false;
 		this.state.savedRevision = info.unsaved ? -1 : this.document.revision;
 		this.publishKeys();
 		this.ctx.emit('file/attached', info);
@@ -165,6 +171,7 @@ export class FileSessionService extends Service {
 
 	/** Replace the document with a new untitled one. False when the user cancelled. */
 	async newDocument(): Promise<boolean> {
+		if ((await this.ctx.serial('file/open-request', { kind: 'new' })) === true) return true;
 		await this.settleQueue();
 		const loaded = await this.desktop.filesNewUntitled();
 		if (loaded === null) return false;
@@ -176,11 +183,47 @@ export class FileSessionService extends Service {
 	async openDocument(path?: string): Promise<boolean> {
 		const chosen = path === undefined ? await this.desktop.filesOpenDialog() : path;
 		if (chosen === null) return false;
+		if ((await this.ctx.serial('file/open-request', { kind: 'open', path: chosen })) === true) {
+			return true;
+		}
 		await this.settleQueue();
 		const loaded = await this.desktop.filesOpen(chosen);
 		if (loaded === null) return false;
 		this.adopt(loaded);
 		return true;
+	}
+
+	// ---------- tabs: documents are switched, not replaced ----------
+
+	/** Make the design file at `path` the live document; the one it had stays on disk as a tab. */
+	async openInTab(path: string): Promise<void> {
+		await this.settleQueue();
+		this.adopt(await this.desktop.filesOpenInTab(path));
+	}
+
+	/** Make a new untitled document the live one; the previous one stays as a tab. */
+	async newInTab(): Promise<void> {
+		await this.settleQueue();
+		this.adopt(await this.desktop.filesNewInTab());
+	}
+
+	/** Persist the queue, then ask whether the live document may be closed; false when cancelled. */
+	async confirmClose(): Promise<boolean> {
+		await this.settleQueue();
+		return this.desktop.filesConfirmClose();
+	}
+
+	/** Close the live document and show no document (the home screen). Confirm first. */
+	async closeDocument(): Promise<void> {
+		await this.detach();
+		await this.desktop.storeClose();
+		this.state.closed = true;
+		this.publishKeys();
+	}
+
+	/** Delete the temporary file of a closed untitled document. */
+	discard(path: string): Promise<void> {
+		return this.desktop.filesDiscard(path);
 	}
 
 	/** Save: checkpoint the file. An untitled document needs a place first (Save As). */
@@ -269,6 +312,7 @@ export class FileSessionService extends Service {
 		this.setKey('document.title', this.displayName);
 		this.setKey('document.dirty', this.dirty);
 		this.setKey('document.untitled', this.isUntitled);
+		this.setKey('document.closed', this.state.closed);
 	}
 
 	private setKey(key: string, value: unknown): void {

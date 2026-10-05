@@ -81,6 +81,10 @@ class FakeBackend {
 		recent: () => Promise.resolve([]),
 		clearRecent: () => Promise.resolve(),
 		setThumbnail: () => Promise.resolve(),
+		openInTab: () => Promise.reject(new Error('not used')),
+		newInTab: () => Promise.reject(new Error('not used')),
+		confirmClose: () => Promise.resolve(true),
+		discard: () => Promise.resolve(),
 		newUntitled: () => {
 			this.calls.push('newUntitled');
 			return Promise.resolve(this.newUntitled);
