@@ -69,8 +69,11 @@ export type ApiHandler = (call: ApiCall, params: unknown) => unknown;
 
 export interface ApiMethod {
 	run: ApiHandler;
-	/** Needed to call it: declared in the manifest and not refused by `plugins/permission`. */
-	permission?: PluginPermission;
+	/**
+	 * Needed to call it: declared in the manifest and not refused by `plugins/permission`. A
+	 * function decides from the parameters (`events.subscribe` depends on the event).
+	 */
+	permission?: PluginPermission | ((params: unknown) => PluginPermission | undefined);
 }
 
 export type ApiNamespace = Record<string, ApiMethod | ApiHandler>;
@@ -105,6 +108,7 @@ interface HostHolder {
 	activations: Map<string, Promise<PluginConnection>>;
 	apis: Map<string, ApiNamespace>;
 	runScopes: Set<RunScope>;
+	eventPermissions: Map<string, PluginPermission>;
 }
 
 function describeError(error: unknown): string {
@@ -112,8 +116,9 @@ function describeError(error: unknown): string {
 	return String(error);
 }
 
-function commandTitle(title: string | undefined, commandId: string): string {
-	if (title === undefined) return commandId;
+/** The history label of a command run: its declared title, which names the plugin itself. */
+function runLabel(pluginName: string, title: string | undefined, commandId: string): string {
+	if (title === undefined) return `${pluginName}: ${commandId}`;
 	return title;
 }
 
@@ -129,7 +134,8 @@ export class PluginHostService extends Service {
 		fibers: new Map(),
 		activations: new Map(),
 		apis: new Map(),
-		runScopes: new Set()
+		runScopes: new Set(),
+		eventPermissions: new Map()
 	};
 
 	/** What `plugin-manifests`' stubs call; registered with the registry by the plugin. */
@@ -188,6 +194,28 @@ export class PluginHostService extends Service {
 		return () => {
 			this.holder.runScopes.delete(scope);
 		};
+	}
+
+	/**
+	 * Name the permission needed to subscribe to each of `events` (`selectionchange` needs
+	 * `selection`); events not named here are open to every plugin. The disposer removes these.
+	 */
+	registerEventPermissions(events: Record<string, PluginPermission>): () => void {
+		for (const [name, permission] of Object.entries(events)) {
+			this.holder.eventPermissions.set(name, permission);
+		}
+		return () => {
+			for (const [name, permission] of Object.entries(events)) {
+				if (this.holder.eventPermissions.get(name) === permission) {
+					this.holder.eventPermissions.delete(name);
+				}
+			}
+		};
+	}
+
+	/** The permission subscribing to `eventName` needs, if any. */
+	eventPermission(eventName: string): PluginPermission | undefined {
+		return this.holder.eventPermissions.get(eventName);
 	}
 
 	/** Send a host event to every running plugin that subscribed to it. */
@@ -337,7 +365,7 @@ export class PluginHostService extends Service {
 		const title = connection.manifest.contributes.commands.find(
 			(command) => command.id === commandId
 		)?.title;
-		const label = `${connection.manifest.name}: ${commandTitle(title, commandId)}`;
+		const label = runLabel(connection.manifest.name, title, commandId);
 		await connection.runScoped(label, 'command', () =>
 			connection.request('command.run', { id: commandId, args })
 		);
@@ -358,8 +386,8 @@ export class PluginHostService extends Service {
 			throw new Error(`unknown API method "${method}"`);
 		}
 		const api = normalize(methods[name]);
-		if (api.permission !== undefined)
-			await this.requirePermission(connection, method, api.permission);
+		const permission = this.permissionFor(api, params);
+		if (permission !== undefined) await this.requirePermission(connection, method, permission);
 		return api.run(
 			{
 				pluginId: connection.pluginId,
@@ -369,6 +397,11 @@ export class PluginHostService extends Service {
 			},
 			params
 		);
+	}
+
+	private permissionFor(api: ApiMethod, params: unknown): PluginPermission | undefined {
+		if (typeof api.permission === 'function') return api.permission(params);
+		return api.permission;
 	}
 
 	private async requirePermission(
@@ -393,7 +426,8 @@ export class PluginHostService extends Service {
 		return {
 			running: [...this.holder.connections.keys()].sort(),
 			apis: [...this.holder.apis.keys()].sort(),
-			runScopes: this.holder.runScopes.size
+			runScopes: this.holder.runScopes.size,
+			eventPermissions: [...this.holder.eventPermissions.keys()].sort()
 		};
 	}
 }

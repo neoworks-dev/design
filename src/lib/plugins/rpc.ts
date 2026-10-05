@@ -158,7 +158,7 @@ export class RpcChannel {
 		return this.pending.size + this.queue.length;
 	}
 
-	request(method: string, params?: unknown): Promise<unknown> {
+	request<Result = unknown>(method: string, params?: unknown): Promise<Result> {
 		if (this.closedReason !== null) return Promise.reject(new RpcClosedError(this.closedReason));
 		if (exceedsSize(params, this.limits.maxMessageBytes)) {
 			return Promise.reject(
@@ -168,8 +168,8 @@ export class RpcChannel {
 				)
 			);
 		}
-		return new Promise<unknown>((resolve, reject) => {
-			this.queue.push({ method, params, resolve, reject });
+		return new Promise<Result>((resolve, reject) => {
+			this.queue.push({ method, params, resolve: (value) => resolve(value as Result), reject });
 			this.drain();
 		});
 	}

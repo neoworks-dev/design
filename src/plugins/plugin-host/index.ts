@@ -79,8 +79,11 @@ export default {
 		ctx.effect(
 			() =>
 				host.registerApi('events', {
-					subscribe: (call, params) => {
-						call.connection.subscriptions.add(readName(params));
+					subscribe: {
+						permission: (params) => host.eventPermission(readName(params)),
+						run: (call, params) => {
+							call.connection.subscriptions.add(readName(params));
+						}
 					},
 					unsubscribe: (call, params) => {
 						call.connection.subscriptions.delete(readName(params));

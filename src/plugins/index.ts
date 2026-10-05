@@ -76,6 +76,7 @@ import paletteSources from './palette-sources';
 import overlay from './overlay';
 import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
+import pluginApi from './plugin-api';
 import pluginHost from './plugin-host';
 import pluginManifests from './plugin-manifests';
 import placeholderShell from './placeholder-shell';
@@ -245,5 +246,6 @@ export const builtinPlugins: Plugin[] = [
 	aiBatch,
 	aiChat,
 	pluginManifests,
-	pluginHost
+	pluginHost,
+	pluginApi
 ];

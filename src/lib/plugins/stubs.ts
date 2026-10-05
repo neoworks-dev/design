@@ -8,15 +8,17 @@
 //
 // A contributor declares which services it needs; the plugin's fiber injects exactly the union of
 // those for the contributions its manifest uses, so a plugin that only adds a command does not wait
-// for the AI service. Contributors for services of later plugins (panels and inspectors need
-// `pluginUi`, codegen needs `pluginApi`) are appended to STUB_CONTRIBUTORS by the issues that add
-// those plugins.
+// for the AI service. A contributor for a service of a later plugin (panels and inspectors need
+// `pluginUi`) is appended to STUB_CONTRIBUTORS by the issue that adds that plugin.
 
 import type { Context } from '@neoworks/extension-system';
 import PuzzlePieceIcon from 'phosphor-svelte/lib/PuzzlePieceIcon';
+import type { AiToolHandler } from '../ai/types';
+import type { ToolContribution } from '../registries/tools.svelte';
 import type { ToolKeyEvent, ToolPointerEvent } from '../tools/protocol';
+import { AsyncCodegenCache, pluginCodegenProvider } from './api/asyncCodegen.svelte';
 import type { PluginManifest } from './manifest';
-import type { PluginRecord } from './types';
+import type { PluginRecord, PluginRuntime } from './types';
 
 /** A record whose manifest is known to be valid. */
 export type LoadablePluginRecord = PluginRecord & { manifest: PluginManifest };
@@ -110,35 +112,72 @@ function keyPayload(toolId: string, event: ToolKeyEvent): unknown {
 	};
 }
 
+/**
+ * A tool that forwards pointer and key events to the plugin's worker. Used for the lazy stub of a
+ * manifest tool and for tools a plugin registers at run time; either way the first event starts
+ * the worker.
+ */
+export function pluginToolContribution(
+	pluginId: string,
+	tool: { id: string; title: string; shortcut?: string; cursor?: string },
+	runtime: () => PluginRuntime
+): ToolContribution {
+	return {
+		id: tool.id,
+		title: tool.title,
+		icon: PuzzlePieceIcon,
+		shortcut: tool.shortcut,
+		cursor: tool.cursor,
+		group: 'plugins',
+		onActivate: () => runtime().notify(pluginId, 'tool.activate', { tool: tool.id }),
+		onDeactivate: () => runtime().notify(pluginId, 'tool.deactivate', { tool: tool.id }),
+		onPointerDown: (event) =>
+			runtime().notify(pluginId, 'tool.pointer', pointerPayload(tool.id, 'down', event)),
+		onPointerMove: (event) =>
+			runtime().notify(pluginId, 'tool.pointer', pointerPayload(tool.id, 'move', event)),
+		onPointerUp: (event) =>
+			runtime().notify(pluginId, 'tool.pointer', pointerPayload(tool.id, 'up', event)),
+		onKey: (event) => {
+			runtime().notify(pluginId, 'tool.key', keyPayload(tool.id, event));
+		}
+	};
+}
+
 function toolStubs(ctx: Context, record: LoadablePluginRecord): void {
 	const pluginId = record.manifest.id;
 	for (const tool of record.manifest.contributes.tools) {
-		const runtime = (): ReturnType<typeof ctx.pluginRegistry.runtimeFor> =>
-			ctx.pluginRegistry.runtimeFor(pluginId);
 		ctx.effect(
 			() =>
-				ctx.tools.register({
-					id: tool.id,
-					title: tool.title,
-					icon: PuzzlePieceIcon,
-					shortcut: tool.shortcut,
-					cursor: tool.cursor,
-					group: 'plugins',
-					onActivate: () => runtime().notify(pluginId, 'tool.activate', { tool: tool.id }),
-					onDeactivate: () => runtime().notify(pluginId, 'tool.deactivate', { tool: tool.id }),
-					onPointerDown: (event) =>
-						runtime().notify(pluginId, 'tool.pointer', pointerPayload(tool.id, 'down', event)),
-					onPointerMove: (event) =>
-						runtime().notify(pluginId, 'tool.pointer', pointerPayload(tool.id, 'move', event)),
-					onPointerUp: (event) =>
-						runtime().notify(pluginId, 'tool.pointer', pointerPayload(tool.id, 'up', event)),
-					onKey: (event) => {
-						runtime().notify(pluginId, 'tool.key', keyPayload(tool.id, event));
-					}
-				}),
+				ctx.tools.register(
+					pluginToolContribution(pluginId, tool, () => ctx.pluginRegistry.runtimeFor(pluginId))
+				),
 			`plugin ${pluginId} tool ${tool.id}`
 		);
 	}
+}
+
+/** An AI tool whose function runs in the plugin's worker (started on the first call). */
+export function pluginAiTool(
+	pluginId: string,
+	tool: {
+		id: string;
+		description: string;
+		write: boolean;
+		inputSchema: Record<string, unknown>;
+	},
+	runtime: () => PluginRuntime
+): AiToolHandler {
+	return {
+		id: tool.id,
+		description: tool.description,
+		write: tool.write,
+		inputSchema: tool.inputSchema,
+		run: async (input) => {
+			const answer = await runtime().call(pluginId, 'aiTool.run', { name: tool.id, input });
+			if (typeof answer === 'string') return answer;
+			return JSON.stringify(answer);
+		}
+	};
 }
 
 function aiToolStubs(ctx: Context, record: LoadablePluginRecord): void {
@@ -146,20 +185,27 @@ function aiToolStubs(ctx: Context, record: LoadablePluginRecord): void {
 	for (const tool of record.manifest.contributes.aiTools) {
 		ctx.effect(
 			() =>
-				ctx.ai.registerTool({
-					id: tool.id,
-					description: tool.description,
-					write: tool.write,
-					inputSchema: tool.inputSchema,
-					run: async (input) => {
-						const answer = await ctx.pluginRegistry
-							.runtimeFor(pluginId)
-							.call(pluginId, 'aiTool.run', { name: tool.id, input });
-						if (typeof answer === 'string') return answer;
-						return JSON.stringify(answer);
-					}
-				}),
+				ctx.ai.registerTool(
+					pluginAiTool(pluginId, tool, () => ctx.pluginRegistry.runtimeFor(pluginId))
+				),
 			`plugin ${pluginId} ai tool ${tool.id}`
+		);
+	}
+}
+
+function codegenStubs(ctx: Context, record: LoadablePluginRecord): void {
+	const pluginId = record.manifest.id;
+	for (const language of record.manifest.contributes.codegen) {
+		ctx.effect(
+			() =>
+				ctx.codegen.register(
+					pluginCodegenProvider(language, new AsyncCodegenCache(), (input) =>
+						ctx.pluginRegistry
+							.runtimeFor(pluginId)
+							.call(pluginId, 'codegen.generate', { id: language.id, input })
+					)
+				),
+			`plugin ${pluginId} codegen ${language.id}`
 		);
 	}
 }
@@ -189,6 +235,11 @@ export const STUB_CONTRIBUTORS: readonly StubContributor[] = [
 		needs: ['ai', 'pluginRegistry'],
 		applies: (manifest) => manifest.contributes.aiTools.length > 0,
 		contribute: aiToolStubs
+	},
+	{
+		needs: ['codegen', 'pluginRegistry'],
+		applies: (manifest) => manifest.contributes.codegen.length > 0,
+		contribute: codegenStubs
 	}
 ];
 

@@ -2,11 +2,30 @@
 // it is a thin wrapper over a host RPC call (`env.call('document.getNode', ...)`); the plugin gets
 // no DOM, no Node and, after `lockdownGlobals`, no network or storage globals of its own.
 //
-// The surface is assembled in `createDesign` from one factory per namespace (core here; document,
-// selection, commands, ... in the plugin API issue), each taking only the `SdkEnv`, so a namespace
-// never reaches into another's state. Everything that crosses the boundary is plain data.
+// The surface is assembled in `createDesign` from one factory per namespace (core here, the rest
+// in namespaces.ts), each taking only the `SdkEnv`, so a namespace never reaches into another's
+// state. Everything that crosses the boundary is plain data. To add a namespace (the Figma subset,
+// storage): write its factory, add it here and register its host side with `pluginHost.registerApi`.
 
 import { EventHub, type EventListener } from './events';
+import {
+	createAiToolsApi,
+	createCodegenApi,
+	createCommandsApi,
+	createDocumentApi,
+	createMenusApi,
+	createSelectionApi,
+	createToolsApi,
+	createViewportApi,
+	type AiToolsApi,
+	type CodegenApi,
+	type CommandsApi,
+	type DocumentApi,
+	type MenusApi,
+	type SelectionApi,
+	type ToolsApi,
+	type ViewportApi
+} from './namespaces';
 
 export const SDK_API_VERSION = '1.0';
 
@@ -17,7 +36,7 @@ export interface SdkEnv {
 	pluginId: string;
 	apiVersion: string;
 	/** Call a host API method (`namespace.method`) and await its answer. */
-	call(method: string, params?: unknown): Promise<unknown>;
+	call<Result = unknown>(method: string, params?: unknown): Promise<Result>;
 	events: EventHub;
 	/** Answer requests the host sends (`command.run`, `ui.event`, ...); one handler per method. */
 	handle(method: string, handler: (params: unknown) => unknown): void;
@@ -42,8 +61,22 @@ export interface CoreApi {
 	readonly log: LogApi;
 }
 
-/** The whole surface; namespaces of later modules are added to this interface. */
-export type DesignApi = CoreApi;
+/** The whole surface a plugin sees as `design`. */
+export interface DesignApi extends CoreApi {
+	readonly document: DocumentApi;
+	readonly selection: SelectionApi;
+	readonly viewport: ViewportApi;
+	readonly commands: CommandsApi;
+	readonly menus: MenusApi;
+	readonly tools: ToolsApi;
+	readonly aiTools: AiToolsApi;
+	readonly codegen: CodegenApi;
+	/**
+	 * End the current undo step: what the plugin changed so far is one step, what it changes next
+	 * is another. Without it everything one command run changes is a single step.
+	 */
+	commitUndo(): Promise<void>;
+}
 
 function formatPart(part: unknown): string {
 	if (typeof part === 'string') return part;
@@ -74,5 +107,18 @@ function createCore(env: SdkEnv): CoreApi {
 }
 
 export function createDesign(env: SdkEnv): DesignApi {
-	return Object.freeze({ ...createCore(env) });
+	return Object.freeze({
+		...createCore(env),
+		document: createDocumentApi(env),
+		selection: createSelectionApi(env),
+		viewport: createViewportApi(env),
+		commands: createCommandsApi(env),
+		menus: createMenusApi(env),
+		tools: createToolsApi(env),
+		aiTools: createAiToolsApi(env),
+		codegen: createCodegenApi(env),
+		commitUndo: async () => {
+			await env.call('history.commitUndo');
+		}
+	});
 }
