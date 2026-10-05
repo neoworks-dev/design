@@ -79,6 +79,7 @@ import pagesPanel from './pages-panel';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import selectionCommands from './selection-commands';
+import shortcuts from './shortcuts';
 import shapeHandles from './shape-handles';
 import transformHandles from './transform-handles';
 import zOrder from './z-order';
@@ -118,6 +119,7 @@ export const builtinPlugins: Plugin[] = [
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,
+	shortcuts,
 	coreMenus,
 	corePanels,
 	coreInspectors,

@@ -329,6 +329,113 @@ describe('keymap hold', () => {
 	});
 });
 
+describe('keymap priority, presets and conflicts', () => {
+	it('a higher priority binding of the same chord wins, whatever the registration order', async () => {
+		const { mounted, ran } = await mountKeymap();
+		const { keymap } = mounted.ctx;
+		keymap.register({ key: 'Escape', command: 'tool.text', source: 'a' });
+		keymap.register({ key: 'Escape', command: 'tool.move', source: 'b', priority: 10 });
+		keymap.handleKeydown(keydown({ key: 'Escape', code: 'Escape' }));
+		await flush();
+		expect(ran).toEqual(['tool.move']);
+		await mounted.cleanup();
+	});
+
+	it('falls through to the lower priority binding while the winner is disabled', async () => {
+		const { mounted, ran } = await mountKeymap();
+		const { keymap, contextKeys } = mounted.ctx;
+		keymap.register({ key: 'Escape', command: 'tool.text', source: 'a' });
+		keymap.register({
+			key: 'Escape',
+			command: 'tool.move',
+			source: 'b',
+			priority: 10,
+			when: 'toolActive'
+		});
+		keymap.handleKeydown(keydown({ key: 'Escape', code: 'Escape' }));
+		await flush();
+		expect(ran).toEqual(['tool.text']);
+		const unset = contextKeys.set('toolActive', true);
+		keymap.handleKeydown(keydown({ key: 'Escape', code: 'Escape' }));
+		await flush();
+		expect(ran).toEqual(['tool.text', 'tool.move']);
+		unset();
+		await mounted.cleanup();
+	});
+
+	it('an active preset replaces the default binding of its commands', async () => {
+		const { mounted, ran } = await mountKeymap();
+		const { keymap } = mounted.ctx;
+		keymap.register({ key: 'F', command: 'tool.move', source: 'tools' });
+		keymap.register({ key: 'K', command: 'tool.text', source: 'tools' });
+		keymap.registerPreset({
+			id: 'other',
+			title: 'Other',
+			bindings: [
+				{ command: 'tool.move', key: 'B' },
+				{ command: 'tool.text', key: null }
+			]
+		});
+		expect(keymap.lookup('tool.move')).toBe('F');
+		keymap.setPreset('other');
+		expect(keymap.lookup('tool.move')).toBe('B');
+		expect(keymap.lookup('tool.text')).toBeUndefined();
+		keymap.handleKeydown(keydown({ key: 'b', code: 'KeyB' }));
+		keymap.handleKeydown(keydown({ key: 'f', code: 'KeyF' }));
+		await flush();
+		expect(ran).toEqual(['tool.move']);
+		keymap.setPreset('figma');
+		expect(keymap.lookup('tool.move')).toBe('F');
+		await mounted.cleanup();
+	});
+
+	it('user overrides beat the preset and can be removed', async () => {
+		const { mounted } = await mountKeymap();
+		const { keymap } = mounted.ctx;
+		keymap.register({ key: 'F', command: 'tool.move', source: 'tools' });
+		keymap.registerPreset({
+			id: 'other',
+			title: 'Other',
+			bindings: [{ command: 'tool.move', key: 'B' }]
+		});
+		keymap.setPreset('other');
+		keymap.setOverride('global', 'tool.move', 'G');
+		expect(keymap.lookup('tool.move')).toBe('G');
+		expect(keymap.listOverrides()).toEqual([{ scope: 'global', command: 'tool.move', key: 'G' }]);
+		keymap.removeOverride('global', 'tool.move');
+		expect(keymap.lookup('tool.move')).toBe('B');
+		await mounted.cleanup();
+	});
+
+	it('reports bindings that share scope, chord and condition but run different commands', async () => {
+		const { mounted } = await mountKeymap();
+		const { keymap } = mounted.ctx;
+		keymap.register({ key: 'Mod+1', command: 'tool.move', source: 'a' });
+		keymap.register({ key: 'Mod+1', command: 'tool.text', source: 'b' });
+		keymap.register({ key: 'Mod+2', command: 'tool.move', source: 'a' });
+		keymap.register({ key: 'Mod+2', command: 'tool.text', source: 'b', priority: 5 });
+		keymap.register({ key: 'Mod+3', command: 'tool.move', source: 'a', when: 'x' });
+		keymap.register({ key: 'Mod+3', command: 'tool.text', source: 'b' });
+		const conflicts = keymap.findConflicts();
+		expect(conflicts).toHaveLength(1);
+		expect(conflicts[0].chord).toBe('ctrl+1');
+		expect(conflicts[0].bindings.map((binding) => binding.command)).toEqual([
+			'tool.move',
+			'tool.text'
+		]);
+		await mounted.cleanup();
+	});
+
+	it('finds nothing to report when each chord has one command', async () => {
+		const { mounted } = await mountKeymap();
+		const { keymap } = mounted.ctx;
+		keymap.register({ key: 'A', command: 'tool.move' });
+		keymap.register({ key: 'B', command: 'tool.text' });
+		expect(keymap.findConflicts()).toEqual([]);
+		await mounted.cleanup();
+	});
+});
+
 describePlugin('core-keymap', coreKeymap, {
 	providers,
 	config: { platform: 'linux' },

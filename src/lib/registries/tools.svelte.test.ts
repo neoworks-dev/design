@@ -290,6 +290,32 @@ describe('sticky tools, lock and Esc', () => {
 	});
 });
 
+describe('Escape priority', () => {
+	it('cancels the tool before any other Escape binding, however it was registered', async () => {
+		const { ctx } = await mountTools();
+		ctx.tools.register({ id: 'move', title: 'Move' });
+		ctx.tools.register({ id: 'rectangle', title: 'Rectangle' });
+		const ran: string[] = [];
+		// Registered after core-tools and enabled on every tool: only the priority decides.
+		ctx.commands.register({
+			id: 'other.deselect',
+			title: 'Deselect',
+			run: () => void ran.push('x')
+		});
+		ctx.keymap.register({ key: 'Escape', command: 'other.deselect', source: 'other' });
+		ctx.tools.activate('rectangle');
+		flushSync();
+		ctx.keymap.handleKeydown({ key: 'Escape', code: 'Escape' } as KeyboardEvent);
+		await Promise.resolve();
+		expect(ctx.tools.activeId()).toBe('move');
+		expect(ran).toEqual([]);
+		flushSync();
+		ctx.keymap.handleKeydown({ key: 'Escape', code: 'Escape' } as KeyboardEvent);
+		await Promise.resolve();
+		expect(ran).toEqual(['x']);
+	});
+});
+
 describe('temporary tools', () => {
 	it('push and pop restore the previous tool, through a hold key too', async () => {
 		const { ctx } = await mountTools();

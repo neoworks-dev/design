@@ -44,7 +44,9 @@ export default {
 				ctx.keymap.register({
 					key: 'Escape',
 					command: 'tools.cancel',
-					scope: 'global'
+					scope: 'global',
+					// Esc ends the tool first; selection.deselect only runs on the default tool.
+					priority: 10
 				}),
 			'shortcut Escape'
 		);
