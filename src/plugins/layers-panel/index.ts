@@ -27,6 +27,18 @@ export default {
 			'layers section'
 		);
 
+		// `node.rename` (Ctrl+R, the Rename menu item) asks the UI to rename in place.
+		ctx.on('node-commands/rename-request', (id) => ctx.layers.startRename(id));
+
+		ctx.effect(
+			() =>
+				ctx.commands.register({
+					id: 'layers.search',
+					title: 'Search layers',
+					run: () => ctx.layers.openFilter()
+				}),
+			'command layers.search'
+		);
 		ctx.effect(
 			() =>
 				ctx.commands.register({

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import ArrowsInLineVerticalIcon from 'phosphor-svelte/lib/ArrowsInLineVerticalIcon';
-	import { untrack } from 'svelte';
+	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
+	import { tick, untrack } from 'svelte';
 	import { getKernel } from '../../lib/kernel/context';
+	import { LAYER_TYPE_FILTERS } from '../../lib/layers/rowActions';
 	import { LAYER_ROW_HEIGHT } from '../../lib/layers/tree';
 	import IconAction from './IconAction.svelte';
 	import { createDragGesture } from './dragGesture';
@@ -16,6 +18,7 @@
 	let scrollTop = $state(0);
 	let viewportHeight = $state(0);
 	let scroller: HTMLElement | undefined = $state();
+	let searchInput: HTMLInputElement | undefined = $state();
 
 	const rows = $derived(ctx.layers.rows());
 	const firstIndex = $derived(
@@ -62,6 +65,34 @@
 		});
 	});
 
+	// Renaming a row (Ctrl+R, Tab to the next layer) brings it into view.
+	$effect(() => {
+		const id = ctx.layers.renamingId;
+		if (id === null) return;
+		untrack(() => scrollToFirst([id]));
+	});
+
+	// Opening the search from anywhere (header button, Ctrl+F) focuses its field.
+	$effect(() => {
+		if (!ctx.layers.filterOpen) return;
+		void tick().then(() => searchInput?.focus());
+	});
+
+	function onkeydown(event: KeyboardEvent): void {
+		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'f') return;
+		event.preventDefault();
+		event.stopPropagation();
+		ctx.layers.openFilter();
+		searchInput?.focus();
+	}
+
+	function onsearchkeydown(event: KeyboardEvent): void {
+		event.stopPropagation();
+		if (event.key !== 'Escape') return;
+		event.preventDefault();
+		ctx.layers.closeFilter();
+	}
+
 	function scrollToFirst(ids: readonly string[]): void {
 		if (!scroller || ids.length === 0) return;
 		const wanted = new Set(ids);
@@ -76,14 +107,55 @@
 	}
 </script>
 
-<div class="flex min-h-0 flex-1 flex-col" data-layers-panel>
+<!-- Ctrl+F is only the layers' while focus is inside the panel, so the key goes unhandled here. -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="flex min-h-0 flex-1 flex-col" data-layers-panel {onkeydown}>
 	<div class="flex h-7 shrink-0 items-center justify-end gap-0.5 px-2" data-layers-actions>
+		<IconAction
+			icon={MagnifyingGlassIcon}
+			label="Search layers"
+			pressed={ctx.layers.filterOpen}
+			onclick={() => (ctx.layers.filterOpen ? ctx.layers.closeFilter() : ctx.layers.openFilter())}
+		/>
 		<IconAction
 			icon={ArrowsInLineVerticalIcon}
 			label="Collapse all layers"
 			onclick={() => ctx.layers.collapseAll()}
 		/>
 	</div>
+	{#if ctx.layers.filterOpen}
+		<div class="flex shrink-0 flex-col gap-1.5 px-2 pb-2" data-layers-filter>
+			<input
+				bind:this={searchInput}
+				type="search"
+				aria-label="Filter layers by name"
+				placeholder="Search layers"
+				value={ctx.layers.filter.query}
+				oninput={(event) => ctx.layers.setQuery(event.currentTarget.value)}
+				onkeydown={onsearchkeydown}
+				class="bg-input border-line text-default placeholder:text-faint focus:border-accent h-7 w-full rounded-md border px-2 text-xs outline-none"
+			/>
+			<div class="flex flex-wrap gap-1" role="group" aria-label="Filter by type">
+				{#each LAYER_TYPE_FILTERS as chip (chip.id)}
+					{@const active = ctx.layers.filter.types.includes(chip.id)}
+					<button
+						type="button"
+						aria-pressed={active}
+						data-layer-filter-chip={chip.id}
+						class={[
+							'rounded-full border px-2 py-0.5 text-[11px]',
+							active
+								? 'border-accent bg-blue-soft text-default'
+								: 'border-line text-muted hover:bg-hover'
+						]}
+						onclick={() => ctx.layers.toggleType(chip.id)}
+					>
+						{chip.title}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
 	<div
 		bind:this={scroller}
 		bind:clientHeight={viewportHeight}
