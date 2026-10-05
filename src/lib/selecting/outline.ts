@@ -1,5 +1,4 @@
-// Screen-space geometry for the interim selection overlay (until the overlay layer, #38, draws
-// these on the canvas). Pure given the lookups.
+// Screen-space geometry for the selection overlay. Pure given the lookups.
 
 import { transformPoint, type Matrix2x3, type NodeId, type Rect } from '../document';
 import type { Point } from '../tools/protocol';
@@ -21,10 +20,6 @@ export function screenCorners(source: OutlineSource, id: NodeId): Point[] {
 		transformPoint(transform, 0, height)
 	];
 	return corners.map((corner) => source.worldToScreen(corner));
-}
-
-export function polygonPoints(corners: readonly Point[]): string {
-	return corners.map((corner) => `${corner.x},${corner.y}`).join(' ');
 }
 
 export function screenRect(rect: Rect, worldToScreen: (point: Point) => Point): Rect {

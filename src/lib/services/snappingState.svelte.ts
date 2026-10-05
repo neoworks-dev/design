@@ -8,6 +8,8 @@ import type { GapGuide } from '../snapping/spacing';
 export class SnappingState {
 	/** Global switch ("Snap to objects"); Ctrl/Cmd held while dragging bypasses it per call. */
 	enabled = $state(true);
+	/** "Snap to pixel grid": positions and sizes round to whole pixels (#71). */
+	pixelSnap = $state(false);
 	/** Guides of the snap that is active right now; empty when nothing snaps or after release. */
 	guides = $state.raw<readonly SnapGuide[]>([]);
 	/** Equal-spacing brackets of the active snap. */

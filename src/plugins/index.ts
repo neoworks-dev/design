@@ -23,17 +23,22 @@ import documentScene from './document-scene';
 import align from './align';
 import boolean from './boolean';
 import clipboard from './clipboard';
+import colorPicker from './color-picker';
 import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
+import inspectorEffects from './inspector-effects';
+import inspectorFill from './inspector-fill';
 import inspectorLayoutSize from './inspector-layout-size';
+import inspectorStroke from './inspector-stroke';
 import inspectorPosition from './inspector-position';
 import selection from './selection';
 import spatial from './spatial';
 import hitTest from './hit-test';
 import snapping from './snapping';
 import fileSession from './file-session';
+import flatten from './flatten';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
@@ -42,7 +47,9 @@ import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
+import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
+import svgImport from './svg-import';
 import textEdit from './text-edit';
 import textFormat from './text-format';
 import textLayout from './text-layout';
@@ -64,6 +71,7 @@ import toolPen from './tool-pen';
 import toolPencil from './tool-pencil';
 import vectorEdit from './vector-edit';
 import workbenchLayout from './workbench-layout';
+import gradientEditor from './gradient-editor';
 import grouping from './grouping';
 import layersPanel from './layers-panel';
 import mask from './mask';
@@ -83,6 +91,9 @@ export const builtinPlugins: Plugin[] = [
 	viewport,
 	overlay,
 	pixelGrid,
+	rulersGuides,
+	flatten,
+	svgImport,
 	debug,
 	desktopBridge,
 	fonts,
@@ -114,6 +125,11 @@ export const builtinPlugins: Plugin[] = [
 	inspectorPosition,
 	inspectorLayoutSize,
 	inspectorAppearance,
+	colorPicker,
+	gradientEditor,
+	inspectorFill,
+	inspectorStroke,
+	inspectorEffects,
 	coreTools,
 	toolbar,
 	canvasInput,

@@ -11,10 +11,9 @@ import {
 	type Change,
 	type DocumentReader,
 	type Matrix2x3,
-	type NodeId,
-	type Paint,
-	type Stroke
+	type NodeId
 } from '../document';
+import { defaultStroke } from './paints';
 import { isAutoLayoutChild, isPositioned, topLevelIds, unionBounds } from './selectionOps';
 
 export type FlipAxis = 'horizontal' | 'vertical';
@@ -99,18 +98,6 @@ export function planSetOpacity(
 		changes.push(...planSetProps(reader, id, { opacity }));
 	}
 	return changes;
-}
-
-function defaultStroke(paints: Paint[]): Stroke {
-	return {
-		paints,
-		weight: 1,
-		align: 'INSIDE',
-		cap: 'NONE',
-		join: 'MITER',
-		miterLimit: 4,
-		dashPattern: []
-	};
 }
 
 /** Exchange the fill paints with the paints of the first stroke (a stroke is created if missing). */

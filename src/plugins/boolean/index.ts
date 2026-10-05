@@ -40,13 +40,6 @@ function flattenOperationMenus(order: number): MenuPlacement[] {
 	return [{ menu: TOOLBAR_BOOLEAN_MENU, group: '2_flatten', order }];
 }
 
-function flattenMenus(order: number): MenuPlacement[] {
-	return [
-		{ menu: 'context/canvas', group: '4_boolean', order },
-		{ menu: 'context/layer', group: '4_boolean', order }
-	];
-}
-
 /** The result of a boolean node as a vector network in the node's local space. */
 function resultNetwork(ctx: Context, id: NodeId): ReturnType<typeof commandsToNetwork> | null {
 	const node = ctx.document.get(id);
@@ -164,8 +157,7 @@ export default {
 			title: 'Flatten',
 			when: 'hasSelection',
 			run: () => flattenSelection(ctx),
-			keys: ['Mod+E'],
-			menus: [...flattenMenus(10), { menu: TOOLBAR_BOOLEAN_MENU, group: '3_flatten', order: 10 }]
+			menus: [{ menu: TOOLBAR_BOOLEAN_MENU, group: '3_flatten', order: 10 }]
 		});
 	}
 };

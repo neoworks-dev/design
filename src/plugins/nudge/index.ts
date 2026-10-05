@@ -39,7 +39,8 @@ function stepOf(value: number | undefined, fallback: number): number {
 
 function nudge(ctx: Context, deltaX: number, deltaY: number): void {
 	if (ctx.selection.count === 0) return;
-	const plan = planNudge(ctx.document.reader, ctx.selection.ids, deltaX, deltaY);
+	const roundToPixel = ctx.waterfall('nudge/pixel-snap', false, () => false);
+	const plan = planNudge(ctx.document.reader, ctx.selection.ids, deltaX, deltaY, roundToPixel);
 	if (plan.blockedByAutoLayout.length > 0) ctx.emit('nudge/blocked', plan.blockedByAutoLayout);
 	// One merge key: rapid presses (key repeat included) fold into a single undo step.
 	applyEdit(ctx, plan.changes, 'Nudge', 'nudge');

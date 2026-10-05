@@ -4,7 +4,10 @@ import { planRescale, type Paint, type Stroke } from '../../lib/document';
 import { buildDocument, frame, node, page, rectangle } from '../../lib/document/fixtures';
 import { at } from '../../lib/editing/fixtures/editingFixture';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
-import { selectionProviders } from '../../lib/selecting/fixtures/selectionFixture';
+import {
+	handleInteractionOf,
+	selectionProviders
+} from '../../lib/selecting/fixtures/selectionFixture';
 import type { ResizeGesture } from '../../lib/selecting/resizeGesture';
 import toolScale from './index';
 
@@ -64,7 +67,7 @@ describePlugin('tool-scale', toolScale, {
 		expect(ctx.tools.get('scale')).toBeDefined();
 		const chords = ctx.keymap.registry.listAll().map((binding) => binding.chord);
 		expect(chords).toContain('k');
-		const ids = ctx.regions.registry.list().map((entry) => entry.id);
+		const ids = ctx.overlay.registry.list().map((entry) => entry.id);
 		expect(ids).toContain('tool-scale/handles');
 	}
 });
@@ -78,10 +81,10 @@ afterEach(async () => {
 
 async function mountScale(): Promise<{ ctx: Context; gesture: ResizeGesture }> {
 	mounted = await mountPlugin(toolScale, { providers: selectionProviders(scene()) });
-	const entry = mounted.ctx.regions.registry
-		.list()
-		.find((candidate) => candidate.id === 'tool-scale/handles');
-	return { ctx: mounted.ctx, gesture: entry?.props?.gesture as ResizeGesture };
+	return {
+		ctx: mounted.ctx,
+		gesture: handleInteractionOf(mounted.ctx, 'tool-scale/handles').gesture
+	};
 }
 
 function fontSizeOf(ctx: Context, id: string): number {

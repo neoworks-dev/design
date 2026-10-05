@@ -58,8 +58,7 @@ describePlugin('boolean', boolean, {
 		expect(ctx.commands.has('boolean.flatten')).toBe(true);
 		const chords = ctx.keymap.registry.listAll().map((binding) => binding.chord);
 		expect(chords).toContain('ctrl+alt+u');
-		expect(ctx.menus.has('context/canvas')).toBe(true);
-		expect(ctx.menus.has('context/layer')).toBe(true);
+		expect(ctx.menus.has('context/boolean')).toBe(true);
 	}
 });
 

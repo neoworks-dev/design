@@ -1,4 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
+import { CursorOverride } from './cursor.svelte';
 import { ModifierState } from './modifiers.svelte';
 import { CanvasInputService } from './service';
 
@@ -8,7 +9,7 @@ export default {
 	name: 'canvas-input',
 	inject: ['renderer', 'viewport', 'tools', 'keymap'],
 	apply(ctx: Context): void {
-		const input = new CanvasInputService(ctx, new ModifierState());
+		const input = new CanvasInputService(ctx, new ModifierState(), new CursorOverride());
 
 		// Window level so a modifier pressed before the pointer enters the canvas is known.
 		ctx.effect(() => {

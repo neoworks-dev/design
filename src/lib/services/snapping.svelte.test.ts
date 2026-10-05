@@ -1,5 +1,5 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import snappingPlugin from '../../plugins/snapping';
 import spatialPlugin from '../../plugins/spatial';
 import { editingProviders } from '../editing/fixtures/editingFixture';
@@ -169,6 +169,99 @@ function box(
 		height
 	});
 }
+
+describe('pixel grid snapping', () => {
+	const KEY = 'design.snapping.pixel';
+
+	afterEach(() => globalThis.localStorage.removeItem(KEY));
+
+	it('is off by default and registers a command in the View menu', async () => {
+		const mounted = await mountPlugin(snappingPlugin, { providers: providers() });
+		expect(mounted.ctx.snapping.pixelSnapEnabled).toBe(false);
+		expect(mounted.ctx.commands.has('snapping.toggle-pixel')).toBe(true);
+		const chords = mounted.ctx.keymap.registry.listAll().map((binding) => binding.chord);
+		expect(chords).toContain("ctrl+shift+'");
+		await mounted.cleanup();
+	});
+
+	it('rounds a move to whole pixels, also with object snapping off', async () => {
+		const mounted = await mountPlugin(snappingPlugin, {
+			providers: providers(),
+			config: { enabled: false }
+		});
+		const { snapping } = mounted.ctx;
+		expect(snapping.snap(rect(300.4, 300.6, 10.5, 10.5)).delta).toEqual({ x: 0, y: 0 });
+		snapping.setPixelSnap(true);
+		const { delta } = snapping.snap(rect(300.4, 300.6, 10.5, 10.5));
+		expect(300.4 + delta.x).toBe(300);
+		expect(300.6 + delta.y).toBe(301);
+		await mounted.cleanup();
+	});
+
+	it('rounds only the dragged edge of a resize, leaving the size whole', async () => {
+		const mounted = await mountPlugin(snappingPlugin, { providers: providers() });
+		const { snapping } = mounted.ctx;
+		snapping.setPixelSnap(true);
+		const { delta } = snapping.snap(rect(300, 300, 50.4, 20), {
+			lines: { x: ['max'] },
+			axes: 'x'
+		});
+		expect(300 + 50.4 + delta.x).toBeCloseTo(350, 9);
+		expect(delta.y).toBe(0);
+		await mounted.cleanup();
+	});
+
+	it('lets an object snap win on its axis and rounds the other axis', async () => {
+		const mounted = await mountPlugin(snappingPlugin, { providers: providers() });
+		const { snapping } = mounted.ctx;
+		snapping.setPixelSnap(true);
+		// near the frame's left edge (x = 100): the object snap pulls x to 100, y rounds
+		const { delta } = snapping.snap(rect(101.3, 700.4, 10, 10), { ignoreIds: ['loose'] });
+		expect(101.3 + delta.x).toBeCloseTo(100, 9);
+		expect(700.4 + delta.y).toBe(700);
+		await mounted.cleanup();
+	});
+
+	it('is skipped for a bypassed (Ctrl) call', async () => {
+		const mounted = await mountPlugin(snappingPlugin, { providers: providers() });
+		const { snapping } = mounted.ctx;
+		snapping.setPixelSnap(true);
+		expect(snapping.snap(rect(300.4, 300.6, 10, 10), { bypass: true }).delta).toEqual({
+			x: 0,
+			y: 0
+		});
+		await mounted.cleanup();
+	});
+
+	it('rounds creation points and answers the nudge waterfall while on', async () => {
+		const mounted = await mountPlugin(snappingPlugin, { providers: providers() });
+		const { ctx } = mounted;
+		expect(ctx.waterfall('nudge/pixel-snap', false, () => false)).toBe(false);
+		ctx.snapping.setPixelSnap(true);
+		expect(ctx.waterfall('nudge/pixel-snap', false, () => false)).toBe(true);
+		const point = ctx.waterfall('tools/snap-point', { x: 700.4, y: 700.6 }, () => ({
+			x: 700.4,
+			y: 700.6
+		}));
+		expect(point).toEqual({ x: 700, y: 701 });
+		await mounted.cleanup();
+	});
+
+	it('the toggle command flips the switch and the choice persists across mounts', async () => {
+		const first = await mountPlugin(snappingPlugin, { providers: providers() });
+		await first.ctx.commands.run('snapping.toggle-pixel');
+		expect(first.ctx.snapping.pixelSnapEnabled).toBe(true);
+		await first.cleanup();
+		const second = await mountPlugin(snappingPlugin, { providers: providers() });
+		expect(second.ctx.snapping.pixelSnapEnabled).toBe(true);
+		await second.ctx.commands.run('snapping.toggle-pixel');
+		expect(second.ctx.snapping.pixelSnapEnabled).toBe(false);
+		await second.cleanup();
+		const third = await mountPlugin(snappingPlugin, { providers: providers() });
+		expect(third.ctx.snapping.pixelSnapEnabled).toBe(false);
+		await third.cleanup();
+	});
+});
 
 describe('equal spacing through the service', () => {
 	const row = buildDocument([

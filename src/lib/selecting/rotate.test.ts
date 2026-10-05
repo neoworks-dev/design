@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { transformPoint } from '../document';
 import { mountPlugin, type MountedPlugin } from '../kernel/testing';
 import transformHandles from '../../plugins/transform-handles';
-import { selectionProviders } from './fixtures/selectionFixture';
+import { handleInteractionOf, selectionProviders } from './fixtures/selectionFixture';
 import {
 	angleAround,
 	normalizeAngle,
@@ -51,10 +51,9 @@ afterEach(async () => {
 
 async function mountRotation(): Promise<{ ctx: Context; rotation: RotateGesture }> {
 	mounted = await mountPlugin(transformHandles, { providers: selectionProviders() });
-	const entry = mounted.ctx.regions.registry
-		.list()
-		.find((candidate) => candidate.id === 'transform-handles/overlay');
-	return { ctx: mounted.ctx, rotation: entry?.props?.rotation as RotateGesture };
+	const rotation = handleInteractionOf(mounted.ctx, 'transform-handles/handles').rotation;
+	if (rotation === undefined) throw new Error('rotation missing');
+	return { ctx: mounted.ctx, rotation };
 }
 
 function degreesOf(ctx: Context, id: string): number {

@@ -9,8 +9,8 @@ import { CropSession } from '../../lib/selecting/cropSession';
 import { watchGestureKeys } from '../../lib/selecting/gestureKeys';
 import { ResizeFeedbackState } from '../../lib/selecting/resizeFeedback.svelte';
 import { ResizeGesture } from '../../lib/selecting/resizeGesture';
-import TransformHandles from '../../lib/selecting/TransformHandles.svelte';
-import CropOverlay from './CropOverlay.svelte';
+import { contributeHandles, HandleInteraction } from '../../lib/selecting/handleInteraction';
+import { drawCropOutline, trackCropOutline } from './cropOutline';
 import { createCropTool, CROP_TOOL_ID, CropState, enterCropMode } from './cropTool.svelte';
 import { watchDrops } from './dropImages';
 import { createImageTool, IMAGE_TOOL_ID, PendingImages } from './imageTool.svelte';
@@ -48,7 +48,8 @@ export default {
 		'selection',
 		'history',
 		'viewport',
-		'regions',
+		'overlay',
+		'canvasInput',
 		'commands',
 		'keymap',
 		'blobs',
@@ -94,7 +95,6 @@ export default {
 					order: 10.4,
 					cursor: 'default',
 					toolbar: false,
-					overlay: { component: CropOverlay, props: { state: cropState } },
 					...createCropTool(ctx, cropState)
 				}),
 			'image crop tool'
@@ -102,13 +102,21 @@ export default {
 
 		ctx.effect(
 			() =>
-				ctx.regions.register({
-					id: 'tool-image/crop-handles',
-					region: 'canvas-overlay',
-					component: TransformHandles,
-					props: { feedback: cropFeedback, gesture: cropGesture, toolId: CROP_TOOL_ID }
+				ctx.overlay.register({
+					id: 'tool-image/crop-outline',
+					order: 40,
+					track: () => trackCropOutline(cropState),
+					draw: (frame) => drawCropOutline(ctx, frame, cropState)
 				}),
-			'image crop handles overlay'
+			'image crop outline overlay'
+		);
+
+		contributeHandles(
+			ctx,
+			new HandleInteraction(ctx, cropFeedback, cropGesture, {
+				id: 'tool-image/crop-handles',
+				toolId: CROP_TOOL_ID
+			})
 		);
 
 		ctx.effect(() => watchGestureKeys([cropGesture]), 'image crop key handling');
