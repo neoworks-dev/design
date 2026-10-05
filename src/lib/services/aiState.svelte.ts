@@ -1,7 +1,7 @@
 // Reactive holder behind the `ai` service (a Service may not hold runes).
 
 import type { AiProviderInfo } from '../../../electron/bridge';
-import type { AiRunRecord } from '../ai/types';
+import type { AiRunInfo, AiRunRecord } from '../ai/types';
 
 /** The agent session main holds for this window, and what it was started with. */
 export interface AiSessionRef {
@@ -22,4 +22,6 @@ export class AiState {
 	providerId = $state.raw('');
 	modelId = $state.raw('');
 	session: AiSessionRef | null = null;
+	/** The run a command is executing for right now; not reactive, read during `document/begin`. */
+	attributedRun: AiRunInfo | null = null;
 }

@@ -237,6 +237,25 @@ export class AiService extends Service {
 		this.ctx.emit('ai/edit', this.infoOf(record), edit);
 	}
 
+	/** The run whose command is executing now (see `withRun`), or `null`. */
+	get attributedRun(): AiRunInfo | null {
+		return this.state.attributedRun;
+	}
+
+	/**
+	 * Run `work` (a command the agent asked for) on behalf of `run`: while it runs, document
+	 * changes that carry no origin of their own are attributed to the run (ai-history reads this).
+	 */
+	async withRun<T>(run: AiRunInfo, work: () => Promise<T>): Promise<T> {
+		const previous = this.state.attributedRun;
+		this.state.attributedRun = run;
+		try {
+			return await work();
+		} finally {
+			this.state.attributedRun = previous;
+		}
+	}
+
 	/** Cancel what runs and end the session: the plugin is unloading. */
 	async shutdown(): Promise<void> {
 		for (const record of this.state.runs) {
