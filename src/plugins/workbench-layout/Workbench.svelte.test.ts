@@ -77,7 +77,16 @@ async function renderWorkbench(
 	withShell = true
 ): Promise<{ mounted: MountedPlugin; storage: MemoryStorage }> {
 	mounted = await mountPlugin(workbenchLayout, { providers, config: { storage } });
-	if (withShell) await mounted.ctx.plugin(placeholderShell);
+	if (withShell) {
+		await mounted.ctx.plugin(placeholderShell);
+		mounted.ctx.panels.registerTab({
+			id: 'design',
+			side: 'right',
+			title: 'Design',
+			component: PlaceholderText,
+			props: { text: 'design panel' }
+		});
+	}
 	target = document.createElement('div');
 	document.body.append(target);
 	host = mount(HostRoot, {
