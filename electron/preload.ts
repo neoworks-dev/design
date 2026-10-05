@@ -64,6 +64,9 @@ const bridge: DesktopBridge = {
 		saveFile: (options) => invoke('dialogs:saveFile', options),
 		openImages: () => invoke('dialogs:openImages')
 	},
+	exports: {
+		write: (files) => invoke('exports:write', { files })
+	},
 	clipboard: {
 		read: () => invoke('clipboard:read'),
 		write: (content) => invoke('clipboard:write', content)

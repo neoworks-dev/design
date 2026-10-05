@@ -79,6 +79,12 @@ export const payloadSchemas: PayloadSchemas = {
 	'dialogs:openFile': openFileOptions,
 	'dialogs:saveFile': saveFileOptions,
 	'dialogs:openImages': z.void(),
+	'exports:write': z.strictObject({
+		files: z
+			.array(z.strictObject({ name: z.string().min(1).max(255), bytes: blobBytes }))
+			.min(1)
+			.max(500)
+	}),
 	'clipboard:read': z.void(),
 	'clipboard:write': z.strictObject({
 		text: z.string().optional(),

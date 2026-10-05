@@ -114,6 +114,13 @@ export interface AssetPutResult {
 	created: boolean;
 }
 
+/** One file of an export, written by main under its name. */
+export interface ExportFileData {
+	/** A file name; directories are stripped by main. */
+	name: string;
+	bytes: Uint8Array;
+}
+
 /** What the OS clipboard holds, as far as the app reads it. Absent kinds are `null`. */
 export interface ClipboardContent {
 	text: string | null;
@@ -262,6 +269,11 @@ export interface IpcContract {
 	'dialogs:saveFile': { payload: SaveFileOptions | undefined; result: string | null };
 	/** The native open dialog filtered to images (several allowed); main reads the files. */
 	'dialogs:openImages': { payload: void; result: PickedImage[] | null };
+	/**
+	 * Write exported files: one file asks for its path in the native save dialog, several ask for
+	 * a folder. Resolves with the written paths; `null` when the user cancelled (nothing written).
+	 */
+	'exports:write': { payload: { files: ExportFileData[] }; result: string[] | null };
 	'clipboard:read': { payload: void; result: ClipboardContent };
 	'clipboard:write': { payload: ClipboardWrite; result: void };
 	/** Replace the native application menu with the renderer's resolved menu bar. */
@@ -404,6 +416,9 @@ export interface DesktopBridge {
 		saveFile(options?: SaveFileOptions): Promise<string | null>;
 		/** Pick image files (png, jpeg, webp, gif, svg); `null` when cancelled. */
 		openImages(): Promise<PickedImage[] | null>;
+	};
+	exports: {
+		write(files: ExportFileData[]): Promise<string[] | null>;
 	};
 	clipboard: {
 		read(): Promise<ClipboardContent>;
