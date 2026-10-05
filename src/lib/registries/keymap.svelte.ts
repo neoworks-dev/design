@@ -47,6 +47,11 @@ export interface KeyBindingInput {
 	repeat?: boolean;
 	/** Fire even while a form field or contenteditable has focus. */
 	allowInEditable?: boolean;
+	/**
+	 * Decides between bindings of the same chord and scope: the higher one is tried first (Esc
+	 * cancels the active tool before it clears the selection). Ties keep registration order.
+	 */
+	priority?: number;
 }
 
 export interface KeyBinding extends RegistryEntry {
@@ -59,14 +64,65 @@ export interface KeyBinding extends RegistryEntry {
 	source: string;
 	repeat: boolean;
 	allowInEditable: boolean;
+	priority: number;
 }
 
 interface KeyOverride extends RegistryEntry {
 	scope: KeyScope;
 	command: string;
+	/** As written by the user, or null to unbind the command in that scope. */
+	key: string | null;
 	/** Canonical chord, or null to unbind the command in that scope. */
 	chord: string | null;
 }
+
+export interface KeyOverrideSummary {
+	scope: KeyScope;
+	command: string;
+	key: string | null;
+}
+
+/** One binding of a preset; a null `key` leaves the command unbound in that preset. */
+export interface KeyPresetBinding {
+	command: string;
+	key: string | null;
+	scope?: KeyScope;
+	args?: unknown;
+	when?: string;
+}
+
+export interface KeyPresetInput {
+	id: string;
+	title: string;
+	/** Replace the default binding of each listed command while the preset is active. */
+	bindings: KeyPresetBinding[];
+}
+
+interface PresetBindingEntry {
+	command: string;
+	scope: KeyScope;
+	chord: string | null;
+	key: string | null;
+	args?: unknown;
+	when?: string;
+}
+
+interface KeyPreset extends RegistryEntry {
+	title: string;
+	bindings: PresetBindingEntry[];
+}
+
+/** Two active bindings that claim the same chord in the same scope with the same condition. */
+export interface KeyConflict {
+	scope: KeyScope;
+	chord: string;
+	bindings: KeyBinding[];
+}
+
+/** Priority of user overrides: above every default. */
+const OVERRIDE_PRIORITY = 1_000_000;
+/** Priority of an active preset's bindings. */
+const PRESET_PRIORITY = 1000;
 
 interface ScopeEntry extends RegistryEntry {
 	name: KeyScope;
@@ -121,6 +177,7 @@ export interface KeydownEventLike extends KeyEventLike {
 export class KeymapService extends Service {
 	readonly registry = new Registry<KeyBinding>();
 	readonly overrides = new Registry<KeyOverride>();
+	readonly presets = new Registry<KeyPreset>();
 	readonly scopes = new Registry<ScopeEntry>();
 	readonly holds = new Registry<HoldEntry>();
 	readonly settings = new KeymapSettings();
@@ -157,7 +214,8 @@ export class KeymapService extends Service {
 			scope,
 			source,
 			repeat: input.repeat ?? false,
-			allowInEditable: input.allowInEditable ?? false
+			allowInEditable: input.allowInEditable ?? false,
+			priority: input.priority ?? 0
 		});
 	}
 
@@ -165,7 +223,41 @@ export class KeymapService extends Service {
 	setOverride(scope: KeyScope, command: string, key: string | null): () => void {
 		let chord: string | null = null;
 		if (key !== null) chord = parseChord(key, this.platform);
-		return this.overrides.register({ id: `${scope}|${command}`, scope, command, chord });
+		return this.overrides.register({ id: `${scope}|${command}`, scope, command, key, chord });
+	}
+
+	/** Drop the user's override of `command` in `scope`, back to the preset or default. */
+	removeOverride(scope: KeyScope, command: string): void {
+		const entry = this.overrides.get(`${scope}|${command}`);
+		if (!entry) return;
+		this.overrides.register(entry)();
+	}
+
+	/** Reactive: the user's overrides as written, for persisting and export. */
+	listOverrides(): KeyOverrideSummary[] {
+		return this.overrides
+			.list()
+			.map((override) => ({ scope: override.scope, command: override.command, key: override.key }));
+	}
+
+	/** Register a preset: a named set of bindings that replace the defaults while it is active. */
+	registerPreset(input: KeyPresetInput): () => void {
+		const bindings = input.bindings.map((binding) => this.presetBindingEntry(binding));
+		return this.presets.register({ id: input.id, title: input.title, bindings });
+	}
+
+	private presetBindingEntry(binding: KeyPresetBinding): PresetBindingEntry {
+		if (binding.when !== undefined) this.contextKeys.validate(binding.when);
+		let chord: string | null = null;
+		if (binding.key !== null) chord = parseChord(binding.key, this.platform);
+		return {
+			command: binding.command,
+			scope: binding.scope ?? 'global',
+			chord,
+			key: binding.key,
+			args: binding.args,
+			when: binding.when
+		};
 	}
 
 	/** Activate a scope (for example `canvas` while the canvas has focus). */
@@ -279,13 +371,72 @@ export class KeymapService extends Service {
 			if (override.chord === null) continue;
 			fromOverrides.push(this.bindingForOverride(override, override.chord));
 		}
+		const presetEntries = this.activePresetBindings();
 		const defaults = this.registry.list().filter((binding) => {
 			if (!this.isPresetActive(binding)) return false;
-			return !overrides.some(
-				(override) => override.scope === binding.scope && override.command === binding.command
-			);
+			if (hasBindingFor(overrides, binding)) return false;
+			return !hasBindingFor(presetEntries, binding);
 		});
-		return [...fromOverrides, ...defaults];
+		const fromPreset = presetEntries
+			.filter((entry) => entry.chord !== null && !hasBindingFor(overrides, entry))
+			.map((entry) => this.bindingForPreset(entry));
+		return sortByPriority([...fromOverrides, ...fromPreset, ...defaults]);
+	}
+
+	private activePresetBindings(): PresetBindingEntry[] {
+		const preset = this.presets.get(this.settings.preset);
+		if (!preset) return [];
+		return preset.bindings;
+	}
+
+	private bindingForPreset(entry: PresetBindingEntry): KeyBinding {
+		return {
+			id: `preset|${this.settings.preset}|${entry.scope}|${entry.chord}|${entry.command}`,
+			chord: entry.chord ?? '',
+			key: entry.key ?? '',
+			command: entry.command,
+			args: entry.args,
+			when: entry.when,
+			scope: entry.scope,
+			source: `preset:${this.settings.preset}`,
+			repeat: false,
+			allowInEditable: false,
+			priority: PRESET_PRIORITY
+		};
+	}
+
+	/** Reactive: every active binding in resolution order (overrides, preset, then defaults). */
+	bindings(): KeyBinding[] {
+		return this.activeBindings();
+	}
+
+	/**
+	 * Reactive: active bindings that fight over a chord. Two bindings conflict when they share
+	 * scope, chord, priority and `when`, but run different commands (or the same command with
+	 * different arguments). A higher priority resolves the clash, so it is not reported.
+	 */
+	findConflicts(): KeyConflict[] {
+		const groups: { key: string; bindings: KeyBinding[] }[] = [];
+		for (const binding of this.activeBindings()) {
+			const key = [binding.scope, binding.chord, binding.priority, binding.when].join('\u0000');
+			const group = groups.find((candidate) => candidate.key === key);
+			if (group) group.bindings.push(binding);
+			else groups.push({ key, bindings: [binding] });
+		}
+		const conflicts: KeyConflict[] = [];
+		for (const { bindings } of groups) {
+			if (!isContested(bindings)) continue;
+			conflicts.push({ scope: bindings[0].scope, chord: bindings[0].chord, bindings });
+		}
+		return conflicts;
+	}
+
+	/** Reactive: active bindings that would clash with `chord` in `scope` (for a rebind dialog). */
+	bindingsFor(chordText: string, scope: KeyScope): KeyBinding[] {
+		const chord = parseChord(chordText, this.platform);
+		return this.activeBindings().filter(
+			(binding) => binding.chord === chord && binding.scope === scope
+		);
 	}
 
 	private bindingForOverride(override: KeyOverride, chord: string): KeyBinding {
@@ -302,7 +453,8 @@ export class KeymapService extends Service {
 			scope: override.scope,
 			source: 'user',
 			repeat: original?.repeat ?? false,
-			allowInEditable: original?.allowInEditable ?? false
+			allowInEditable: original?.allowInEditable ?? false,
+			priority: OVERRIDE_PRIORITY
 		};
 	}
 
@@ -331,4 +483,31 @@ export class KeymapService extends Service {
 		if (!this.commands.isEnabled(binding.command)) return false;
 		return this.contextKeys.evaluate(binding.when);
 	}
+}
+
+function hasBindingFor(
+	entries: readonly { scope: KeyScope; command: string }[],
+	binding: { scope: KeyScope; command: string }
+): boolean {
+	return entries.some(
+		(entry) => entry.scope === binding.scope && entry.command === binding.command
+	);
+}
+
+/** Stable: bindings of equal priority keep their order. */
+function sortByPriority(bindings: KeyBinding[]): KeyBinding[] {
+	return bindings
+		.map((binding, index) => ({ binding, index }))
+		.sort((a, b) => b.binding.priority - a.binding.priority || a.index - b.index)
+		.map((item) => item.binding);
+}
+
+function isContested(bindings: readonly KeyBinding[]): boolean {
+	if (bindings.length < 2) return false;
+	const first = bindings[0];
+	return bindings.some(
+		(binding) =>
+			binding.command !== first.command ||
+			JSON.stringify(binding.args) !== JSON.stringify(first.args)
+	);
 }

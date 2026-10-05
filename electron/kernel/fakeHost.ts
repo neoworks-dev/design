@@ -8,6 +8,7 @@ import type {
 	AppEvents,
 	ElectronHost,
 	HostFontFile,
+	HostMenuItem,
 	IpcInvokeEvent,
 	IpcListener,
 	MessageBoxRequest,
@@ -323,6 +324,15 @@ export class FakeHost implements ElectronHost {
 				png: content.png === undefined ? null : content.png
 			};
 			return Promise.resolve();
+		}
+	};
+
+	/** The last application menu template set; `null` before any. */
+	applicationMenu: HostMenuItem[] | null = null;
+
+	readonly menu: ElectronHost['menu'] = {
+		setApplicationMenu: (items) => {
+			this.applicationMenu = items;
 		}
 	};
 

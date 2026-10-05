@@ -1,4 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
+import UnionIcon from 'phosphor-svelte/lib/UnionIcon';
 import { generateNodeId, type NodeId } from '../../lib/document';
 import { applyEdit, contributeCommand, type MenuPlacement } from '../../lib/editing/contribute';
 import {
@@ -26,9 +27,17 @@ const OPERATIONS: OperationCommand[] = [
 ];
 
 const BOOLEAN_MENU = 'context/boolean';
+const TOOLBAR_BOOLEAN_MENU = 'toolbar/boolean';
 
 function operationMenus(order: number): MenuPlacement[] {
-	return [{ menu: BOOLEAN_MENU, group: '1', order }];
+	return [
+		{ menu: BOOLEAN_MENU, group: '1', order },
+		{ menu: TOOLBAR_BOOLEAN_MENU, group: '1', order }
+	];
+}
+
+function flattenOperationMenus(order: number): MenuPlacement[] {
+	return [{ menu: TOOLBAR_BOOLEAN_MENU, group: '2_flatten', order }];
 }
 
 /** The result of a boolean node as a vector network in the node's local space. */
@@ -125,14 +134,30 @@ export default {
 				title: `Boolean: ${title} and flatten`,
 				when: 'hasSelection',
 				run: () => combine(ctx, entry.operation, true),
-				keys: [`Mod+Alt+Shift+${entry.key}`]
+				keys: [`Mod+Alt+Shift+${entry.key}`],
+				menus: flattenOperationMenus(position)
 			});
 		});
+		ctx.effect(
+			() =>
+				ctx.menus.register({
+					menu: 'toolbar',
+					item: {
+						id: 'boolean',
+						title: 'Boolean operation',
+						icon: UnionIcon,
+						submenu: TOOLBAR_BOOLEAN_MENU,
+						order: 50
+					}
+				}),
+			'menu toolbar boolean'
+		);
 		contributeCommand(ctx, {
 			id: 'boolean.flatten',
 			title: 'Flatten',
 			when: 'hasSelection',
-			run: () => flattenSelection(ctx)
+			run: () => flattenSelection(ctx),
+			menus: [{ menu: TOOLBAR_BOOLEAN_MENU, group: '3_flatten', order: 10 }]
 		});
 	}
 };

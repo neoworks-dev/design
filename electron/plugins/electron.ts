@@ -12,6 +12,7 @@ export class ElectronService extends Service implements ElectronHost {
 	readonly shell: ElectronHost['shell'];
 	readonly dialog: ElectronHost['dialog'];
 	readonly clipboard: ElectronHost['clipboard'];
+	readonly menu: ElectronHost['menu'];
 	readonly screen: ElectronHost['screen'];
 	readonly userData: ElectronHost['userData'];
 	readonly fonts: ElectronHost['fonts'];
@@ -28,6 +29,7 @@ export class ElectronService extends Service implements ElectronHost {
 		this.shell = host.shell;
 		this.dialog = host.dialog;
 		this.clipboard = host.clipboard;
+		this.menu = host.menu;
 		this.screen = host.screen;
 		this.userData = host.userData;
 		this.fonts = host.fonts;

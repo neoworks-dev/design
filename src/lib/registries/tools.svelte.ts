@@ -71,6 +71,12 @@ export interface ToolContribution {
 	cursor?: string | (() => string);
 	/** Toolbar grouping: a separator is drawn where the group changes. */
 	group?: string;
+	/**
+	 * Tools sharing a `toolbarGroup` form one toolbar button that shows the last-used member and a
+	 * dropdown with the others (Frame / Section / Slice). Members are reachable through the
+	 * dropdown even when `toolbar` is false.
+	 */
+	toolbarGroup?: string;
 	order?: number;
 	/** Context-key expression; the tool is unavailable (and hidden) while false. */
 	when?: string;
@@ -215,6 +221,14 @@ export class ToolsService extends Service {
 		return this.registry
 			.list()
 			.filter((entry) => entry.tool.toolbar !== false)
+			.filter((entry) => this.contextKeys.evaluate(entry.tool.when));
+	}
+
+	/** The tools the toolbar can reach: the visible ones plus members of a dropdown group. */
+	toolbarEntries(): readonly ToolEntry[] {
+		return this.registry
+			.list()
+			.filter((entry) => entry.tool.toolbar !== false || entry.tool.toolbarGroup !== undefined)
 			.filter((entry) => this.contextKeys.evaluate(entry.tool.when));
 	}
 

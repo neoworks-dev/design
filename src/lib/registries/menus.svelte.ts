@@ -15,6 +15,7 @@
 // a separator is derived wherever the group changes between two visible items.
 
 import { Service, type Context } from '@neoworks/extension-system';
+import type { Component } from 'svelte';
 import type { CommandsService } from './commands.svelte';
 import type { ContextKeysService } from './contextKeys.svelte';
 import type { KeymapService } from './keymap.svelte';
@@ -49,7 +50,13 @@ export interface MenuItemContribution {
 	toggled?: string;
 	/** Path of another menu whose items form this item's submenu. */
 	submenu?: string;
+	/** Shown by menus that render icons (the toolbar). */
+	icon?: MenuIcon;
 }
+
+// phosphor-svelte icons accept more props than `size` and `weight`
+// oxlint-disable-next-line typescript/no-explicit-any
+export type MenuIcon = Component<any>;
 
 export interface MenuRegistration {
 	/** Menu path, for example `app/file` or `context/canvas`. */
@@ -66,6 +73,7 @@ export interface ResolvedMenuItem {
 	title: string;
 	command?: string;
 	args?: unknown;
+	icon?: MenuIcon;
 	accelerator?: string;
 	enabled: boolean;
 	checked: boolean;
@@ -73,6 +81,8 @@ export interface ResolvedMenuItem {
 	separatorBefore: boolean;
 	/** Present for submenu items; never empty (a submenu without visible items is hidden). */
 	submenu?: ResolvedMenuItem[];
+	/** Menu path of the submenu, for hosts that open it as a popup of its own. */
+	submenuPath?: string;
 }
 
 export interface MenuPoint {
@@ -84,6 +94,8 @@ export interface MenuPopup {
 	kind: MenuTargetKind;
 	menu: string;
 	point: MenuPoint;
+	/** `above` grows upwards from the point (menus opened from a bottom toolbar). */
+	placement: 'below' | 'above';
 	target: unknown;
 }
 
@@ -152,7 +164,18 @@ export class MenusService extends Service {
 
 	/** Open the context menu of `kind` at a client-space point. Replaces an open popup. */
 	open(kind: MenuTargetKind, point: MenuPoint, target?: unknown): void {
-		this.popupState.current = { kind, menu: contextMenuPath(kind), point, target };
+		this.popupState.current = {
+			kind,
+			menu: contextMenuPath(kind),
+			point,
+			placement: 'below',
+			target
+		};
+	}
+
+	/** Open any menu path (a toolbar dropdown) at a client-space point. Replaces an open popup. */
+	openMenu(menu: string, point: MenuPoint, placement: MenuPopup['placement'] = 'below'): void {
+		this.popupState.current = { kind: menu, menu, point, placement, target: undefined };
 	}
 
 	/** Open from a `contextmenu` DOM event: suppresses the native menu. */
@@ -211,11 +234,13 @@ export class MenusService extends Service {
 			title: this.titleOf(entry),
 			command: entry.command,
 			args: entry.args,
+			icon: entry.icon,
 			accelerator: this.acceleratorOf(entry),
 			enabled: this.isEnabled(entry),
 			checked: entry.toggled !== undefined && this.evaluate(entry.toggled, keys),
 			separatorBefore: false,
-			submenu
+			submenu,
+			submenuPath: entry.submenu
 		};
 	}
 

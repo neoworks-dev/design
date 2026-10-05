@@ -46,6 +46,7 @@ export default {
 					icon: SelectionBackgroundIcon,
 					shortcut: 'Shift+S',
 					group: 'create',
+					toolbarGroup: 'frame',
 					order: 10.1,
 					cursor: 'crosshair',
 					toolbar: false,

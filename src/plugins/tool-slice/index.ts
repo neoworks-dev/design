@@ -37,6 +37,7 @@ export default {
 					icon: ScissorsIcon,
 					shortcut: 'S',
 					group: 'create',
+					toolbarGroup: 'frame',
 					order: 10.2,
 					cursor: 'crosshair',
 					toolbar: false,
