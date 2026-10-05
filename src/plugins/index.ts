@@ -36,6 +36,7 @@ import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
+import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
 import textEdit from './text-edit';
 import textFormat from './text-format';
@@ -70,6 +71,7 @@ export const builtinPlugins: Plugin[] = [
 	viewport,
 	overlay,
 	pixelGrid,
+	rulersGuides,
 	debug,
 	desktopBridge,
 	fonts,
