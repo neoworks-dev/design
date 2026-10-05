@@ -23,6 +23,7 @@ import documentScene from './document-scene';
 import align from './align';
 import boolean from './boolean';
 import clipboard from './clipboard';
+import colorPicker from './color-picker';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
@@ -109,6 +110,7 @@ export const builtinPlugins: Plugin[] = [
 	inspectorPosition,
 	inspectorLayoutSize,
 	inspectorAppearance,
+	colorPicker,
 	coreTools,
 	canvasInput,
 	viewTools,
