@@ -8,6 +8,7 @@
 // new Blob([bytes], { type: mimeType }) })])` with the PNG bytes, or the desktop bridge's image
 // write once it exists.
 
+import type { CanvasKit } from 'canvaskit-wasm';
 import { Service, type Context } from '@neoworks/extension-system';
 import type { NodeId, Rect } from '../document';
 import type { SceneSource } from '../renderer/sceneSource';
@@ -45,8 +46,8 @@ export class HeadlessRendererService extends Service {
 	}
 
 	/** The scene (variable-resolved nodes) and geometry vector exporters serialise from. */
-	scene(): { source: SceneSource; geometry: ExportGeometry } {
-		const { source, geometry } = this.environment();
-		return { source, geometry };
+	scene(): { source: SceneSource; geometry: ExportGeometry; canvasKit: CanvasKit } {
+		const { source, geometry, canvasKit } = this.environment();
+		return { source, geometry, canvasKit };
 	}
 }
