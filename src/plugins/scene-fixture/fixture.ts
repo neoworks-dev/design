@@ -17,6 +17,7 @@ import type {
 	StrokeWeights,
 	VectorNetwork
 } from '../../lib/document';
+import { textFrame } from './textFixture';
 import { pngBytes } from '../../lib/renderer/pngFixture';
 import {
 	buildDocument,
@@ -786,7 +787,15 @@ function masksFrame(): NodeSpec {
 function shapesPage(): NodeSpec {
 	return page(
 		'Shapes',
-		[shapesFrame(), fillsFrame(), strokesFrame(), paintsFrame(), effectsFrame(), masksFrame()],
+		[
+			shapesFrame(),
+			fillsFrame(),
+			strokesFrame(),
+			paintsFrame(),
+			effectsFrame(),
+			masksFrame(),
+			textFrame()
+		],
 		{
 			id: SHAPES_PAGE_ID
 		}

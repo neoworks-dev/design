@@ -37,6 +37,10 @@ import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
+import textEdit from './text-edit';
+import textFormat from './text-format';
+import textLayout from './text-layout';
+import toolText from './tool-text';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
@@ -68,6 +72,9 @@ export const builtinPlugins: Plugin[] = [
 	imageCache,
 	paintShaders,
 	effects,
+	textLayout,
+	textEdit,
+	textFormat,
 	documentPlugin,
 	documentScene,
 	selection,
@@ -92,6 +99,7 @@ export const builtinPlugins: Plugin[] = [
 	transformHandles,
 	toolShapes,
 	toolFrame,
+	toolText,
 	workbenchLayout,
 	titlebar,
 	placeholderShell,

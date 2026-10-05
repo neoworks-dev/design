@@ -232,7 +232,7 @@ function mapRunsInRange(
 	return result;
 }
 
-function sliceRuns(runs: TextRun[], from: number, to: number): TextRun[] {
+export function sliceRuns(runs: TextRun[], from: number, to: number): TextRun[] {
 	const result: TextRun[] = [];
 	let runStart = 0;
 	for (const run of runs) {
@@ -341,7 +341,7 @@ export function joinParagraphs(paragraphs: Paragraph[], index: number): Paragrap
 	return deleteRange(paragraphs, { start: joinedAt, end: { paragraph: index + 1, offset: 0 } });
 }
 
-function mapStyleInRange(
+export function mapStyleInRange(
 	paragraphs: Paragraph[],
 	range: TextRange,
 	change: (style: Partial<TextStyle>) => Partial<TextStyle>

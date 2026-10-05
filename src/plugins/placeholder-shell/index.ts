@@ -5,7 +5,6 @@ import FileTab from './FileTab.svelte';
 import PlaceholderText from './PlaceholderText.svelte';
 import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
 import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
-import TextTIcon from 'phosphor-svelte/lib/TextTIcon';
 
 // Stand-in content for the workbench regions until the real plugins (layers panel, property
 // sections, canvas, tools) exist. Each real plugin replaces one entry here and this plugin
@@ -85,15 +84,6 @@ export default {
 				group: 'create',
 				order: 12,
 				cursor: 'crosshair'
-			},
-			{
-				id: 'text',
-				title: 'Text',
-				icon: TextTIcon,
-				shortcut: 'T',
-				group: 'create',
-				order: 13,
-				cursor: 'text'
 			},
 			{
 				id: 'comment',

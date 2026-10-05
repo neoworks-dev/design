@@ -74,6 +74,12 @@ declare module '@neoworks/extension-system' {
 		 */
 		'fonts/changed'(): void;
 
+		/**
+		 * Dispatch mode: emit. A text editing session ended (Esc, click outside, tool change) on
+		 * the text node `nodeId`. The text tool removes the node when it is empty.
+		 */
+		'text-edit/stopped'(nodeId: NodeId): void;
+
 		/** Dispatch mode: emit. The window's document file changed (open, new, Save As). */
 		'file/attached'(info: StoreInfo): void;
 
