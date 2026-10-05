@@ -21,6 +21,7 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import ai from './ai';
+import aiChat from './ai-chat';
 import aiHistory from './ai-history';
 import aiTools from './ai-tools';
 import align from './align';
@@ -207,5 +208,6 @@ export const builtinPlugins: Plugin[] = [
 	pagesPanel,
 	ai,
 	aiTools,
-	aiHistory
+	aiHistory,
+	aiChat
 ];
