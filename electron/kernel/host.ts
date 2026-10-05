@@ -3,6 +3,7 @@
 // a fake host (see fakeHost.ts) and no plugin holds a hidden singleton dependency.
 
 import type { AppPathName, ClipboardContent, ClipboardWrite, FileFilter } from '../bridge';
+import type { AgentHost } from './agentHost';
 
 /** The renderer that sent an IPC message: a webContents id. */
 export interface SenderHandle {
@@ -189,6 +190,8 @@ export interface ElectronHost {
 		scan(): Promise<HostFontFile[]>;
 		read(file: string): Promise<Uint8Array>;
 	};
+	/** The AI agent harness. */
+	agents: AgentHost;
 	createWindow: (options: WindowOptions) => WindowHandle;
 	windows: () => WindowHandle[];
 	windowFromSender: (sender: SenderHandle) => WindowHandle | null;

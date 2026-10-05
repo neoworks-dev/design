@@ -83,6 +83,14 @@ const bridge: DesktopBridge = {
 		commit: (transactions) => invoke('store:commit', { transactions }),
 		checkpoint: () => invoke('store:checkpoint')
 	},
+	ai: {
+		providers: () => invoke('ai:providers'),
+		start: (request) => invoke('ai:start', request),
+		send: (request) => invoke('ai:send', request),
+		cancel: (sessionId) => invoke('ai:cancel', { sessionId }),
+		end: (sessionId) => invoke('ai:end', { sessionId }),
+		toolResult: (result) => invoke('ai:toolResult', result)
+	},
 	settings: {
 		load: () => invoke('settings:load'),
 		save: (data) => invoke('settings:save', data)

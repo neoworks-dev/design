@@ -3,6 +3,7 @@
 
 import type { PluginEntry } from '../kernel/boot';
 import type { ElectronHost } from '../kernel/host';
+import { mainAiPlugin } from './ai';
 import { mainAppPlugin } from './app';
 import { mainAssetsPlugin } from './assets';
 import { mainClipboardPlugin } from './clipboard';
@@ -38,6 +39,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainMenuPlugin },
 		{ plugin: mainFontsPlugin },
 		{ plugin: mainSettingsPlugin },
+		{ plugin: mainAiPlugin },
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin },
 		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }

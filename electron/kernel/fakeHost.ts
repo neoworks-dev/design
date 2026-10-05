@@ -3,6 +3,7 @@
 // unmount / state-identical plugin test compares.
 
 import type { AppPathName, ClipboardContent } from '../bridge';
+import { ScriptedAgentHost, type AgentScript } from '../ai/scriptedAgents';
 import type {
 	AppEventName,
 	AppEvents,
@@ -23,6 +24,11 @@ import type {
 } from './host';
 
 export const TRUSTED_URL = 'app://design/';
+
+/** Replies with one line; tests that care replace `host.agents.script`. */
+const defaultFakeScript: AgentScript = function* () {
+	yield { type: 'text', text: 'ok' };
+};
 
 function compareText(left: string, right: string): number {
 	return left.localeCompare(right);
@@ -368,6 +374,9 @@ export class FakeHost implements ElectronHost {
 			return Promise.resolve(font.bytes);
 		}
 	};
+
+	/** Scripted agents: tests set `agents.script` to play the model. */
+	readonly agents = new ScriptedAgentHost(defaultFakeScript);
 
 	createWindow = (options: WindowOptions): FakeWindow => {
 		const window = new FakeWindow(this.nextWindowId, options, (closed) => {

@@ -267,7 +267,11 @@ function logTransaction(database: DatabaseSync, transaction: Transaction, now: n
 			now,
 			transaction.origin,
 			transaction.label,
-			JSON.stringify({ changes: transaction.changes, undo: transaction.undo })
+			JSON.stringify({
+				changes: transaction.changes,
+				undo: transaction.undo,
+				runId: transaction.runId
+			})
 		);
 	return Number(result.changes);
 }

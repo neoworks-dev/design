@@ -38,6 +38,8 @@ describe('preload bridge', () => {
 	it('only subscribes to whitelisted event channels', () => {
 		expect(preloadSource).toContain('EVENT_CHANNELS.includes(channel)');
 		expect([...EVENT_CHANNELS].sort((left, right) => left.localeCompare(right))).toEqual([
+			'ai:event',
+			'ai:tool-call',
 			'files:flush-request',
 			'files:open-request',
 			'kernel:boot-report',

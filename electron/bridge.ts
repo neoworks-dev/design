@@ -172,6 +172,69 @@ export interface BootReport {
 	pending: BootPending[];
 }
 
+// ---------- AI (main-ai, renderer `ai` service) ----------
+
+/** One tool the agent may call, as the renderer's `ai-tools` plugin describes it. */
+export interface AiToolDefinition {
+	name: string;
+	description: string;
+	/** JSON Schema of the arguments (an object schema). */
+	inputSchema: Record<string, unknown>;
+	/** True for tools that change the document; read-only runs hide them. */
+	write: boolean;
+}
+export interface AiModelInfo {
+	id: string;
+	name: string;
+}
+/** A harness the user can pick. Credentials never appear here: they stay in main. */
+export interface AiProviderInfo {
+	id: string;
+	label: string;
+	available: boolean;
+	detail?: string;
+	models: AiModelInfo[];
+}
+export interface AiStartRequest {
+	provider: string;
+	model?: string;
+	system: string;
+	tools: AiToolDefinition[];
+}
+export interface AiSendRequest {
+	sessionId: string;
+	/** The renderer's id for this turn; events and tool calls carry it back. */
+	runId: string;
+	prompt: string;
+}
+export type AiToolStatus = 'running' | 'done' | 'failed';
+/** What an agent turn streams: text, reasoning, tool calls, then exactly one `done` or `error`. */
+export type AiStreamEvent =
+	| { type: 'text'; text: string }
+	| { type: 'thought'; text: string }
+	| { type: 'tool_call'; callId: string; name: string; input?: unknown; status: AiToolStatus }
+	| { type: 'error'; message: string }
+	| { type: 'done'; stopReason: string };
+export interface AiEventMessage {
+	sessionId: string;
+	runId: string;
+	event: AiStreamEvent;
+}
+/** Main asks the renderer to run a document tool; the renderer answers with `ai:toolResult`. */
+export interface AiToolCallMessage {
+	sessionId: string;
+	runId: string;
+	callId: string;
+	tool: string;
+	input: unknown;
+}
+export interface AiToolResultMessage {
+	callId: string;
+	ok: boolean;
+	/** What the model sees: JSON or a readable error. */
+	text: string;
+}
+
 // ---------- errors ----------
 
 export type IpcErrorCode =
@@ -274,6 +337,18 @@ export interface IpcContract {
 	'assets:embeddedFonts': { payload: void; result: FontRef[] };
 	/** Answer to a `files:flush-request` push: the renderer's queue is persisted. */
 	'files:flushed': { payload: { requestId: string }; result: void };
+	/** Harnesses main can drive and the models they offer (no secrets). */
+	'ai:providers': { payload: void; result: AiProviderInfo[] };
+	/** Start an agent session owned by the sender's window. */
+	'ai:start': { payload: AiStartRequest; result: { sessionId: string } };
+	/** Start a turn; its events stream back as `ai:event`. Rejects while a turn is running. */
+	'ai:send': { payload: AiSendRequest; result: void };
+	/** Stop the running turn (pending tool calls fail, the session stays usable). */
+	'ai:cancel': { payload: { sessionId: string }; result: void };
+	/** End the session and release the harness. */
+	'ai:end': { payload: { sessionId: string }; result: void };
+	/** The answer to an `ai:tool-call` push. */
+	'ai:toolResult': { payload: AiToolResultMessage; result: void };
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -288,6 +363,8 @@ export interface IpcEvents {
 	'files:open-request': { path: string };
 	/** A native menu item was clicked: run this command. */
 	'menu:command': { command: string; args?: unknown };
+	'ai:event': AiEventMessage;
+	'ai:tool-call': AiToolCallMessage;
 }
 export type IpcEventChannel = keyof IpcEvents;
 
@@ -298,7 +375,9 @@ export const EVENT_CHANNELS = [
 	'window:maximized',
 	'files:flush-request',
 	'files:open-request',
-	'menu:command'
+	'menu:command',
+	'ai:event',
+	'ai:tool-call'
 ] as const;
 type MissingEventChannels = Exclude<IpcEventChannel, (typeof EVENT_CHANNELS)[number]>;
 export const eventChannelsAreExhaustive: MissingEventChannels extends never ? true : never = true;
@@ -393,6 +472,14 @@ export interface DesktopBridge {
 			channel: Channel,
 			listener: (payload: IpcEvents[Channel]) => void
 		): () => void;
+	};
+	ai: {
+		providers(): Promise<AiProviderInfo[]>;
+		start(request: AiStartRequest): Promise<{ sessionId: string }>;
+		send(request: AiSendRequest): Promise<void>;
+		cancel(sessionId: string): Promise<void>;
+		end(sessionId: string): Promise<void>;
+		toolResult(result: AiToolResultMessage): Promise<void>;
 	};
 	system: {
 		platform: NodeJS.Platform;

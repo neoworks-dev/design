@@ -614,7 +614,8 @@ export const transactionSchema: z.ZodType<Transaction> = strictObject({
 	label: z.string(),
 	changes: z.array(changeSchema),
 	undo: z.array(changeSchema),
-	mergeKey: z.string().optional()
+	mergeKey: z.string().optional(),
+	runId: z.string().optional()
 });
 
 // ---------- entry points ----------

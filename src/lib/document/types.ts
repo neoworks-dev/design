@@ -642,4 +642,6 @@ export interface Transaction {
 	undo: Change[];
 	/** Coalesces consecutive transactions with the same key (nudges, typing). */
 	mergeKey?: string;
+	/** The AI or plugin run that made this change, for the audit trail. */
+	runId?: string;
 }

@@ -7,6 +7,10 @@
 
 import { Service, type Context } from '@neoworks/extension-system';
 import type {
+	AiProviderInfo,
+	AiSendRequest,
+	AiStartRequest,
+	AiToolResultMessage,
 	AppPathName,
 	AssetPutRequest,
 	AssetPutResult,
@@ -204,6 +208,32 @@ export class DesktopService extends Service {
 	/** Replace the stored preferences; main writes the file atomically. */
 	settingsSave(data: SettingsData): Promise<void> {
 		return typed(() => this.bridge.settings.save(data));
+	}
+
+	// ---------- AI agent (main-ai) ----------
+
+	aiProviders(): Promise<AiProviderInfo[]> {
+		return typed(() => this.bridge.ai.providers());
+	}
+
+	aiStart(request: AiStartRequest): Promise<{ sessionId: string }> {
+		return typed(() => this.bridge.ai.start(request));
+	}
+
+	aiSend(request: AiSendRequest): Promise<void> {
+		return typed(() => this.bridge.ai.send(request));
+	}
+
+	aiCancel(sessionId: string): Promise<void> {
+		return typed(() => this.bridge.ai.cancel(sessionId));
+	}
+
+	aiEnd(sessionId: string): Promise<void> {
+		return typed(() => this.bridge.ai.end(sessionId));
+	}
+
+	aiToolResult(result: AiToolResultMessage): Promise<void> {
+		return typed(() => this.bridge.ai.toolResult(result));
 	}
 
 	// ---------- assets and embedded fonts ----------
