@@ -47,6 +47,7 @@ export class GradientEditorService extends Service {
 		this.close();
 		this.state.current = request;
 		this.state.selectedStop = 0;
+		this.ctx.overlay.requestRedraw('gradient-editor/open');
 		this.ctx.tools.activate(GRADIENT_TOOL_ID);
 		return () => {
 			if (this.state.current === request) this.close();
@@ -57,6 +58,7 @@ export class GradientEditorService extends Service {
 		const request = this.state.current;
 		if (request === null) return;
 		this.state.current = null;
+		this.ctx.overlay.requestRedraw('gradient-editor/close');
 		if (this.ctx.tools.activeId() === GRADIENT_TOOL_ID) this.ctx.tools.revertToDefault();
 		request.onclose?.();
 	}

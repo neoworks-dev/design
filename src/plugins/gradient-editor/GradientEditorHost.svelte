@@ -182,7 +182,13 @@
 </script>
 
 {#if request !== null && paint !== undefined}
-	<Popover anchor={request.anchor} label={request.label} width={264} onclose={() => editor.close()}>
+	<Popover
+		anchor={request.anchor}
+		label={request.label}
+		width={264}
+		keepOpenOn={(target) => target.closest('[data-region="canvas"]') !== null}
+		onclose={() => editor.close()}
+	>
 		<div class="flex flex-col gap-3 p-3" data-gradient-editor>
 			<ToggleGroup name="Gradient type" options={TYPES} value={paint.type} onchange={setType} />
 
@@ -230,17 +236,19 @@
 						type="button"
 						aria-label="Stop colour"
 						class="border-line relative size-6 shrink-0 overflow-hidden rounded border"
-						style:background="{rgbaCss(selectedStop.color, selectedStop.color.a)}, {CHECKER}"
+						style:background="linear-gradient({rgbaCss(selectedStop.color, selectedStop.color.a)}, {rgbaCss(
+							selectedStop.color,
+							selectedStop.color.a
+						)}), {CHECKER}"
 						onclick={(event) => openStopColor(event, selectedIndex)}
 					></button>
 					<span class="text-default min-w-0 flex-1 truncate text-xs uppercase tabular-nums">
 						{rgbToHex(selectedStop.color)}
 					</span>
-					<div class="w-14">
+					<div class="w-16">
 						<NumberField
 							label="α"
 							name="Stop opacity"
-							unit="%"
 							min={0}
 							max={100}
 							value={Math.round(selectedStop.color.a * 100)}

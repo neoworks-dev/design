@@ -7,6 +7,7 @@
 		anchor,
 		label,
 		width = 240,
+		keepOpenOn = undefined,
 		onclose,
 		children
 	}: {
@@ -15,6 +16,8 @@
 		/** Accessible name of the dialog. */
 		label: string;
 		width?: number;
+		/** Presses on matching elements do not close the popover (the canvas, for handle tools). */
+		keepOpenOn?: (target: Element) => boolean;
 		onclose: () => void;
 		children: Snippet;
 	} = $props();
@@ -28,6 +31,7 @@
 	function closeOnOutsidePress(event: PointerEvent): void {
 		if (!(event.target instanceof Element)) return;
 		if (event.target.closest('[data-popover]')) return;
+		if (keepOpenOn?.(event.target) === true) return;
 		onclose();
 	}
 

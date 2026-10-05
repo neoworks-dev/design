@@ -27,6 +27,7 @@ import colorPicker from './color-picker';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
+import inspectorFill from './inspector-fill';
 import inspectorLayoutSize from './inspector-layout-size';
 import inspectorPosition from './inspector-position';
 import selection from './selection';
@@ -113,6 +114,7 @@ export const builtinPlugins: Plugin[] = [
 	inspectorAppearance,
 	colorPicker,
 	gradientEditor,
+	inspectorFill,
 	coreTools,
 	canvasInput,
 	viewTools,
