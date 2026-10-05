@@ -161,7 +161,7 @@ describe('main-window', () => {
 		await root.fiber.dispose();
 	});
 
-	it('mirrors the renderer console only in a QA session', async () => {
+	it('mirrors the renderer console only in a QA session (diagnostics always observes)', async () => {
 		const host = new FakeHost();
 		const root = createMainContext({ writeLine: () => {} });
 		const options = testPluginOptions(host);
@@ -170,12 +170,12 @@ describe('main-window', () => {
 		await settle();
 		const window = firstWindow(host);
 		expect(window.loadedUrls).toEqual(['app://design/?qa=1']);
-		expect(window.observers.size).toBe(1);
+		expect(window.observers.size).toBe(2);
 		await root.fiber.dispose();
 		expect(window.observers.size).toBe(0);
 
 		const plain = await bootTestKernel();
-		expect(firstWindow(plain.host).observers.size).toBe(0);
+		expect(firstWindow(plain.host).observers.size).toBe(1);
 	});
 });
 

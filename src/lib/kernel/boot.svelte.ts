@@ -8,7 +8,7 @@
 
 import { FiberState, type Context, type Fiber, type Plugin } from '@neoworks/extension-system';
 
-export type PluginBootStatus = 'active' | 'pending' | 'failed';
+export type PluginBootStatus = 'active' | 'pending' | 'failed' | 'disabled';
 
 export interface PluginBootRecord {
 	name: string;
@@ -21,6 +21,8 @@ interface TrackedPlugin {
 	name: string;
 	fiber: Fiber | undefined;
 	error: unknown;
+	/** Switched off by the user (or not mounted at all): never retried, never counted a failure. */
+	disabled: boolean;
 }
 
 export class BootReport {
@@ -37,9 +39,30 @@ export class BootReport {
 		return this.records.filter((record) => record.status === 'pending');
 	}
 
+	get disabled(): PluginBootRecord[] {
+		return this.records.filter((record) => record.status === 'disabled');
+	}
+
 	/** @internal Used by bootKernel. */
 	track(name: string, fiber: Fiber | undefined, error: unknown): void {
-		this.#tracked.push({ name, fiber, error });
+		this.#tracked.push({ name, fiber, error, disabled: false });
+		this.#publish();
+	}
+
+	/** @internal Used by bootKernel: a plugin that was left out of this boot. */
+	trackDisabled(name: string): void {
+		this.#tracked.push({ name, fiber: undefined, error: undefined, disabled: true });
+		this.#publish();
+	}
+
+	/** Unload a plugin and keep it off. Its effects revert; the report lists it as disabled. */
+	async disablePlugin(name: string): Promise<void> {
+		const tracked = this.#tracked.find((candidate) => candidate.name === name);
+		if (!tracked) throw new Error(`no plugin named "${name}" in the boot report`);
+		tracked.disabled = true;
+		tracked.error = undefined;
+		this.#publish();
+		if (tracked.fiber) await tracked.fiber.dispose();
 		this.#publish();
 	}
 
@@ -64,6 +87,7 @@ export class BootReport {
 		const tracked = this.#tracked.find((candidate) => candidate.name === name);
 		if (!tracked) throw new Error(`no plugin named "${name}" in the boot report`);
 		const fiber = tracked.fiber;
+		if (tracked.disabled) throw new Error(`plugin "${name}" is disabled`);
 		if (!fiber) throw new Error(`plugin "${name}" never mounted, it cannot be retried`);
 		tracked.error = undefined;
 		try {
@@ -81,6 +105,7 @@ export class BootReport {
 }
 
 function toRecord(tracked: TrackedPlugin): PluginBootRecord {
+	if (tracked.disabled) return { name: tracked.name, status: 'disabled' };
 	const state = tracked.fiber?.state;
 	if (state === FiberState.ACTIVE) return { name: tracked.name, status: 'active' };
 	if (state === FiberState.FAILED || tracked.error !== undefined) {
@@ -126,11 +151,24 @@ function mountPlugin(ctx: Context, plugin: Plugin): Mounted {
 	}
 }
 
+const NO_PLUGINS: ReadonlySet<string> = Object.freeze(new Set<string>());
+
+export interface BootOptions {
+	/** Plugin names to leave out of this boot; the report lists them as disabled. */
+	disabled?: ReadonlySet<string>;
+}
+
 /**
  * Mount `plugins` onto `ctx` and wait until every one settled. Never rejects because of a plugin:
  * failures end up in the returned report.
  */
-export async function bootKernel(ctx: Context, plugins: readonly Plugin[]): Promise<BootReport> {
+export async function bootKernel(
+	ctx: Context,
+	allPlugins: readonly Plugin[],
+	options: BootOptions = {}
+): Promise<BootReport> {
+	const skipped: ReadonlySet<string> = options.disabled ?? NO_PLUGINS;
+	const plugins = allPlugins.filter((plugin) => !skipped.has(pluginName(plugin)));
 	const report = new BootReport();
 	// A fiber can leave PENDING or ACTIVE long after boot (provider arrives, plugin removed), so
 	// the report follows state changes of the fibers it tracks.
@@ -144,5 +182,8 @@ export async function bootKernel(ctx: Context, plugins: readonly Plugin[]): Prom
 		const error = result.status === 'rejected' ? result.reason : undefined;
 		report.track(entry.name, entry.fiber, error);
 	});
+	for (const plugin of allPlugins) {
+		if (skipped.has(pluginName(plugin))) report.trackDisabled(pluginName(plugin));
+	}
 	return report;
 }

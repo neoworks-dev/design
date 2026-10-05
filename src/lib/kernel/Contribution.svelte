@@ -23,13 +23,14 @@
 
 <svelte:boundary onerror={reportFailure}>
 	<Component {...entry.props} />
-	{#snippet failed(error)}
+	{#snippet failed(error, reset)}
 		<div
 			role="alert"
 			data-region-error={entry.id}
 			class="border-red/30 bg-red-soft text-red m-1 rounded-md border px-2 py-1 text-xs"
 		>
 			<strong>{entry.id}</strong> failed: {describe(error)}
+			<button type="button" class="ml-1 underline" onclick={reset}>Retry</button>
 		</div>
 	{/snippet}
 </svelte:boundary>

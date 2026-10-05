@@ -59,6 +59,10 @@ const bridge: DesktopBridge = {
 		quit: () => invoke('app:quit'),
 		bootReport: () => invoke('app:bootReport')
 	},
+	diagnostics: {
+		read: () => invoke('diagnostics:read'),
+		restart: (safeMode) => invoke('diagnostics:restart', { safeMode })
+	},
 	dialogs: {
 		openFile: (options) => invoke('dialogs:openFile', options),
 		saveFile: (options) => invoke('dialogs:saveFile', options),

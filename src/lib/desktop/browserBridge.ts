@@ -58,6 +58,22 @@ export function createBrowserBridge(): BrowserBridge {
 			quit: () => Promise.resolve(),
 			bootReport: () => Promise.resolve(report)
 		},
+		diagnostics: {
+			read: () =>
+				Promise.resolve({
+					app: {
+						version: BROWSER_VERSION,
+						electron: 'none',
+						chrome: 'browser',
+						platform: 'browser',
+						arch: 'unknown',
+						safeMode: false
+					},
+					main: [],
+					renderer: []
+				}),
+			restart: () => Promise.resolve()
+		},
 		dialogs: {
 			openFile: () => Promise.resolve(null),
 			saveFile: () => Promise.resolve(null),

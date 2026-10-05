@@ -19,6 +19,7 @@ import type {
 	ClipboardWrite,
 	CommitResult,
 	CreateStoreRequest,
+	DiagnosticsReport,
 	DraftFile,
 	ExportFileData,
 	DesktopBridge,
@@ -130,6 +131,16 @@ export class DesktopService extends Service {
 	/** What the main kernel booted; `null` until main finished booting. */
 	mainBootReport(): Promise<BootReport | null> {
 		return typed(() => this.bridge.app.bootReport());
+	}
+
+	/** Recent log lines of main and the renderer plus versions, for the log viewer. */
+	diagnostics(): Promise<DiagnosticsReport> {
+		return typed(() => this.bridge.diagnostics.read());
+	}
+
+	/** Load the window again; `safeMode` starts with only the core plugins. */
+	restartWindow(safeMode: boolean): Promise<void> {
+		return typed(() => this.bridge.diagnostics.restart(safeMode));
 	}
 
 	openFileDialog(options?: OpenFileOptions): Promise<string[] | null> {

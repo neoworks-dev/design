@@ -98,6 +98,7 @@ function wrapWindow(window: BrowserWindow): WindowHandle {
 		id: window.id,
 		sender,
 		loadURL: (url) => window.loadURL(url),
+		reload: () => webContents.reload(),
 		minimize: () => window.minimize(),
 		maximize: () => window.maximize(),
 		unmaximize: () => window.unmaximize(),
@@ -154,11 +155,17 @@ function wrapWindow(window: BrowserWindow): WindowHandle {
 			const onGone = (_event: unknown, details: { reason: string; exitCode: number }): void => {
 				observer.gone(details.reason, details.exitCode);
 			};
+			const onUnresponsive = (): void => observer.unresponsive?.();
+			const onResponsive = (): void => observer.responsive?.();
 			webContents.on('console-message', onConsole);
 			webContents.on('render-process-gone', onGone);
+			webContents.on('unresponsive', onUnresponsive);
+			webContents.on('responsive', onResponsive);
 			return () => {
 				webContents.off('console-message', onConsole);
 				webContents.off('render-process-gone', onGone);
+				webContents.off('unresponsive', onUnresponsive);
+				webContents.off('responsive', onResponsive);
 			};
 		}
 	};

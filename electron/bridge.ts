@@ -179,6 +179,23 @@ export interface BootReport {
 	pending: BootPending[];
 }
 
+/** What "copy diagnostics" and the log viewer show; assembled by main (`diagnostics:read`). */
+export interface DiagnosticsReport {
+	app: {
+		version: string;
+		electron: string;
+		chrome: string;
+		platform: string;
+		arch: string;
+		/** The window was loaded with only the core plugins. */
+		safeMode: boolean;
+	};
+	/** The newest lines the main kernel logged, oldest first. */
+	main: string[];
+	/** The newest lines the renderer wrote to its console, oldest first. */
+	renderer: string[];
+}
+
 // ---------- AI (main-ai, renderer `ai` service) ----------
 
 /** One tool the agent may call, as the renderer's `ai-tools` plugin describes it. */
@@ -265,6 +282,9 @@ export interface IpcContract {
 	'app:path': { payload: AppPathName; result: string };
 	'app:quit': { payload: void; result: void };
 	'app:bootReport': { payload: void; result: BootReport | null };
+	'diagnostics:read': { payload: void; result: DiagnosticsReport };
+	/** Load the window again, in safe mode (core plugins only) or normally. */
+	'diagnostics:restart': { payload: { safeMode: boolean }; result: void };
 	'dialogs:openFile': { payload: OpenFileOptions | undefined; result: string[] | null };
 	'dialogs:saveFile': { payload: SaveFileOptions | undefined; result: string | null };
 	/** The native open dialog filtered to images (several allowed); main reads the files. */
@@ -410,6 +430,10 @@ export interface DesktopBridge {
 		quit(): Promise<void>;
 		/** The main kernel's boot report; `null` until main finished booting. */
 		bootReport(): Promise<BootReport | null>;
+	};
+	diagnostics: {
+		read(): Promise<DiagnosticsReport>;
+		restart(safeMode: boolean): Promise<void>;
 	};
 	dialogs: {
 		openFile(options?: OpenFileOptions): Promise<string[] | null>;

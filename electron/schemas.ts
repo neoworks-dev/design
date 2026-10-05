@@ -76,6 +76,8 @@ export const payloadSchemas: PayloadSchemas = {
 	'app:path': z.enum(['userData', 'documents', 'downloads', 'temp', 'home']),
 	'app:quit': z.void(),
 	'app:bootReport': z.void(),
+	'diagnostics:read': z.void(),
+	'diagnostics:restart': z.strictObject({ safeMode: z.boolean() }),
 	'dialogs:openFile': openFileOptions,
 	'dialogs:saveFile': saveFileOptions,
 	'dialogs:openImages': z.void(),

@@ -7,6 +7,7 @@ import { mainAiPlugin } from './ai';
 import { mainAppPlugin } from './app';
 import { mainAssetsPlugin } from './assets';
 import { mainClipboardPlugin } from './clipboard';
+import { mainDiagnosticsPlugin } from './diagnostics';
 import { mainDialogsPlugin } from './dialogs';
 import { mainExportsPlugin } from './exports';
 import { mainFilesPlugin } from './files';
@@ -35,6 +36,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainProtocolPlugin, config: { buildDirectory: options.buildDirectory } },
 		{ plugin: mainWindowPlugin, config: options.window },
 		{ plugin: mainAppPlugin },
+		{ plugin: mainDiagnosticsPlugin },
 		{ plugin: mainDialogsPlugin },
 		{ plugin: mainClipboardPlugin },
 		{ plugin: mainExportsPlugin },
