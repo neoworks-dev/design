@@ -8,6 +8,8 @@ import hitTest from '../../../plugins/hit-test';
 import snapping from '../../../plugins/snapping';
 import spatial from '../../../plugins/spatial';
 import type { DesignDocument, Paint } from '../../document';
+import type { OverlayContribution } from '../../overlay/types';
+import { OverlayRegistry } from '../../services/overlay';
 import { buildDocument, frame, group, node, page, rectangle } from '../../document/fixtures';
 import { at, editingProviders } from '../../editing/fixtures/editingFixture';
 import type { ToolPointerEvent } from '../../tools/protocol';
@@ -107,8 +109,28 @@ const fakeViewport: Plugin = {
 	}
 };
 
+// Stands in for the overlay plugin (snapping draws its guides through it).
+const fakeOverlay: Plugin = {
+	name: 'overlay',
+	apply(ctx: Context): void {
+		const registry = new OverlayRegistry();
+		ctx.provide('overlay', {
+			registry,
+			register: (contribution: OverlayContribution) => registry.register(contribution)
+		});
+	}
+};
+
 export function selectionProviders(document: DesignDocument = selectionScene()): Plugin[] {
-	return [...editingProviders(document), fakeViewport, coreTools, spatial, hitTest, snapping];
+	return [
+		...editingProviders(document),
+		fakeViewport,
+		fakeOverlay,
+		coreTools,
+		spatial,
+		hitTest,
+		snapping
+	];
 }
 
 export interface PointerModifiers {

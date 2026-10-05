@@ -11,12 +11,20 @@ export default {
 	name: 'headless-renderer',
 	inject: ['renderer', 'canvaskit', 'document', 'variables', 'spatial'],
 	apply(ctx: Context): void {
-		new HeadlessRendererService(ctx, () => ({
+		const service = new HeadlessRendererService(ctx, () => ({
 			canvasKit: ctx.canvaskit.kit,
 			tracker: ctx.canvaskit.tracker,
 			hooks: ctx.renderer.drawHooks,
 			source: new DocumentSceneSource(ctx.document, ctx.variables),
 			geometry: ctx.spatial.sceneIndex
 		}));
+
+		// Copy as PNG (clipboard plugin) at 2x, like Figma. One node per export: a multi selection
+		// falls through to `next()` and copies nothing.
+		ctx.on('clipboard/render-png', async (ids, next) => {
+			if (ids.length !== 1) return next();
+			const image = await service.exportNode(ids[0], { scale: 2 });
+			return image.bytes;
+		});
 	}
 };
