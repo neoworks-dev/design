@@ -31,6 +31,8 @@
 	function closeOnOutsidePress(event: PointerEvent): void {
 		if (!(event.target instanceof Element)) return;
 		if (event.target.closest('[data-popover]')) return;
+		// Dropdown lists are portalled to the body but belong to the popover that opened them.
+		if (event.target.closest('[role="listbox"]')) return;
 		if (keepOpenOn?.(event.target) === true) return;
 		onclose();
 	}

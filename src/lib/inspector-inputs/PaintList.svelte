@@ -19,6 +19,7 @@
 		type PaintKind
 	} from '../editing/paints';
 	import { getKernel } from '../kernel/context';
+	import { startRowDrag } from './rowReorder';
 	import { parseHex, rgbToHex } from '../ui/colorMath';
 	import DropdownField from '../ui/DropdownField.svelte';
 	import IconToggleButton from '../ui/IconToggleButton.svelte';
@@ -236,22 +237,8 @@
 	}
 
 	function onGripDown(event: PointerEvent, index: number): void {
-		const grip = event.currentTarget;
-		if (!(grip instanceof HTMLElement) || list === undefined) return;
-		grip.setPointerCapture(event.pointerId);
-		const finish = (upEvent: PointerEvent): void => {
-			grip.removeEventListener('pointerup', finish);
-			if (list === undefined) return;
-			const elements = [...list.querySelectorAll<HTMLElement>('[data-paint-row]')];
-			const position = elements.findIndex((element) => {
-				const box = element.getBoundingClientRect();
-				return upEvent.clientY >= box.top && upEvent.clientY < box.bottom;
-			});
-			if (position < 0) return;
-			const target = Number(elements[position].dataset.paintRow);
-			if (target !== index) move(index, target);
-		};
-		grip.addEventListener('pointerup', finish);
+		if (list === undefined) return;
+		startRowDrag(event, list, 'data-paint-row', index, move);
 	}
 </script>
 
