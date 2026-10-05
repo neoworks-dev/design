@@ -51,6 +51,7 @@ const TRANSLATED_PROPERTIES = [
 	'padding',
 	'characters',
 	'fontSize',
+	'fontName',
 	'textColor'
 ];
 
@@ -150,6 +151,7 @@ function textProps(props: PropsInput, node: Node | null): Record<string, unknown
 	const current = node !== null && node.type === 'TEXT' ? node.defaultStyle : null;
 	const style: Partial<TextStyle> = {};
 	if (props.fontSize !== undefined) style.fontSize = numberOf(props.fontSize, 'fontSize');
+	if (props.fontName !== undefined) style.fontName = fontNameOf(props.fontName);
 	if (props.textColor !== undefined) {
 		style.fills = [solidPaint(fillInputOf(props.textColor, 'textColor'))];
 	}
@@ -162,6 +164,15 @@ function textProps(props: PropsInput, node: Node | null): Record<string, unknown
 		result.paragraphs = lines.map(paragraphOf);
 	}
 	return result;
+}
+
+function fontNameOf(value: unknown): TextStyle['fontName'] {
+	if (typeof value === 'object' && value !== null) {
+		const family = Reflect.get(value, 'family');
+		const style = Reflect.get(value, 'style');
+		if (typeof family === 'string' && typeof style === 'string') return { family, style };
+	}
+	throw new Error('fontName must be { family, style }');
 }
 
 function paragraphOf(line: string): Paragraph {
@@ -197,7 +208,10 @@ export function translateProps(props: PropsInput, base: Node): Record<string, un
 	if (props.padding !== undefined) Object.assign(result, paddingProps(props.padding));
 	if (props.fill !== undefined) result.fills = [solidPaint(fillInputOf(props.fill, 'fill'))];
 	if (props.fills !== undefined) result.fills = fillsOf(props.fills);
-	if (props.stroke !== undefined) result.strokes = [strokeOf(props.stroke, props.strokeWeight)];
+	if (props.stroke === null) result.strokes = [];
+	if (props.stroke !== undefined && props.stroke !== null) {
+		result.strokes = [strokeOf(props.stroke, props.strokeWeight)];
+	}
 	if (props.stroke === undefined && props.strokeWeight !== undefined) {
 		throw new Error('strokeWeight needs a stroke color');
 	}

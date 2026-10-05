@@ -58,7 +58,11 @@ function planCreate(
 	requireNode(document, parentId);
 	let position = document.children(parentId).length;
 	if (operation.position !== undefined) position = operation.position;
-	const id = generateNodeId();
+	let id = generateNodeId();
+	if (operation.id !== undefined) {
+		if (document.has(operation.id)) throw new Error(`node ${operation.id} already exists`);
+		id = operation.id;
+	}
 	const blank = createNode(operation.type, {
 		id,
 		parentId,

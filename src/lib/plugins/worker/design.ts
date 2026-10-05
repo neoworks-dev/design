@@ -45,6 +45,8 @@ export interface SdkEnv {
 	handle(method: string, handler: (params: unknown) => unknown): void;
 	/** Report an error of the plugin's own code to the host's plugin console. */
 	reportError(error: unknown): void;
+	/** Runs a command the plugin registered no handler for (the Figma layer launches its script). */
+	fallbackCommand?: (id: string, args: unknown) => Promise<void>;
 }
 
 export interface LogApi {

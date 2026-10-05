@@ -15,6 +15,8 @@ const props = z.record(z.string(), z.unknown());
 const createOperation = z.strictObject({
 	op: z.literal('create'),
 	type: creatableType,
+	/** The id the new node gets; a worker that must hand out ids synchronously (the figma layer) picks it. */
+	id: id.optional(),
 	ref: z.string().max(100).optional(),
 	parentId: id.optional(),
 	position: z.number().int().min(0).optional(),

@@ -211,7 +211,13 @@ export function createCommandsApi(env: SdkEnv): CommandsApi {
 	env.handle('command.run', async (params) => {
 		const id = readString(params, 'id');
 		const handler = handlers.get(id);
-		if (handler === undefined) throw new Error(`the plugin registered no handler for "${id}"`);
+		if (handler === undefined) {
+			if (env.fallbackCommand === undefined) {
+				throw new Error(`the plugin registered no handler for "${id}"`);
+			}
+			await env.fallbackCommand(id, field(params, 'args'));
+			return;
+		}
 		await handler(field(params, 'args'));
 	});
 	return {
