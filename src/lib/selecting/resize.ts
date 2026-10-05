@@ -98,7 +98,7 @@ function signedSize(axis: Axis, offset: number): number {
 	return (pointer - axis.anchor * axis.size) / (axis.handle - axis.anchor);
 }
 
-function ratioOf(signed: number, size: number): number {
+export function ratioOf(signed: number, size: number): number {
 	if (size === 0) return 1;
 	return signed / size;
 }
@@ -168,7 +168,7 @@ function keepProportions(
 }
 
 /** The affine map from the resized node's new local space to its old local space. */
-function boxAffine(box: BoxResize): Matrix2x3 {
+export function boxAffine(box: BoxResize): Matrix2x3 {
 	let scaleX = 1;
 	if (box.flipX) scaleX = -1;
 	let scaleY = 1;
@@ -276,12 +276,12 @@ const GROUP_LIKE: readonly string[] = ['GROUP', 'BOOLEAN_OPERATION'];
  */
 export class ResizeSession {
 	readonly rootIds: NodeId[];
-	private readonly initial = new Map<NodeId, PositionedNode>();
-	private readonly initialAbsolute = new Map<NodeId, Matrix2x3>();
-	private readonly childIds = new Map<NodeId, NodeId[]>();
+	protected readonly initial = new Map<NodeId, PositionedNode>();
+	protected readonly initialAbsolute = new Map<NodeId, Matrix2x3>();
+	protected readonly childIds = new Map<NodeId, NodeId[]>();
 
 	constructor(
-		private readonly reader: DocumentReader,
+		protected readonly reader: DocumentReader,
 		ids: readonly NodeId[]
 	) {
 		this.rootIds = topLevelIds(reader, ids).filter((id) => {
@@ -322,13 +322,13 @@ export class ResizeSession {
 		for (const kidId of kids) this.capture(kidId);
 	}
 
-	private nodeOf(id: NodeId): PositionedNode {
+	protected nodeOf(id: NodeId): PositionedNode {
 		const node = this.initial.get(id);
 		if (!node) throw new Error(`resize session has no node ${id}`);
 		return node;
 	}
 
-	private absoluteOf(id: NodeId): Matrix2x3 {
+	protected absoluteOf(id: NodeId): Matrix2x3 {
 		const absolute = this.initialAbsolute.get(id);
 		if (!absolute) throw new Error(`resize session has no node ${id}`);
 		return absolute;
@@ -399,7 +399,7 @@ export class ResizeSession {
 		return { changes: this.toChanges(edits), size: { width: box.width, height: box.height } };
 	}
 
-	private toParentSpace(node: PositionedNode, absolute: Matrix2x3): Matrix2x3 {
+	protected toParentSpace(node: PositionedNode, absolute: Matrix2x3): Matrix2x3 {
 		if (node.parentId === null) return absolute;
 		const parent = this.reader.requireNode(node.parentId);
 		if (parent.type === 'PAGE') return absolute;

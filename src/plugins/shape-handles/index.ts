@@ -1,9 +1,8 @@
 import type { Context } from '@neoworks/extension-system';
+import { watchGestureKeys } from '../../lib/selecting/gestureKeys';
 import { ShapeHandleFeedbackState } from '../../lib/selecting/shapeHandleFeedback.svelte';
 import { ShapeHandleGesture } from '../../lib/selecting/shapeHandleGesture';
 import ShapeHandles from '../../lib/selecting/ShapeHandles.svelte';
-
-const MODIFIER_KEYS = ['Shift', 'Alt', 'Control', 'Meta'];
 
 // Shape specific handles on the selected node (docs/research/interactions.md section 4): corner
 // radius for rectangles, frames and polygons (Alt drags one corner), arc start / sweep / inner
@@ -29,27 +28,6 @@ export default {
 			'shape handles overlay'
 		);
 
-		ctx.effect(() => {
-			const keydown = (event: KeyboardEvent): void => {
-				if (!gesture.isActive) return;
-				if (event.key === 'Escape') {
-					event.preventDefault();
-					event.stopPropagation();
-					gesture.cancel();
-					return;
-				}
-				if (MODIFIER_KEYS.includes(event.key)) gesture.refresh(event);
-			};
-			const keyup = (event: KeyboardEvent): void => {
-				if (gesture.isActive && MODIFIER_KEYS.includes(event.key)) gesture.refresh(event);
-			};
-			window.addEventListener('keydown', keydown, true);
-			window.addEventListener('keyup', keyup, true);
-			return () => {
-				gesture.cancel();
-				window.removeEventListener('keydown', keydown, true);
-				window.removeEventListener('keyup', keyup, true);
-			};
-		}, 'shape handle key handling');
+		ctx.effect(() => watchGestureKeys([gesture]), 'shape handle key handling');
 	}
 };
