@@ -23,11 +23,15 @@ import documentScene from './document-scene';
 import align from './align';
 import boolean from './boolean';
 import clipboard from './clipboard';
+import colorPicker from './color-picker';
 import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
+import inspectorEffects from './inspector-effects';
+import inspectorFill from './inspector-fill';
 import inspectorLayoutSize from './inspector-layout-size';
+import inspectorStroke from './inspector-stroke';
 import inspectorPosition from './inspector-position';
 import selection from './selection';
 import spatial from './spatial';
@@ -65,6 +69,7 @@ import toolPen from './tool-pen';
 import toolPencil from './tool-pencil';
 import vectorEdit from './vector-edit';
 import workbenchLayout from './workbench-layout';
+import gradientEditor from './gradient-editor';
 import grouping from './grouping';
 import layersPanel from './layers-panel';
 import mask from './mask';
@@ -118,6 +123,11 @@ export const builtinPlugins: Plugin[] = [
 	inspectorPosition,
 	inspectorLayoutSize,
 	inspectorAppearance,
+	colorPicker,
+	gradientEditor,
+	inspectorFill,
+	inspectorStroke,
+	inspectorEffects,
 	coreTools,
 	canvasInput,
 	viewTools,
