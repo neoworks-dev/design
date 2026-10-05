@@ -1,4 +1,5 @@
 import { Service, type Context } from '@neoworks/extension-system';
+import { untrack } from 'svelte';
 import type { Point, ToolKeyEvent, ToolPointerEvent } from '../../lib/tools/protocol';
 import { Registry } from '../../lib/registries/registry.svelte';
 import type { PointerClaimant, PointerGrab } from '../../lib/tools/claim';
@@ -267,13 +268,17 @@ export class CanvasInputService extends Service {
 		element.tabIndex = 0;
 		element.style.outline = 'none';
 		let popScope: (() => void) | undefined;
+		// Focus events can fire in the middle of a Svelte update: removing the focused canvas from the
+		// DOM blurs it synchronously, inside the block effect that removes it. Writing the keymap's
+		// state there is a state_unsafe_mutation, so the scope changes run untracked.
 		const focus = (): void => {
 			if (popScope) return;
-			popScope = this.ctx.keymap.pushScope('canvas');
+			popScope = untrack(() => this.ctx.keymap.pushScope('canvas'));
 		};
 		const blur = (): void => {
-			popScope?.();
+			const pop = popScope;
 			popScope = undefined;
+			if (pop) untrack(pop);
 		};
 		element.addEventListener('focus', focus);
 		element.addEventListener('blur', blur);

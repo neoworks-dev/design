@@ -206,6 +206,18 @@ describe('canvas input router', () => {
 		expect(ctx.keymap.scopes.list()).toHaveLength(0);
 	});
 
+	it('pops the canvas scope when the canvas loses focus during a Svelte update', async () => {
+		const { ctx } = await mountRouter(false);
+		canvas?.dispatchEvent(new FocusEvent('focus'));
+		// Removing the focused canvas from the DOM blurs it synchronously, inside the update.
+		const blurredInsideUpdate = $derived.by(() => {
+			canvas?.dispatchEvent(new FocusEvent('blur'));
+			return true;
+		});
+		expect(blurredInsideUpdate).toBe(true);
+		expect(ctx.keymap.scopes.list()).toHaveLength(0);
+	});
+
 	it('keeps canvas/wheel and canvas/contextmenu events flowing', async () => {
 		const { ctx } = await mountRouter(false);
 		let menus = 0;
