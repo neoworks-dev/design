@@ -27,6 +27,7 @@ import {
 	type ViewportApi
 } from './namespaces';
 import { createNetworkApi, type NetworkApi } from './network';
+import { createStorageApi, type StorageApi } from './storage';
 import { createUiApi, type UiApi } from './ui';
 
 export const SDK_API_VERSION = '1.0';
@@ -77,6 +78,8 @@ export interface DesignApi extends CoreApi {
 	readonly ui: UiApi;
 	/** HTTP requests through the host: needs `network` and a host on `networkAccess.allowedDomains`. */
 	readonly network: NetworkApi;
+	/** Data the plugin keeps: on nodes (in the document) and `clientStorage` (on this machine). */
+	readonly storage: StorageApi;
 	/**
 	 * End the current undo step: what the plugin changed so far is one step, what it changes next
 	 * is another. Without it everything one command run changes is a single step.
@@ -125,6 +128,7 @@ export function createDesign(env: SdkEnv): DesignApi {
 		codegen: createCodegenApi(env),
 		ui: createUiApi(env),
 		network: createNetworkApi(env),
+		storage: createStorageApi(env),
 		commitUndo: async () => {
 			await env.call('history.commitUndo');
 		}

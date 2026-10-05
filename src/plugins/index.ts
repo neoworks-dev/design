@@ -85,6 +85,7 @@ import pluginApi from './plugin-api';
 import pluginHost from './plugin-host';
 import pluginManifests from './plugin-manifests';
 import pluginPermissions from './plugin-permissions';
+import pluginStorage from './plugin-storage';
 import pluginUi from './plugin-ui';
 import placeholderShell from './placeholder-shell';
 import assetsPanel from './assets-panel';
@@ -269,5 +270,6 @@ export const builtinPlugins: Plugin[] = [
 	pluginHost,
 	pluginApi,
 	pluginPermissions,
+	pluginStorage,
 	pluginUi
 ];
