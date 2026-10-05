@@ -13,6 +13,7 @@ import { mainFontsPlugin } from './fonts';
 import { mainIpcPlugin } from './ipc';
 import { mainMenuPlugin } from './menu';
 import { mainProtocolPlugin } from './protocol';
+import { mainSettingsPlugin } from './settings';
 import { mainStorePlugin } from './store';
 import { mainWindowPlugin, type WindowsConfig } from './windows';
 
@@ -36,6 +37,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainClipboardPlugin },
 		{ plugin: mainMenuPlugin },
 		{ plugin: mainFontsPlugin },
+		{ plugin: mainSettingsPlugin },
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin },
 		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }

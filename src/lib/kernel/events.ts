@@ -19,6 +19,7 @@ import type {
 	DocumentReplaceEvent
 } from '../document';
 import type { ClipboardPayload } from '../editing/clipboardPayload';
+import type { MoveBeginRequest, MoveDrag } from '../selecting/moveDrag';
 import type { NodeId } from '../document/types';
 import type { SurfaceResetReason } from '../renderer/surface';
 import type { Camera } from '../viewport/camera';
@@ -26,6 +27,9 @@ import type { CanvasWheelEvent } from '../viewport/wheel';
 import type { Point } from '../tools/protocol';
 import type { Size } from './types';
 import type { StoreInfo } from '../../../electron/bridge';
+
+/** What File > New / Open asks for: a blank document, or the design file at `path`. */
+export type FileOpenRequest = { kind: 'new' } | { kind: 'open'; path: string };
 
 declare module '@neoworks/extension-system' {
 	interface Events {
@@ -84,6 +88,14 @@ declare module '@neoworks/extension-system' {
 		 */
 		'canvas/edit-request'(id: string, editor: 'text' | 'vector' | 'crop'): void;
 
+		/**
+		 * Dispatch mode: bail. The Move tool starts dragging the selection. A plugin that knows
+		 * better how to drag these nodes (auto layout reorders its children) returns its own
+		 * `MoveDrag`; with no answer the tool moves the selection freely. Call as
+		 * `ctx.bail('move/begin', { ids, startWorld, modifiers })`.
+		 */
+		'move/begin'(request: MoveBeginRequest): MoveDrag | void;
+
 		/** Dispatch mode: emit. A creation tool finished or cancelled; snap guides can go. */
 		'tools/snap-release'(): void;
 
@@ -107,6 +119,21 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. The window's document file changed (open, new, Save As). */
 		'file/attached'(info: StoreInfo): void;
+
+		/**
+		 * Dispatch mode: emit. The open document was saved (Save, Save As): its file is checkpointed.
+		 * The file-thumbnails plugin draws the home screen preview then.
+		 */
+		'file/saved'(info: StoreInfo): void;
+
+		/**
+		 * Dispatch mode: serial. File > New or Open is about to replace the window's document. A
+		 * listener that handles it itself (the tabs plugin opens a tab) returns `true`, which stops
+		 * the default of replacing the current document. Call with `ctx.serial`.
+		 */
+		'file/open-request'(
+			request: FileOpenRequest
+		): boolean | undefined | Promise<boolean | undefined>;
 
 		/**
 		 * Dispatch mode: emit. The canvas region changed size, in CSS pixels (viewport listens).

@@ -122,6 +122,21 @@ describe('auto resize in the edit transaction', () => {
 		expect(node.height).toBeGreaterThan(60);
 	});
 
+	it('measures the text at a given width without touching the node or its cache', async () => {
+		const ctx = await mountWithText({
+			paragraphs: [paragraphOf('A sentence that wraps somewhere')]
+		});
+		const before = ctx.textLayout.measure('t1');
+		const narrow = ctx.textLayout.measureAt('t1', 60);
+		const natural = ctx.textLayout.measureAt('t1', null);
+		expect(narrow.width).toBe(60);
+		expect(narrow.lineCount).toBeGreaterThan(1);
+		expect(natural.lineCount).toBe(1);
+		expect(natural.width).toBeCloseTo(before.width, 1);
+		expect(ctx.textLayout.engine.cachedNodeCount).toBe(1);
+		expect(ctx.document.get('t1')).toMatchObject({ width: before.width });
+	});
+
 	it('fixed size is left alone', async () => {
 		const ctx = await mountWithText({
 			paragraphs: [paragraphOf('x')],

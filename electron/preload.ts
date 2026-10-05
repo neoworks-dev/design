@@ -83,6 +83,10 @@ const bridge: DesktopBridge = {
 		commit: (transactions) => invoke('store:commit', { transactions }),
 		checkpoint: () => invoke('store:checkpoint')
 	},
+	settings: {
+		load: () => invoke('settings:load'),
+		save: (data) => invoke('settings:save', data)
+	},
 	assets: {
 		put: (request) => invoke('assets:put', request),
 		get: (hash) => invoke('assets:get', { hash }),
@@ -92,6 +96,10 @@ const bridge: DesktopBridge = {
 		embeddedFonts: () => invoke('assets:embeddedFonts')
 	},
 	files: {
+		openInTab: (path) => invoke('files:openInTab', { path }),
+		newInTab: () => invoke('files:newInTab'),
+		confirmClose: () => invoke('files:confirmClose'),
+		discard: (path) => invoke('files:discard', { path }),
 		newUntitled: () => invoke('files:newUntitled'),
 		open: (path) => invoke('files:open', { path }),
 		openDialog: () => invoke('files:openDialog'),
@@ -100,6 +108,9 @@ const bridge: DesktopBridge = {
 		offerRecovery: () => invoke('files:offerRecovery'),
 		launchRequest: () => invoke('files:launchRequest'),
 		recent: () => invoke('files:recent'),
+		drafts: () => invoke('files:drafts'),
+		removeRecent: (path) => invoke('files:removeRecent', { path }),
+		reveal: (path) => invoke('files:reveal', { path }),
 		clearRecent: () => invoke('files:clearRecent'),
 		setThumbnail: (thumbnail) => invoke('files:setThumbnail', thumbnail),
 		flushed: (requestId) => invoke('files:flushed', { requestId }),

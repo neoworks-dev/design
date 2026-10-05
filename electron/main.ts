@@ -34,6 +34,15 @@ function trustedOrigins(): string[] {
 	return [appOrigin, `${devUrl.protocol}//${devUrl.host}`];
 }
 
+// DESIGN_QA_FIXTURE=0 loads the app without the QA fixture scene, so a session edits a real file.
+function entryUrl(): string {
+	const base = devServerUrl ? devServerUrl : `${appOrigin}/`;
+	if (process.env.DESIGN_QA !== '1' || process.env.DESIGN_QA_FIXTURE !== '0') return base;
+	const url = new URL(base);
+	url.searchParams.set('fixture', '0');
+	return url.toString();
+}
+
 async function boot(): Promise<void> {
 	const root = createMainContext();
 	await bootMainKernel(
@@ -44,7 +53,7 @@ async function boot(): Promise<void> {
 			buildDirectory,
 			launchPaths: process.argv.slice(1).filter((argument) => argument.endsWith('.ndesign')),
 			window: {
-				entryUrl: devServerUrl ? devServerUrl : `${appOrigin}/`,
+				entryUrl: entryUrl(),
 				devServer: devServerUrl !== undefined,
 				preloadPath: path.join(distDirectory, 'preload.cjs'),
 				qaSession: isQaSession

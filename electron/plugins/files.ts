@@ -13,7 +13,7 @@ import { mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { createBlankDocument } from '../../src/lib/document/blank';
-import type { LoadedDocument, RecentFile, StoreInfo, Thumbnail } from '../bridge';
+import type { DraftFile, LoadedDocument, RecentFile, StoreInfo, Thumbnail } from '../bridge';
 import type { SenderHandle, WindowHandle } from '../kernel/host';
 import { emitTo, route } from '../kernel/route';
 import { FILE_EXTENSION, FILE_TYPE_NAME } from '../store/constants';
@@ -99,6 +99,41 @@ export class FilesService extends Service {
 		return this.loaded(sender, info);
 	}
 
+	/**
+	 * Tabs: `target` becomes the sender's document and the one it had is left alone, to be a tab in
+	 * the background. The renderer persisted that document's queue first; main confirms it again.
+	 */
+	async openInTab(sender: SenderHandle, target: string): Promise<LoadedDocument> {
+		await this.flushSender(sender);
+		const info = await this.store.adopt(sender, () => DocumentFile.open(target));
+		this.watchClose(sender);
+		this.recordRecent(info);
+		return this.loaded(sender, info);
+	}
+
+	/** Tabs: like `newUntitled`, without asking about or deleting the previous document. */
+	async newInTab(sender: SenderHandle): Promise<LoadedDocument> {
+		await this.flushSender(sender);
+		const target = this.nextUntitledPath();
+		const info = await this.store.adopt(sender, () =>
+			DocumentFile.create(target, createBlankDocument(UNTITLED_NAME))
+		);
+		this.watchClose(sender);
+		return this.loaded(sender, info);
+	}
+
+	/** Tabs: whether the sender's document may be closed (asks about untitled edits). */
+	async confirmClose(sender: SenderHandle): Promise<boolean> {
+		return (await this.settleCurrent(sender)) === 'proceed';
+	}
+
+	/** Tabs: delete the temporary file of a closed untitled document, unless something has it open. */
+	discard(file: string): void {
+		const resolved = path.resolve(file);
+		if (this.store.openPaths().some((open) => path.resolve(open) === resolved)) return;
+		this.discardIfUntitled(resolved);
+	}
+
 	/** Copy the sender's file to `destination` and carry on editing the copy. */
 	async saveAs(sender: SenderHandle, destination: string): Promise<StoreInfo> {
 		const target = path.resolve(withExtension(destination));
@@ -143,6 +178,27 @@ export class FilesService extends Service {
 		return this.recents()
 			.list()
 			.map((entry) => ({ ...entry, thumbnail: this.readThumbnailFromDisk(entry.path) }));
+	}
+
+	/** Forget one recent file; also what the home screen's "remove" does. */
+	removeRecent(file: string): void {
+		this.recents().remove(file);
+	}
+
+	/** Show `file` in the OS file manager (only files the app knows: recents and drafts). */
+	reveal(file: string): void {
+		this.ctx.electron.shell.showItemInFolder(path.resolve(file));
+	}
+
+	/** Untitled documents with edits, newest first. Unlike `recoverable` it keeps open ones. */
+	drafts(): DraftFile[] {
+		const directory = untitledDirectory(this.ctx.electron.app.getPath('userData'));
+		const found: DraftFile[] = [];
+		for (const entry of this.untitledFiles(directory)) {
+			const draft = this.peekDraft(entry);
+			if (draft !== null) found.push(draft);
+		}
+		return found.sort((left, right) => right.modifiedAt - left.modifiedAt);
 	}
 
 	clearRecent(): void {
@@ -318,6 +374,12 @@ export class FilesService extends Service {
 		return this.ctx.store;
 	}
 
+	private async flushSender(sender: SenderHandle): Promise<void> {
+		if (!this.store.hasStore(sender)) return;
+		const window = this.ctx.electron.windowFromSender(sender);
+		if (window !== null) await this.requestFlush(window);
+	}
+
 	private currentFile(sender: SenderHandle): string | null {
 		if (!this.store.hasStore(sender)) return null;
 		return path.resolve(this.store.current(sender).path);
@@ -382,6 +444,27 @@ export class FilesService extends Service {
 		}
 	}
 
+	/** A draft's summary, without ever deleting the file (an open document may own it). */
+	private peekDraft(file: string): DraftFile | null {
+		let peeked: DocumentFile | null = null;
+		try {
+			peeked = DocumentFile.open(file, { session: false });
+			const info = peeked.info();
+			if (!info.unsaved) return null;
+			return {
+				path: file,
+				name: info.name,
+				modifiedAt: info.modifiedAt,
+				thumbnail: peeked.readThumbnail(FILE_THUMBNAIL_KEY)
+			};
+		} catch (error) {
+			if (!(error instanceof StoreError)) throw error;
+			return null;
+		} finally {
+			peeked?.close();
+		}
+	}
+
 	/** What a leftover untitled file holds; empty and unreadable ones are cleaned up. */
 	private inspect(file: string): RecoverableDocument | null {
 		let peeked: DocumentFile | null = null;
@@ -417,11 +500,18 @@ export const mainFilesPlugin: Plugin.Object<FilesConfig> = {
 
 		route(ctx, 'files:newUntitled', (_payload, event) => files.newUntitled(event.sender));
 		route(ctx, 'files:open', (request, event) => files.open(event.sender, request.path));
+		route(ctx, 'files:openInTab', (request, event) => files.openInTab(event.sender, request.path));
+		route(ctx, 'files:newInTab', (_payload, event) => files.newInTab(event.sender));
+		route(ctx, 'files:confirmClose', (_payload, event) => files.confirmClose(event.sender));
+		route(ctx, 'files:discard', (request) => files.discard(request.path));
 		route(ctx, 'files:openDialog', () => files.openDialog());
 		route(ctx, 'files:saveDialog', (request) => files.saveDialog(request.suggestedName));
 		route(ctx, 'files:saveAs', (request, event) => files.saveAs(event.sender, request.path));
 		route(ctx, 'files:offerRecovery', (_payload, event) => files.offerRecovery(event.sender));
 		route(ctx, 'files:recent', () => files.recent());
+		route(ctx, 'files:drafts', () => files.drafts());
+		route(ctx, 'files:removeRecent', (request) => files.removeRecent(request.path));
+		route(ctx, 'files:reveal', (request) => files.reveal(request.path));
 		route(ctx, 'files:clearRecent', () => files.clearRecent());
 		route(ctx, 'files:setThumbnail', (thumbnail, event) =>
 			files.setThumbnail(event.sender, thumbnail)

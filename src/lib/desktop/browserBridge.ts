@@ -8,7 +8,8 @@ import type {
 	ClipboardContent,
 	DesktopBridge,
 	IpcEventChannel,
-	IpcEvents
+	IpcEvents,
+	SettingsData
 } from '../../../electron/bridge';
 
 export interface BrowserBridge extends DesktopBridge {
@@ -37,6 +38,8 @@ export function createBrowserBridge(): BrowserBridge {
 	let maximized = false;
 	// The browser has no OS clipboard access here: copies stay inside the page.
 	let clipboard: ClipboardContent = { text: null, html: null, png: null };
+	// Preferences live in memory in a plain browser; the desktop app writes them to disk.
+	let settings: SettingsData = { core: {}, plugins: {} };
 	const report: BootReport = { kernel: 'main', loaded: [], failed: [], pending: [] };
 
 	return {
@@ -84,6 +87,13 @@ export function createBrowserBridge(): BrowserBridge {
 			commit: () => unavailable('saving files'),
 			checkpoint: () => unavailable('saving files')
 		},
+		settings: {
+			load: () => Promise.resolve(structuredClone(settings)),
+			save: (data) => {
+				settings = structuredClone(data);
+				return Promise.resolve();
+			}
+		},
 		assets: {
 			put: () => unavailable('storing images'),
 			get: () => Promise.resolve(null),
@@ -93,6 +103,10 @@ export function createBrowserBridge(): BrowserBridge {
 			embeddedFonts: () => Promise.resolve([])
 		},
 		files: {
+			openInTab: () => unavailable('opening files'),
+			newInTab: () => unavailable('creating documents'),
+			confirmClose: () => Promise.resolve(true),
+			discard: () => Promise.resolve(),
 			newUntitled: () => unavailable('creating documents'),
 			open: () => unavailable('opening files'),
 			openDialog: () => Promise.resolve(null),
@@ -101,6 +115,9 @@ export function createBrowserBridge(): BrowserBridge {
 			offerRecovery: () => Promise.resolve(null),
 			launchRequest: () => Promise.resolve(null),
 			recent: () => Promise.resolve([]),
+			drafts: () => Promise.resolve([]),
+			removeRecent: () => Promise.resolve(),
+			reveal: () => Promise.resolve(),
 			clearRecent: () => Promise.resolve(),
 			setThumbnail: () => Promise.resolve(),
 			flushed: () => Promise.resolve(),

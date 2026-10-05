@@ -101,7 +101,9 @@ bun run qa wait "Export" [--gone] [--timeout 10000]
 | `at=x,y` | a window point, for the canvas and anything without an element |
 
 Hold modifiers on a drag or click with `--modifiers Control,Alt,Shift` (for example
-`bun run qa drag at=600,300 at=800,450 --modifiers Alt`).
+`bun run qa drag at=600,300 at=800,450 --modifiers Alt`). To photograph drag feedback (insertion
+lines, ghosts, value labels) add `--screenshot-before-release <label>`: it is taken with the
+button still down.
 
 ## Renderer state: `eval` and the debug hook
 
@@ -145,7 +147,7 @@ Native dialogs can't be clicked on the virtual display. A waiting message box lo
 for an untitled file a killed session left in `.qa/profile/untitled/`: no file is open, and saving
 or `blobs.put` fail with "no document file open"). Start with `--fresh`, or answer dialogs through
 the environment: `DESIGN_QA_MESSAGE_BOX=<button index>`, `DESIGN_QA_OPEN_PATH`,
-`DESIGN_QA_SAVE_PATH`.
+`DESIGN_QA_SAVE_PATH`. `DESIGN_QA_FIXTURE=0` starts without the fixture scene (a real, editable blank file).
 
 ## Raw CDP
 

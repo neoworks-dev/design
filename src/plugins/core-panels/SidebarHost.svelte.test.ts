@@ -1,6 +1,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import HostRoot from '../../lib/kernel/fixtures/HostRoot.svelte';
+import PluginName from '../../lib/kernel/fixtures/PluginName.svelte';
 import { mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
@@ -62,6 +63,35 @@ function text(): string {
 }
 
 describe('SidebarHost', () => {
+	it('renders each tab with the context of the plugin that registered it', async () => {
+		const { ctx } = await renderRightSidebar();
+		for (const id of ['one', 'two']) {
+			await ctx.plugin({
+				name: `tab-${id}`,
+				inject: ['panels'],
+				apply(owner: typeof ctx): void {
+					owner.effect(
+						() =>
+							owner.panels.registerTab({
+								id,
+								side: 'right',
+								title: id,
+								order: 5,
+								component: PluginName
+							}),
+						`tab ${id}`
+					);
+				}
+			});
+		}
+		ctx.panels.activateTab('one');
+		flushSync();
+		expect(target?.querySelector('[data-plugin-name]')?.textContent).toBe('tab-one');
+		ctx.panels.activateTab('two');
+		flushSync();
+		expect(target?.querySelector('[data-plugin-name]')?.textContent).toBe('tab-two');
+	});
+
 	it('renders the tab strip, the active tab and its sections in order', async () => {
 		await renderRightSidebar();
 		const tabs = [...(target?.querySelectorAll('[role="tab"]') ?? [])];

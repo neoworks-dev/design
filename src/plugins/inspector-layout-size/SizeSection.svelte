@@ -12,6 +12,8 @@
 	} from '../../lib/inspector-inputs/selectionEdit';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
+	import { currentSizing, sizingProps } from '../../lib/layout/sizing';
+	import type { Sizing } from '../../lib/layout/types';
 	import DropdownField from '../../lib/ui/DropdownField.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 	import NumberField from '../../lib/ui/NumberField.svelte';
@@ -67,21 +69,16 @@
 
 	// ---------- resizing: fixed, hug, fill ----------
 
-	function sizingKey(axis: Axis): 'layoutSizingHorizontal' | 'layoutSizingVertical' {
-		if (axis === 'horizontal') return 'layoutSizingHorizontal';
-		return 'layoutSizingVertical';
-	}
-
-	function sizingOf(node: Node, axis: Axis): string {
-		if (!('layoutSizingHorizontal' in node)) return 'FIXED';
-		return node[sizingKey(axis)];
+	function sizingFromValue(value: string): Sizing {
+		if (value === 'HUG' || value === 'FILL') return value;
+		return 'FIXED';
 	}
 
 	const canHug = $derived(nodes.every((node) => hugAllowed(node)));
 	const canFill = $derived(nodes.every((node) => fillAllowed(ctx.document.reader, node)));
 	const showSizing = $derived(
 		nodes.some((node) => hugAllowed(node) || fillAllowed(ctx.document.reader, node)) ||
-			nodes.some((node) => sizingOf(node, 'horizontal') !== 'FIXED')
+			nodes.some((node) => currentSizing(node, 'horizontal') !== 'FIXED')
 	);
 
 	function sizingOptions(): Array<{
@@ -111,10 +108,7 @@
 		setSelectionProps(
 			ctx,
 			{ label: 'Change resizing', mergeKey: `inspector:sizing-${axis}`, gesture: 'commit' },
-			(node) => {
-				if (!('layoutSizingHorizontal' in node)) return {};
-				return { [sizingKey(axis)]: value };
-			}
+			(node) => sizingProps(node, axis, sizingFromValue(value))
 		);
 	}
 
@@ -221,7 +215,7 @@
 	{#if showSizing}
 		<div class="grid grid-cols-2 gap-2" data-resizing-row>
 			{#each ['horizontal', 'vertical'] as const as axis (axis)}
-				{@const shared = sharedValue(nodes, (node) => sizingOf(node, axis))}
+				{@const shared = sharedValue(nodes, (node) => currentSizing(node, axis))}
 				<ToggleGroup
 					name={axis === 'horizontal' ? 'Horizontal resizing' : 'Vertical resizing'}
 					options={sizingOptions()}

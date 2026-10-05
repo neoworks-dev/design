@@ -83,6 +83,15 @@ export interface RecentFile {
 	thumbnail: Thumbnail | null;
 }
 
+/** An untitled document with edits, in the app's `untitled` directory (a draft). */
+export interface DraftFile {
+	path: string;
+	name: string;
+	/** Milliseconds since the epoch. */
+	modifiedAt: number;
+	thumbnail: Thumbnail | null;
+}
+
 /** An image file the user picked in the native dialog, read by main. */
 export interface PickedImage {
 	/** File name with extension, for naming the layer. */
@@ -117,6 +126,15 @@ export interface ClipboardWrite {
 	text?: string;
 	html?: string;
 	png?: Uint8Array;
+}
+
+/**
+ * Everything the user changed in Settings. `core` holds the app's own keys (bare names),
+ * `plugins` one object per plugin id with that plugin's `Config` overrides.
+ */
+export interface SettingsData {
+	core: Record<string, unknown>;
+	plugins: Record<string, Record<string, unknown>>;
 }
 
 /**
@@ -201,6 +219,20 @@ export interface IpcContract {
 	 * user cancelled leaving an untitled document with edits.
 	 */
 	'files:newUntitled': { payload: void; result: LoadedDocument | null };
+	/**
+	 * Tabs: make `path` the window's document without asking about or discarding the document it
+	 * had (that one stays a tab). Flushes the renderer first. Replaces `files:open` for tabs.
+	 */
+	'files:openInTab': { payload: { path: string }; result: LoadedDocument };
+	/** Tabs: a new untitled document as the window's document; the previous one is left as is. */
+	'files:newInTab': { payload: void; result: LoadedDocument };
+	/**
+	 * Tabs: may the window's document be closed? Flushes the renderer, and for an untitled
+	 * document with edits asks Save / Don't Save / Cancel. `false` when cancelled.
+	 */
+	'files:confirmClose': { payload: void; result: boolean };
+	/** Tabs: delete a closed untitled document's temporary file (a saved file is never touched). */
+	'files:discard': { payload: { path: string }; result: void };
 	/** Open a design file as this window's document and load it; `null` when cancelled as above. */
 	'files:open': { payload: { path: string }; result: LoadedDocument | null };
 	/** The native open dialog filtered to design files; `null` when cancelled. */
@@ -215,10 +247,20 @@ export interface IpcContract {
 	'files:launchRequest': { payload: void; result: string | null };
 	/** Recently opened or saved documents, newest first; files that vanished are pruned here. */
 	'files:recent': { payload: void; result: RecentFile[] };
+	/** Untitled documents with edits, newest first (open ones included): the home screen's drafts. */
+	'files:drafts': { payload: void; result: DraftFile[] };
+	/** Drop one file from the recent list; the file itself stays. */
+	'files:removeRecent': { payload: { path: string }; result: void };
+	/** Show a file in the OS file manager. */
+	'files:reveal': { payload: { path: string }; result: void };
 	/** Forget every recent document (also the OS's list where it has one). */
 	'files:clearRecent': { payload: void; result: void };
 	/** Store the open file's thumbnail (key `file`) so the recent list can show it. */
 	'files:setThumbnail': { payload: Thumbnail; result: void };
+	/** The stored preferences; an empty object pair when none were saved yet. */
+	'settings:load': { payload: void; result: SettingsData };
+	/** Replace the stored preferences; written to disk atomically. */
+	'settings:save': { payload: SettingsData; result: void };
 	/** Store image bytes by sha-256 in the open file; the same bytes are stored once. */
 	'assets:put': { payload: AssetPutRequest; result: AssetPutResult };
 	/** The bytes of a stored image; `null` when the file has none under that hash. */
@@ -311,6 +353,10 @@ export interface DesktopBridge {
 		/** Save: checkpoint the file and clear its unsaved marker. */
 		checkpoint(): Promise<StoreInfo>;
 	};
+	settings: {
+		load(): Promise<SettingsData>;
+		save(data: SettingsData): Promise<void>;
+	};
 	assets: {
 		put(request: AssetPutRequest): Promise<AssetPutResult>;
 		get(hash: string): Promise<Uint8Array | null>;
@@ -320,6 +366,10 @@ export interface DesktopBridge {
 		embeddedFonts(): Promise<FontRef[]>;
 	};
 	files: {
+		openInTab(path: string): Promise<LoadedDocument>;
+		newInTab(): Promise<LoadedDocument>;
+		confirmClose(): Promise<boolean>;
+		discard(path: string): Promise<void>;
 		newUntitled(): Promise<LoadedDocument | null>;
 		open(path: string): Promise<LoadedDocument | null>;
 		openDialog(): Promise<string | null>;
@@ -328,6 +378,9 @@ export interface DesktopBridge {
 		offerRecovery(): Promise<LoadedDocument | null>;
 		launchRequest(): Promise<string | null>;
 		recent(): Promise<RecentFile[]>;
+		drafts(): Promise<DraftFile[]>;
+		removeRecent(path: string): Promise<void>;
+		reveal(path: string): Promise<void>;
 		clearRecent(): Promise<void>;
 		setThumbnail(thumbnail: Thumbnail): Promise<void>;
 		flushed(requestId: string): Promise<void>;

@@ -117,6 +117,74 @@ function swatch(
 	});
 }
 
+/**
+ * A hugging horizontal auto layout frame with a nested vertical one, stored already laid out
+ * (the engine would write exactly these positions: the fixture test asserts it).
+ */
+function autoLayoutFrame(): NodeSpec {
+	const padding = { paddingTop: 16, paddingRight: 16, paddingBottom: 16, paddingLeft: 16 };
+	return frame(
+		{
+			id: 'frame-auto',
+			name: 'Auto layout',
+			width: 262,
+			height: 116,
+			transform: translation(800, 100),
+			fills: [solid(0.95, 0.95, 0.98)],
+			layoutMode: 'HORIZONTAL',
+			layoutSizingHorizontal: 'HUG',
+			layoutSizingVertical: 'HUG',
+			primaryAxisSizingMode: 'AUTO',
+			counterAxisSizingMode: 'AUTO',
+			counterAxisAlignItems: 'CENTER',
+			itemSpacing: 12,
+			...padding
+		},
+		[
+			swatch('auto-red', 16, 18, 80, solid(0.93, 0.26, 0.21)),
+			swatch('auto-blue', 108, 28, 60, solid(0.13, 0.46, 0.96)),
+			frame(
+				{
+					id: 'auto-nested',
+					name: 'Nested auto layout',
+					width: 66,
+					height: 84,
+					transform: translation(180, 16),
+					fills: [solid(1, 1, 1)],
+					layoutMode: 'VERTICAL',
+					layoutSizingHorizontal: 'HUG',
+					layoutSizingVertical: 'HUG',
+					primaryAxisSizingMode: 'AUTO',
+					counterAxisSizingMode: 'AUTO',
+					itemSpacing: 8,
+					paddingTop: 8,
+					paddingRight: 8,
+					paddingBottom: 8,
+					paddingLeft: 8
+				},
+				[
+					rectangle({
+						id: 'auto-nested-a',
+						name: 'auto-nested-a',
+						width: 50,
+						height: 30,
+						transform: translation(8, 8),
+						fills: [solid(0.98, 0.7, 0.1)]
+					}),
+					rectangle({
+						id: 'auto-nested-b',
+						name: 'auto-nested-b',
+						width: 50,
+						height: 30,
+						transform: translation(8, 46),
+						fills: [solid(0.1, 0.72, 0.42)]
+					})
+				]
+			)
+		]
+	);
+}
+
 function firstPage(): NodeSpec {
 	return page(
 		'Fixture',
@@ -164,7 +232,8 @@ function secondPage(): NodeSpec {
 					transform: translation(300, 40),
 					fills: [solid(0.98, 0.84, 0.2)]
 				})
-			])
+			]),
+			autoLayoutFrame()
 		],
 		{ id: SECOND_PAGE_ID }
 	);

@@ -48,8 +48,16 @@ export async function drag(cdp: CdpSession, from: Point, to: Point, steps = 12):
 	await dragPath(cdp, [from, to], steps);
 }
 
-/** Press at the first point, move through every following point (stepped per leg), release. */
-export async function dragPath(cdp: CdpSession, points: Point[], steps = 12): Promise<void> {
+/**
+ * Press at the first point, move through every following point (stepped per leg), release.
+ * `beforeRelease` runs with the button still down (screenshots of drag feedback).
+ */
+export async function dragPath(
+	cdp: CdpSession,
+	points: Point[],
+	steps = 12,
+	beforeRelease?: () => Promise<void>
+): Promise<void> {
 	const [first, ...rest] = points;
 	await mouse(cdp, 'mouseMoved', first, 'none', 0);
 	await mouse(cdp, 'mousePressed', first, 'left', 1);
@@ -65,6 +73,7 @@ export async function dragPath(cdp: CdpSession, points: Point[], steps = 12): Pr
 		}
 		from = to;
 	}
+	if (beforeRelease) await beforeRelease();
 	await mouse(cdp, 'mouseReleased', from, 'left', 1);
 }
 

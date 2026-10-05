@@ -24,14 +24,18 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
+import autolayout from './autolayout';
+import autolayoutHandles from './autolayout-handles';
 import appMenu from './app-menu';
 import boolean from './boolean';
 import clipboard from './clipboard';
 import colorPicker from './color-picker';
+import comments from './comments';
 import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
+import inspectorAutolayout from './inspector-autolayout';
 import layoutGrids from './layout-grids';
 import inspectPanel from './inspect-panel';
 import inspectorEffects from './inspector-effects';
@@ -43,10 +47,14 @@ import inspectorPosition from './inspector-position';
 import inspectorSelectionColors from './inspector-selection-colors';
 import inspectorTypography from './inspector-typography';
 import selection from './selection';
+import shortcutsPanel from './shortcuts-panel';
+import shortcutsStore from './shortcuts-store';
 import spatial from './spatial';
 import hitTest from './hit-test';
 import snapping from './snapping';
 import fileSession from './file-session';
+import fileThumbnails from './file-thumbnails';
+import home from './home';
 import flatten from './flatten';
 import history from './history';
 import imageCache from './image-cache';
@@ -60,7 +68,9 @@ import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
+import settings from './settings';
 import svgImport from './svg-import';
+import tabs from './tabs';
 import textEdit from './text-edit';
 import textFormat from './text-format';
 import textLayout from './text-layout';
@@ -109,12 +119,14 @@ export const builtinPlugins: Plugin[] = [
 	svgImport,
 	debug,
 	desktopBridge,
+	settings,
 	fonts,
 	assetsStore,
 	imageCache,
 	paintShaders,
 	effects,
 	textLayout,
+	autolayout,
 	textEdit,
 	textFormat,
 	documentPlugin,
@@ -125,17 +137,23 @@ export const builtinPlugins: Plugin[] = [
 	documentScene,
 	selection,
 	spatial,
+	comments,
 	headlessRenderer,
 	hitTest,
 	snapping,
 	history,
 	fileSession,
 	recentFiles,
+	fileThumbnails,
+	home,
+	tabs,
 	variablesCore,
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,
 	shortcuts,
+	shortcutsPanel,
+	shortcutsStore,
 	coreMenus,
 	commandPalette,
 	appMenu,
@@ -146,6 +164,7 @@ export const builtinPlugins: Plugin[] = [
 	inspectorPage,
 	inspectorPosition,
 	inspectorLayoutSize,
+	inspectorAutolayout,
 	inspectorAppearance,
 	inspectorTypography,
 	inspectorSelectionColors,
@@ -163,6 +182,7 @@ export const builtinPlugins: Plugin[] = [
 	zoomMenu,
 	toolMove,
 	transformHandles,
+	autolayoutHandles,
 	shapeHandles,
 	toolImage,
 	toolScale,

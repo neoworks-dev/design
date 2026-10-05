@@ -42,8 +42,12 @@
 
 	{#if active}
 		<div role="tabpanel" aria-label={active.title} class="flex min-h-0 flex-1 flex-col">
+			<!-- Keyed by entry: a Contribution captures its owner's ctx once, so switching tabs must
+			     build a new one instead of reusing the previous tab's. -->
 			{#if active.content}
-				<Contribution entry={active.content} />
+				{#key active.content}
+					<Contribution entry={active.content} />
+				{/key}
 			{/if}
 			{#each sections as section (section.id)}
 				{@const collapsed = ctx.panels.isSectionCollapsed(section)}

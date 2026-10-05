@@ -15,6 +15,7 @@ import type {
 	ClipboardWrite,
 	CommitResult,
 	CreateStoreRequest,
+	DraftFile,
 	DesktopBridge,
 	FontRef,
 	IpcErrorCode,
@@ -26,6 +27,7 @@ import type {
 	PickedImage,
 	RecentFile,
 	SaveFileOptions,
+	SettingsData,
 	StoreInfo,
 	Thumbnail
 } from '../../../electron/bridge';
@@ -192,6 +194,18 @@ export class DesktopService extends Service {
 		return typed(() => this.bridge.store.checkpoint());
 	}
 
+	// ---------- settings ----------
+
+	/** The stored preferences (empty when none were saved). */
+	settingsLoad(): Promise<SettingsData> {
+		return typed(() => this.bridge.settings.load());
+	}
+
+	/** Replace the stored preferences; main writes the file atomically. */
+	settingsSave(data: SettingsData): Promise<void> {
+		return typed(() => this.bridge.settings.save(data));
+	}
+
 	// ---------- assets and embedded fonts ----------
 
 	/** Store image bytes in the open file under their sha-256. */
@@ -222,6 +236,26 @@ export class DesktopService extends Service {
 	}
 
 	// ---------- files ----------
+
+	/** Tabs: open `path` as the window's document, keeping the previous one as a tab. */
+	filesOpenInTab(path: string): Promise<LoadedDocument> {
+		return typed(() => this.bridge.files.openInTab(path));
+	}
+
+	/** Tabs: a new untitled document, keeping the previous one as a tab. */
+	filesNewInTab(): Promise<LoadedDocument> {
+		return typed(() => this.bridge.files.newInTab());
+	}
+
+	/** Tabs: may the current document be closed? Asks about untitled edits; false when cancelled. */
+	filesConfirmClose(): Promise<boolean> {
+		return typed(() => this.bridge.files.confirmClose());
+	}
+
+	/** Tabs: delete a closed untitled document's temporary file. */
+	filesDiscard(path: string): Promise<void> {
+		return typed(() => this.bridge.files.discard(path));
+	}
 
 	/** A new empty document in a temporary file; becomes this window's document. */
 	filesNewUntitled(): Promise<LoadedDocument | null> {
@@ -261,6 +295,21 @@ export class DesktopService extends Service {
 	/** Recently opened or saved documents, newest first. */
 	filesRecent(): Promise<RecentFile[]> {
 		return typed(() => this.bridge.files.recent());
+	}
+
+	/** Untitled documents with edits (including open ones), newest first. */
+	filesDrafts(): Promise<DraftFile[]> {
+		return typed(() => this.bridge.files.drafts());
+	}
+
+	/** Drop one file from the recent list (the file stays on disk). */
+	filesRemoveRecent(path: string): Promise<void> {
+		return typed(() => this.bridge.files.removeRecent(path));
+	}
+
+	/** Show a file in the OS file manager. */
+	filesReveal(path: string): Promise<void> {
+		return typed(() => this.bridge.files.reveal(path));
 	}
 
 	filesClearRecent(): Promise<void> {

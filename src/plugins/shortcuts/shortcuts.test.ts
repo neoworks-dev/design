@@ -1,23 +1,11 @@
-import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
 import coreKeymap from '../core-keymap';
-import { SHORTCUTS_STORAGE_KEY, type ShortcutStorage } from './persistence.svelte';
 import shortcuts from './index';
 
 const providers = [coreContextKeys, coreCommands, coreKeymap];
-
-function memoryStorage(initial?: string): ShortcutStorage & { values: Map<string, string> } {
-	const values = new Map<string, string>();
-	if (initial !== undefined) values.set(SHORTCUTS_STORAGE_KEY, initial);
-	return {
-		values,
-		getItem: (key) => values.get(key) ?? null,
-		setItem: (key, value) => void values.set(key, value)
-	};
-}
 
 let mounted: MountedPlugin | undefined;
 
@@ -26,8 +14,8 @@ afterEach(async () => {
 	mounted = undefined;
 });
 
-async function mountShortcuts(storage = memoryStorage()): Promise<MountedPlugin> {
-	mounted = await mountPlugin(shortcuts, { providers, config: { storage } });
+async function mountShortcuts(): Promise<MountedPlugin> {
+	mounted = await mountPlugin(shortcuts, { providers });
 	const { ctx } = mounted;
 	for (const id of ['tools.activate.frame', 'tools.activate.rectangle', 'tools.activate.image']) {
 		ctx.commands.register({ id, title: id, run: () => {} });
@@ -39,7 +27,6 @@ async function mountShortcuts(storage = memoryStorage()): Promise<MountedPlugin>
 
 describePlugin('shortcuts', shortcuts, {
 	providers,
-	config: { storage: memoryStorage() },
 	contributes: ({ ctx }) => {
 		expect(ctx.shortcuts.presets().map((preset) => preset.id)).toEqual(['figma', 'penpot']);
 		expect(ctx.commands.has('shortcuts.use-penpot-preset')).toBe(true);
@@ -112,30 +99,6 @@ describe('rebinding and conflicts', () => {
 		ctx.shortcuts.rebind('tools.activate.frame', 'G');
 		ctx.shortcuts.reset('tools.activate.frame');
 		expect(ctx.keymap.lookup('tools.activate.frame')).toBe('F');
-	});
-});
-
-describe('persistence', () => {
-	it('overrides and preset survive a restart', async () => {
-		const storage = memoryStorage();
-		const first = await mountShortcuts(storage);
-		first.ctx.shortcuts.rebind('tools.activate.frame', 'G');
-		first.ctx.shortcuts.setPreset('penpot');
-		flushSync();
-		await first.cleanup();
-		mounted = undefined;
-
-		const second = await mountShortcuts(storage);
-		expect(second.ctx.shortcuts.preset).toBe('penpot');
-		expect(second.ctx.keymap.lookup('tools.activate.frame')).toBe('G');
-		expect(second.ctx.keymap.lookup('tools.activate.image')).toBe('K');
-		second.ctx.shortcuts.reset('tools.activate.frame');
-		expect(second.ctx.keymap.lookup('tools.activate.frame')).toBe('B');
-	});
-
-	it('ignores unreadable storage', async () => {
-		const { ctx } = await mountShortcuts(memoryStorage('not json'));
-		expect(ctx.shortcuts.preset).toBe('figma');
 	});
 });
 
