@@ -139,6 +139,31 @@ class KeymapSettings {
 	preset = $state('figma');
 }
 
+/**
+ * The active bindings, recomputed only when bindings, overrides or the preset change. Menus look
+ * up an accelerator per item whenever context keys change (every selection change), so this must
+ * not be rebuilt per lookup. Not a Service, so runes are fine.
+ */
+class ActiveBindingsCache {
+	readonly #compute: () => KeyBinding[];
+	readonly bindings = $derived.by(() => this.#compute());
+	readonly chordsByCommand = $derived.by(() => indexChords(this.bindings));
+
+	constructor(compute: () => KeyBinding[]) {
+		this.#compute = compute;
+	}
+}
+
+function indexChords(bindings: readonly KeyBinding[]): Record<string, string[] | undefined> {
+	const index: Record<string, string[] | undefined> = Object.create(null);
+	for (const binding of bindings) {
+		const chords = index[binding.command];
+		if (chords) chords.push(binding.chord);
+		else index[binding.command] = [binding.chord];
+	}
+	return index;
+}
+
 export interface KeymapOptions {
 	/** `process.platform` value; decides what `Mod` means. */
 	platform: Platform;
@@ -184,6 +209,7 @@ export class KeymapService extends Service {
 	readonly platform: Platform;
 
 	private readonly activeHolds: HoldEntry[] = [];
+	private readonly active = new ActiveBindingsCache(() => this.computeActiveBindings());
 	// Mutated in place, never reassigned: the service is reached through per-caller proxies.
 	private readonly counters = { scope: 0, hold: 0 };
 
@@ -299,9 +325,9 @@ export class KeymapService extends Service {
 
 	/** Reactive: canonical chords bound to `command`, overrides first. */
 	lookupChords(commandId: string): string[] {
-		return this.activeBindings()
-			.filter((binding) => binding.command === commandId)
-			.map((binding) => binding.chord);
+		const chords = this.active.chordsByCommand[commandId];
+		if (chords === undefined) return [];
+		return [...chords];
 	}
 
 	/** Returns true when the event was consumed (a binding or hold matched). */
@@ -365,6 +391,10 @@ export class KeymapService extends Service {
 
 	/** Overrides first, then defaults that no override replaced. Reactive. */
 	private activeBindings(): KeyBinding[] {
+		return this.active.bindings;
+	}
+
+	private computeActiveBindings(): KeyBinding[] {
 		const overrides = this.overrides.list();
 		const fromOverrides: KeyBinding[] = [];
 		for (const override of overrides) {
