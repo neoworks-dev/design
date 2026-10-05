@@ -114,6 +114,8 @@ export interface OpenDialogRequest {
 	defaultPath?: string;
 	filters?: FileFilter[];
 	multiple: boolean;
+	/** Pick a folder instead of files. */
+	directory?: boolean;
 }
 export interface SaveDialogRequest {
 	title?: string;

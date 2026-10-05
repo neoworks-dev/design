@@ -83,6 +83,14 @@ function qaAnswer(name: string): string | undefined {
 	return value;
 }
 
+type OpenProperty = 'openFile' | 'openDirectory' | 'createDirectory' | 'multiSelections';
+
+function openProperties(request: OpenDialogRequest): OpenProperty[] {
+	if (request.directory === true) return ['openDirectory', 'createDirectory'];
+	if (request.multiple) return ['openFile', 'multiSelections'];
+	return ['openFile'];
+}
+
 function wrapWindow(window: BrowserWindow): WindowHandle {
 	const { webContents } = window;
 	const sender: SenderHandle = { id: webContents.id };
@@ -255,13 +263,16 @@ export function createRealHost(): ElectronHost {
 		},
 		dialog: {
 			showOpenDialog: async (request) => {
-				const answer = qaAnswer('DESIGN_QA_OPEN_PATH');
+				// a folder pick (export of several files) is answered by DESIGN_QA_SAVE_PATH
+				const answer = qaAnswer(
+					request.directory === true ? 'DESIGN_QA_SAVE_PATH' : 'DESIGN_QA_OPEN_PATH'
+				);
 				if (answer !== undefined) return [answer];
 				const result = await dialog.showOpenDialog({
 					title: request.title,
 					defaultPath: request.defaultPath,
 					filters: toFilters(request.filters),
-					properties: request.multiple ? ['openFile', 'multiSelections'] : ['openFile']
+					properties: openProperties(request)
 				});
 				if (result.canceled) return null;
 				return result.filePaths;

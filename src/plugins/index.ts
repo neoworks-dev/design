@@ -20,6 +20,8 @@ import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import effects from './effects';
 import fonts from './fonts';
+import exportPlugin from './export';
+import exportRaster from './export-raster';
 import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
@@ -241,5 +243,7 @@ export const builtinPlugins: Plugin[] = [
 	aiGenerate,
 	aiPalette,
 	aiBatch,
-	aiChat
+	aiChat,
+	exportPlugin,
+	exportRaster
 ];

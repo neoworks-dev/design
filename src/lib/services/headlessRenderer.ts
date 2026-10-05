@@ -9,9 +9,12 @@
 // write once it exists.
 
 import { Service, type Context } from '@neoworks/extension-system';
-import type { NodeId } from '../document';
+import type { NodeId, Rect } from '../document';
+import type { SceneSource } from '../renderer/sceneSource';
 import {
+	exportArea,
 	exportNode,
+	type ExportGeometry,
 	type ExportedImage,
 	type ExportEnvironment,
 	type ExportOptions
@@ -34,5 +37,16 @@ export class HeadlessRendererService extends Service {
 	/** Renders node `id` (and its subtree) to encoded bytes. Throws `ExportError` when it cannot. */
 	exportNode(id: NodeId, options: ExportOptions = {}): Promise<ExportedImage> {
 		return exportNode(this.environment(), id, options);
+	}
+
+	/** The area an export of `id` covers in page space: render bounds, or the box itself. */
+	exportArea(id: NodeId, useAbsoluteBounds = false): Rect {
+		return exportArea(this.environment().geometry, id, useAbsoluteBounds);
+	}
+
+	/** The scene (variable-resolved nodes) and geometry vector exporters serialise from. */
+	scene(): { source: SceneSource; geometry: ExportGeometry } {
+		const { source, geometry } = this.environment();
+		return { source, geometry };
 	}
 }

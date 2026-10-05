@@ -8,6 +8,7 @@ import { mainAppPlugin } from './app';
 import { mainAssetsPlugin } from './assets';
 import { mainClipboardPlugin } from './clipboard';
 import { mainDialogsPlugin } from './dialogs';
+import { mainExportsPlugin } from './exports';
 import { mainFilesPlugin } from './files';
 import { mainElectronPlugin } from './electron';
 import { mainFontsPlugin } from './fonts';
@@ -36,6 +37,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainAppPlugin },
 		{ plugin: mainDialogsPlugin },
 		{ plugin: mainClipboardPlugin },
+		{ plugin: mainExportsPlugin },
 		{ plugin: mainMenuPlugin },
 		{ plugin: mainFontsPlugin },
 		{ plugin: mainSettingsPlugin },

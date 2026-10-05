@@ -20,6 +20,7 @@ import type {
 	CommitResult,
 	CreateStoreRequest,
 	DraftFile,
+	ExportFileData,
 	DesktopBridge,
 	FontRef,
 	IpcErrorCode,
@@ -142,6 +143,14 @@ export class DesktopService extends Service {
 
 	saveFileDialog(options?: SaveFileOptions): Promise<string | null> {
 		return typed(() => this.bridge.dialogs.saveFile(options));
+	}
+
+	/**
+	 * Write exported files in main: a save dialog for one, a folder dialog for several. The
+	 * written paths, or `null` when the user cancelled.
+	 */
+	writeExports(files: ExportFileData[]): Promise<string[] | null> {
+		return typed(() => this.bridge.exports.write(files));
 	}
 
 	/** What the OS clipboard holds (text, html and a PNG image, each `null` when absent). */

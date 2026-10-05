@@ -77,8 +77,8 @@ export async function exportNode(
 	const node = environment.source.getNode(id);
 	if (!node || node.type === 'PAGE') throw new ExportError(`cannot export ${id}: not a node`);
 	const area = exportArea(environment.geometry, id, settings.useAbsoluteBounds);
-	const width = Math.max(1, Math.ceil(area.width * settings.scale));
-	const height = Math.max(1, Math.ceil(area.height * settings.scale));
+	const width = pixelSize(area.width, settings.scale);
+	const height = pixelSize(area.height, settings.scale);
 	if (width > MAX_EXPORT_SIDE || height > MAX_EXPORT_SIDE) {
 		throw new ExportError(`export of ${width}x${height} exceeds ${MAX_EXPORT_SIDE} pixels a side`);
 	}
@@ -90,6 +90,11 @@ export async function exportNode(
 	} finally {
 		surface.dispose();
 	}
+}
+
+/** Whole pixels covering `size * scale`; float noise (100.00000000000001) must not add a pixel. */
+export function pixelSize(size: number, scale: number): number {
+	return Math.max(1, Math.ceil(size * scale - 1e-6));
 }
 
 interface ResolvedOptions {
@@ -121,7 +126,8 @@ function backgroundFor(format: ExportFormat, background: RGBA | undefined): RGBA
 	return null;
 }
 
-function exportArea(geometry: ExportGeometry, id: NodeId, useAbsoluteBounds: boolean): Rect {
+/** The area an export of `id` covers, in page space. */
+export function exportArea(geometry: ExportGeometry, id: NodeId, useAbsoluteBounds: boolean): Rect {
 	if (useAbsoluteBounds) return geometry.absoluteBounds(id);
 	return geometry.renderBounds(id);
 }
