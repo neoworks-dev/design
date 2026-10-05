@@ -32,15 +32,6 @@ export default {
 				when: "mode == 'design'",
 				component: PlaceholderText,
 				props: { text: 'Placeholder: prototype interactions replace this.' }
-			},
-			{
-				id: 'inspect',
-				side: 'right',
-				title: 'Inspect',
-				order: 2,
-				when: "mode == 'dev'",
-				component: PlaceholderText,
-				props: { text: 'Placeholder: dev mode inspection replaces this.' }
 			}
 		];
 		for (const tab of tabs) {
