@@ -30,6 +30,7 @@
 		"productName": "Neoworks Design",
 		"files": [
 			"build/**/*",
+			"plugins/**/*",
 			"electron/dist/**/*"
 		],
 		"linux": {

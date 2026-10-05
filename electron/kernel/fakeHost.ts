@@ -375,6 +375,46 @@ export class FakeHost implements ElectronHost {
 		}
 	};
 
+	/** Plugin files by absolute path (directories are implied); tests edit them with `setPluginFile`. */
+	readonly pluginTree = new Map<string, string>();
+	readonly pluginDirectories = new Set<string>();
+	readonly pluginWatchers = new Set<{ directory: string; onChange: () => void }>();
+
+	readonly pluginFiles: ElectronHost['pluginFiles'] = {
+		listDirectories: (directory) => {
+			const names = new Set<string>();
+			const prefix = `${directory}/`;
+			for (const file of this.pluginTree.keys()) {
+				if (!file.startsWith(prefix)) continue;
+				const rest = file.slice(prefix.length);
+				const slash = rest.indexOf('/');
+				if (slash > 0) names.add(rest.slice(0, slash));
+			}
+			return Promise.resolve([...names].sort(compareText));
+		},
+		readText: (file) => Promise.resolve(this.pluginTree.get(file)),
+		ensureDirectory: (directory) => {
+			this.pluginDirectories.add(directory);
+			return Promise.resolve();
+		},
+		watch: (directory, onChange) => {
+			const watcher = { directory, onChange };
+			this.pluginWatchers.add(watcher);
+			return () => {
+				this.pluginWatchers.delete(watcher);
+			};
+		}
+	};
+
+	/** Test driver: create, edit or (with `undefined`) delete a plugin file; watchers above it fire. */
+	setPluginFile(file: string, text: string | undefined): void {
+		if (text === undefined) this.pluginTree.delete(file);
+		else this.pluginTree.set(file, text);
+		for (const watcher of Array.from(this.pluginWatchers)) {
+			if (file.startsWith(`${watcher.directory}/`)) watcher.onChange();
+		}
+	}
+
 	/** Scripted agents: tests set `agents.script` to play the model. */
 	readonly agents = new ScriptedAgentHost(defaultFakeScript);
 
@@ -426,6 +466,9 @@ export class FakeHost implements ElectronHost {
 			handlers: [...this.handlers.keys()].sort(compareText),
 			appListeners: appListenerCounts,
 			protocolSchemes: [...this.protocolHandlers.keys()].sort(compareText),
+			pluginWatchers: [...this.pluginWatchers]
+				.map((watcher) => watcher.directory)
+				.sort(compareText),
 			openWindows: this.openWindows.length,
 			windowListeners: this.openWindows.map((window) => ({
 				closed: window.listenerCount('closed'),

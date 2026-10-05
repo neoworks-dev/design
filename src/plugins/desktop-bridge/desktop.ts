@@ -27,6 +27,8 @@ import type {
 	IpcEvents,
 	LoadedDocument,
 	NativeMenuItem,
+	PluginList,
+	PluginSourceKind,
 	OpenFileOptions,
 	PickedImage,
 	RecentFile,
@@ -234,6 +236,23 @@ export class DesktopService extends Service {
 
 	aiToolResult(result: AiToolResultMessage): Promise<void> {
 		return typed(() => this.bridge.ai.toolResult(result));
+	}
+
+	// ---------- third-party plugins (main-plugins) ----------
+
+	/** The plugins found in the bundled, user and project roots for this window. */
+	pluginsList(): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.list());
+	}
+
+	/** Trust or distrust this window's project; answers the new list. */
+	pluginsSetTrust(trusted: boolean): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.setTrust(trusted));
+	}
+
+	/** A file of a plugin (its main module) as text. */
+	pluginsReadFile(source: PluginSourceKind, directoryName: string, file: string): Promise<string> {
+		return typed(() => this.bridge.plugins.readFile(source, directoryName, file));
 	}
 
 	// ---------- assets and embedded fonts ----------

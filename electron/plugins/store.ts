@@ -2,6 +2,7 @@
 // design file; its handle lives as long as the effect that opened it, so closing the window,
 // opening another file, or unloading the plugin closes (and checkpoints) the database.
 
+import path from 'node:path';
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import type { DesignDocument, Transaction } from '../../src/lib/document/types';
 import type { CommitResult, LoadedDocument, StoreInfo } from '../bridge';
@@ -19,6 +20,7 @@ interface OpenStore {
 
 export class StoreService extends Service {
 	private readonly stores = new Map<number, OpenStore>();
+	private readonly changeListeners = new Set<(sender: SenderHandle) => void>();
 
 	constructor(ctx: Context) {
 		super(ctx, 'store');
@@ -52,6 +54,7 @@ export class StoreService extends Service {
 			};
 		}, `store:file ${file.path}`);
 		this.stores.set(sender.id, { file, release });
+		this.notifyChanged(sender);
 		return this.infoOf(file);
 	}
 
@@ -103,6 +106,27 @@ export class StoreService extends Service {
 		if (!open) return;
 		this.stores.delete(sender.id);
 		await open.release();
+		this.notifyChanged(sender);
+	}
+
+	/** Called after a window's document file was attached or closed; returns the unsubscribe. */
+	onChange(listener: (sender: SenderHandle) => void): () => void {
+		this.changeListeners.add(listener);
+		return () => {
+			this.changeListeners.delete(listener);
+		};
+	}
+
+	private notifyChanged(sender: SenderHandle): void {
+		for (const listener of Array.from(this.changeListeners)) listener(sender);
+	}
+
+	/** The directory of the sender's saved document; `null` without one or for an untitled one. */
+	projectDirectory(sender: SenderHandle): string | null {
+		const open = this.stores.get(sender.id);
+		if (!open) return null;
+		if (this.infoOf(open.file).untitled) return null;
+		return path.dirname(open.file.path);
 	}
 
 	/** Paths of every open file, sorted: part of the observable state in tests. */
