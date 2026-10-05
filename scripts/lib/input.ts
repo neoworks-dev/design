@@ -30,45 +30,42 @@ const NAMED_KEYS: Record<string, { code: string; keyCode: number; text?: string 
 	Shift: { code: 'ShiftLeft', keyCode: 16 }
 };
 
-/** Bitmask of CDP modifiers for names such as "Alt+Control"; empty for none. */
-export function modifierMask(names: string | undefined): number {
-	if (names === undefined || names === '') return 0;
-	return names.split('+').reduce((bits, name) => bits | modifierBit(name), 0);
-}
-
 export async function click(
 	cdp: CdpSession,
 	point: Point,
 	button: MouseButton = 'left',
-	clickCount = 1,
-	modifiers = 0
+	clickCount = 1
 ): Promise<void> {
-	await mouse(cdp, 'mouseMoved', point, 'none', 0, 0, modifiers);
+	await mouse(cdp, 'mouseMoved', point, 'none', 0);
 	for (let count = 1; count <= clickCount; count += 1) {
-		await mouse(cdp, 'mousePressed', point, button, count, 0, modifiers);
-		await mouse(cdp, 'mouseReleased', point, button, count, 0, modifiers);
+		await mouse(cdp, 'mousePressed', point, button, count);
+		await mouse(cdp, 'mouseReleased', point, button, count);
 	}
 }
 
 // Stepped so pointermove handlers that accumulate deltas see the whole drag.
-export async function drag(
-	cdp: CdpSession,
-	from: Point,
-	to: Point,
-	steps = 12,
-	modifiers = 0
-): Promise<void> {
-	await mouse(cdp, 'mouseMoved', from, 'none', 0, 0, modifiers);
-	await mouse(cdp, 'mousePressed', from, 'left', 1, 0, modifiers);
-	for (let step = 1; step <= steps; step += 1) {
-		const progress = step / steps;
-		const point = {
-			x: from.x + (to.x - from.x) * progress,
-			y: from.y + (to.y - from.y) * progress
-		};
-		await mouse(cdp, 'mouseMoved', point, 'left', 0, 1, modifiers);
+export async function drag(cdp: CdpSession, from: Point, to: Point, steps = 12): Promise<void> {
+	await dragPath(cdp, [from, to], steps);
+}
+
+/** Press at the first point, move through every following point (stepped per leg), release. */
+export async function dragPath(cdp: CdpSession, points: Point[], steps = 12): Promise<void> {
+	const [first, ...rest] = points;
+	await mouse(cdp, 'mouseMoved', first, 'none', 0);
+	await mouse(cdp, 'mousePressed', first, 'left', 1);
+	let from = first;
+	for (const to of rest) {
+		for (let step = 1; step <= steps; step += 1) {
+			const progress = step / steps;
+			const point = {
+				x: from.x + (to.x - from.x) * progress,
+				y: from.y + (to.y - from.y) * progress
+			};
+			await mouse(cdp, 'mouseMoved', point, 'left', 0, 1);
+		}
+		from = to;
 	}
-	await mouse(cdp, 'mouseReleased', to, 'left', 1, 0, modifiers);
+	await mouse(cdp, 'mouseReleased', from, 'left', 1);
 }
 
 export async function scroll(
@@ -114,14 +111,20 @@ export async function pressChord(cdp: CdpSession, chord: string): Promise<void> 
 	await cdp.send('Input.dispatchKeyEvent', { ...base, type: 'keyUp' });
 }
 
+let heldModifiers = 0;
+
+/** Mouse events carry these modifiers (Alt, Control, Meta, Shift) until `holdModifiers([])`. */
+export function holdModifiers(names: string[]): void {
+	heldModifiers = names.reduce((bits, name) => bits | modifierBit(name), 0);
+}
+
 async function mouse(
 	cdp: CdpSession,
 	type: string,
 	point: Point,
 	button: MouseButton | 'none',
 	clickCount: number,
-	buttons = 0,
-	modifiers = 0
+	buttons = 0
 ): Promise<void> {
 	await cdp.send('Input.dispatchMouseEvent', {
 		type,
@@ -130,7 +133,7 @@ async function mouse(
 		button,
 		buttons,
 		clickCount,
-		modifiers
+		modifiers: heldModifiers
 	});
 }
 
