@@ -5,6 +5,7 @@ import { at } from '../../lib/editing/fixtures/editingFixture';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import { selectionProviders } from '../../lib/selecting/fixtures/selectionFixture';
 import type { ShapeHandleGesture } from '../../lib/selecting/shapeHandleGesture';
+import { ShapeHandleInteraction } from '../../lib/selecting/shapeHandleInteraction';
 import { shapeHandles } from '../../lib/selecting/shapeHandles';
 import shapeHandlesPlugin from './index';
 
@@ -29,8 +30,9 @@ function scene(): ReturnType<typeof buildDocument> {
 describePlugin('shape-handles', shapeHandlesPlugin, {
 	providers: selectionProviders(),
 	contributes: ({ ctx }) => {
-		const ids = ctx.regions.registry.list().map((entry) => entry.id);
-		expect(ids).toContain('shape-handles/overlay');
+		const ids = ctx.overlay.registry.list().map((entry) => entry.id);
+		expect(ids).toContain('shape-handles/handles');
+		expect(ctx.canvasInput.claimants.has('shape-handles/handles')).toBe(true);
 	}
 });
 
@@ -43,10 +45,9 @@ afterEach(async () => {
 
 async function mountHandles(): Promise<{ ctx: Context; gesture: ShapeHandleGesture }> {
 	mounted = await mountPlugin(shapeHandlesPlugin, { providers: selectionProviders(scene()) });
-	const entry = mounted.ctx.regions.registry
-		.list()
-		.find((candidate) => candidate.id === 'shape-handles/overlay');
-	return { ctx: mounted.ctx, gesture: entry?.props?.gesture as ShapeHandleGesture };
+	const claimant: unknown = mounted.ctx.canvasInput.claimants.get('shape-handles/handles');
+	if (!(claimant instanceof ShapeHandleInteraction)) throw new Error('shape handles missing');
+	return { ctx: mounted.ctx, gesture: claimant.gesture };
 }
 
 function handleOf(ctx: Context, id: string, handleId: string): never {

@@ -12,8 +12,12 @@ import { editingProviders } from '../../lib/editing/fixtures/editingFixture';
 import { imageSizeOf } from '../../lib/editing/imageCrop';
 import { prepareImage } from '../../lib/editing/placeImages';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
-import { fakeOverlay, selectionScene } from '../../lib/selecting/fixtures/selectionFixture';
-import type { ResizeGesture } from '../../lib/selecting/resizeGesture';
+import {
+	fakeCanvasInput,
+	fakeOverlay,
+	handleInteractionOf,
+	selectionScene
+} from '../../lib/selecting/fixtures/selectionFixture';
 import type { ToolPointerEvent } from '../../lib/tools/protocol';
 import coreTools from '../core-tools';
 import desktopBridge from '../desktop-bridge';
@@ -86,6 +90,7 @@ function providers(bridge: BrowserBridge): Plugin[] {
 		spatial,
 		hitTest,
 		fakeOverlay,
+		fakeCanvasInput,
 		snapping,
 		fakeViewport,
 		fakeRenderer,
@@ -102,8 +107,11 @@ describePlugin('tool-image', toolImage, {
 		expect(ctx.commands.has('image.place')).toBe(true);
 		const chords = ctx.keymap.registry.listAll().map((binding) => binding.chord);
 		expect(chords).toContain('ctrl+shift+k');
-		expect(ctx.regions.contributions('canvas-overlay').map((entry) => entry.id)).toContain(
+		expect(ctx.overlay.registry.list().map((entry) => entry.id)).toContain(
 			'tool-image/crop-handles'
+		);
+		expect(ctx.overlay.registry.list().map((entry) => entry.id)).toContain(
+			'tool-image/crop-outline'
 		);
 	}
 });
@@ -341,10 +349,7 @@ describe('crop', () => {
 		const { ctx } = await mountImage([toolMove, transformHandles]);
 		const id = addImageNode(ctx);
 		ctx.selection.select([id]);
-		const entry = ctx.regions.registry
-			.list()
-			.find((candidate) => candidate.id === 'transform-handles/overlay');
-		const gesture = entry?.props?.gesture as ResizeGesture;
+		const gesture = handleInteractionOf(ctx, 'transform-handles/handles').gesture;
 		gesture.begin('e', { x: 2100, y: 50 });
 		gesture.update({ x: 2060, y: 50 }, { ...NONE, ctrlKey: true });
 		gesture.commit();

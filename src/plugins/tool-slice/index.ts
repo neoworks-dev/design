@@ -3,14 +3,14 @@ import ScissorsIcon from 'phosphor-svelte/lib/ScissorsIcon';
 import { createNode } from '../../lib/document';
 import { CreationPreview, createCreationTool } from '../../lib/editing/creationTool.svelte';
 import CreationPreviewOverlay from '../../lib/editing/CreationPreviewOverlay.svelte';
-import SliceOutlines from './SliceOutlines.svelte';
+import { SliceOutlines } from './sliceOutlines';
 
 // The Slice tool (S): drag or click to create an export region. A slice has no fill and does not
 // render; it is a dashed outline on the canvas (the overlay below) and carries export settings,
 // one PNG at 1x to begin with, which the export epic consumes.
 export default {
 	name: 'tool-slice',
-	inject: ['tools', 'document', 'selection', 'viewport', 'regions'],
+	inject: ['tools', 'document', 'selection', 'viewport', 'overlay', 'canvasInput'],
 	apply(ctx: Context): void {
 		const preview = new CreationPreview();
 		const handlers = createCreationTool(
@@ -46,14 +46,17 @@ export default {
 			'slice tool'
 		);
 
+		const outlines = new SliceOutlines(ctx);
 		ctx.effect(
 			() =>
-				ctx.regions.register({
-					id: 'tool-slice/outlines',
-					region: 'canvas-overlay',
-					component: SliceOutlines
+				ctx.overlay.register({
+					id: outlines.id,
+					order: 20,
+					track: () => outlines.track(),
+					draw: (frame) => outlines.draw(frame)
 				}),
 			'slice outlines overlay'
 		);
+		ctx.effect(() => ctx.canvasInput.claim(outlines), 'slice labels pointer claim');
 	}
 };

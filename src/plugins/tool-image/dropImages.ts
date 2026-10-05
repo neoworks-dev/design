@@ -11,6 +11,8 @@ import {
 	type PreparedImage,
 	type Rasterize
 } from '../../lib/editing/placeImages';
+import { applyEdit } from '../../lib/editing/contribute';
+import { planSvgImport } from '../../lib/editing/planSvgImport';
 import type { Point } from '../../lib/tools/protocol';
 
 const FILLABLE_TYPES: readonly string[] = ['RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'VECTOR'];
@@ -45,6 +47,53 @@ export async function prepareFiles(
 		}
 	}
 	return prepared;
+}
+
+function isSvgFile(file: File): boolean {
+	return file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+}
+
+const SVG_GAP = 24;
+
+/**
+ * Dropped `.svg` files become vector layers when an importer (the `svg-import` plugin) is loaded,
+ * one undo step per file, side by side from the drop point. Returns the files that were not
+ * imported that way, for the image path.
+ */
+export async function importDroppedSvgs(
+	ctx: Context,
+	files: readonly File[],
+	world: Point
+): Promise<File[]> {
+	const remaining: File[] = [];
+	let cursor = world;
+	for (const file of files) {
+		if (!isSvgFile(file)) {
+			remaining.push(file);
+			continue;
+		}
+		const plan = planSvgImport(
+			ctx,
+			await file.text(),
+			{
+				mode: 'here',
+				documentId: ctx.document.documentId,
+				currentPageId: ctx.document.currentPageId,
+				selection: [],
+				viewport: ctx.viewport.visibleRect(),
+				cursor
+			},
+			file.name.replace(/\.svg$/i, '')
+		);
+		if (plan === null || !applyEdit(ctx, plan.changes, 'Import SVG')) {
+			remaining.push(file);
+			continue;
+		}
+		ctx.selection.select(plan.newRootIds);
+		const [root] = plan.newRootIds;
+		cursor = { x: cursor.x + ctx.document.absoluteBounds(root).width + SVG_GAP, y: cursor.y };
+	}
+	return remaining;
 }
 
 function fillableShapeAt(ctx: Context, world: Point): string | undefined {
@@ -94,7 +143,8 @@ export function watchDrops(ctx: Context, element: HTMLElement, rasterize?: Raste
 		});
 		const files = Array.from(event.dataTransfer.files);
 		const altKey = event.altKey;
-		prepareFiles(ctx, files, rasterize)
+		importDroppedSvgs(ctx, files, world)
+			.then((rest) => prepareFiles(ctx, rest, rasterize))
 			.then((images) => dropImages(ctx, images, world, { altKey }))
 			.catch((error: unknown) => ctx.logger.error('image drop failed', error));
 	};

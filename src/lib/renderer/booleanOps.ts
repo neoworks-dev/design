@@ -86,7 +86,12 @@ function operandPath(
 	return own(builder.detachAndDelete());
 }
 
-function localPath(kit: CanvasKit, source: OperandSource, child: SceneNode, own: Own): Path | null {
+export function localPath(
+	kit: CanvasKit,
+	source: OperandSource,
+	child: SceneNode,
+	own: Own
+): Path | null {
 	if (child.type === 'BOOLEAN_OPERATION') return booleanResultPath(kit, source, child, own);
 	if (child.type === 'GROUP') return unionOf(kit, operandPaths(kit, source, child.id, own), own);
 	const outline = nodeOutline(child);

@@ -18,6 +18,7 @@ import type {
 	DocumentChangeEvent,
 	DocumentReplaceEvent
 } from '../document';
+import type { ClipboardPayload } from '../editing/clipboardPayload';
 import type { NodeId } from '../document/types';
 import type { SurfaceResetReason } from '../renderer/surface';
 import type { Camera } from '../viewport/camera';
@@ -52,6 +53,30 @@ declare module '@neoworks/extension-system' {
 		 * Call as `ctx.waterfall('tools/snap-point', point, () => point)`.
 		 */
 		'tools/snap-point'(point: Point, next: () => Point): Point;
+
+		/**
+		 * Dispatch mode: waterfall. SVG markup to import as vector layers; the `svg-import` plugin
+		 * answers with the nodes in clipboard payload form (or `next()`'s null when `markup` is not
+		 * a valid SVG). Call as `ctx.waterfall('clipboard/svg-payload', markup, name, () => null)`.
+		 */
+		'clipboard/svg-payload'(
+			markup: string,
+			name: string | undefined,
+			next: () => ClipboardPayload | null
+		): ClipboardPayload | null;
+
+		/**
+		 * Dispatch mode: emit. An SVG import left things out or approximated them; `source` names the
+		 * file when it came from one. Whoever shows notices (a toast host) listens.
+		 */
+		'svg-import/warnings'(warnings: string[], source: string | undefined): void;
+
+		/**
+		 * Dispatch mode: waterfall. Whether a nudge should land on whole pixels. The snapping
+		 * service answers true while "Snap to pixel grid" is on. Call as
+		 * `ctx.waterfall('nudge/pixel-snap', false, () => false)`.
+		 */
+		'nudge/pixel-snap'(enabled: boolean, next: () => boolean): boolean;
 
 		/**
 		 * Dispatch mode: emit. Double click (or Enter) on a text or vector node, or Alt+double click

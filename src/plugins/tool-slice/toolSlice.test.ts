@@ -1,6 +1,7 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
 import { afterEach, describe, expect, it } from 'vitest';
 import { editingProviders } from '../../lib/editing/fixtures/editingFixture';
+import { fakeCanvasInput, fakeOverlay } from '../../lib/selecting/fixtures/selectionFixture';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import type { ToolPointerEvent } from '../../lib/tools/protocol';
 import coreTools from '../core-tools';
@@ -14,7 +15,7 @@ const fakeViewport = {
 } as Plugin;
 
 function providers(): Plugin[] {
-	return [...editingProviders(), coreTools, fakeViewport];
+	return [...editingProviders(), coreTools, fakeViewport, fakeOverlay, fakeCanvasInput];
 }
 
 describePlugin('tool-slice', toolSlice, {
@@ -23,9 +24,8 @@ describePlugin('tool-slice', toolSlice, {
 		expect(ctx.tools.get('slice')).toBeDefined();
 		const chords = ctx.keymap.registry.listAll().map((binding) => binding.chord.toLowerCase());
 		expect(chords).toContain('s');
-		expect(ctx.regions.contributions('canvas-overlay').map((entry) => entry.id)).toContain(
-			'tool-slice/outlines'
-		);
+		expect(ctx.overlay.registry.list().map((entry) => entry.id)).toContain('tool-slice/outlines');
+		expect(ctx.canvasInput.claimants.has('tool-slice/outlines')).toBe(true);
 	}
 });
 

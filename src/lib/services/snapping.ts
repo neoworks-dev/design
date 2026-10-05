@@ -26,6 +26,8 @@ import {
 	type SnapGuide,
 	type SnapResult
 } from '../snapping/snap';
+import { snapToLines, type SnapLine } from '../snapping/lineSnap';
+import { pixelDelta } from '../snapping/pixel';
 import { snapSpacing, type GapGuide } from '../snapping/spacing';
 import type { DocumentService } from './document';
 import type { SnappingState } from './snappingState.svelte';
@@ -81,6 +83,8 @@ interface CandidateSet {
 }
 
 export class SnappingService extends Service {
+	private readonly lineSources = new Set<() => readonly SnapLine[]>();
+
 	constructor(
 		ctx: Context,
 		private readonly document: DocumentService,
@@ -121,8 +125,73 @@ export class SnappingService extends Service {
 		return this.thresholdPixels / this.viewport.zoom;
 	}
 
+	get pixelSnapEnabled(): boolean {
+		return this.state.pixelSnap;
+	}
+
+	setPixelSnap(enabled: boolean): void {
+		this.state.pixelSnap = enabled;
+	}
+
+	/**
+	 * Object snapping (when "Snap to objects" is on) then pixel grid snapping (when on): an axis
+	 * an object already snapped keeps that shift, every other axis rounds to whole pixels.
+	 */
 	snap(moving: Rect, request: SnapRequest = {}): SnapOutcome {
-		if (!this.state.enabled || request.bypass === true) return this.noSnap();
+		if (request.bypass === true) return this.noSnap();
+		if (!this.state.enabled && !this.state.pixelSnap) return this.noSnap();
+		let outcome: SnapOutcome = { delta: { x: 0, y: 0 }, guides: [], gaps: [] };
+		const lineAxes: Axis[] = [];
+		if (this.state.enabled) {
+			outcome = this.snapToObjects(moving, request);
+			outcome = this.withLineSnap(moving, outcome, request, lineAxes);
+		}
+		if (this.state.pixelSnap) outcome = this.withPixelSnap(moving, outcome, request, lineAxes);
+		this.state.guides = outcome.guides;
+		this.state.gaps = outcome.gaps;
+		return outcome;
+	}
+
+	/**
+	 * Adds lines objects snap to besides other objects (ruler guides). `source` is read on every
+	 * snap, so it can follow reactive state. The disposer removes exactly this source.
+	 */
+	addLineSource(source: () => readonly SnapLine[]): () => void {
+		this.lineSources.add(source);
+		return () => void this.lineSources.delete(source);
+	}
+
+	private withLineSnap(
+		moving: Rect,
+		outcome: SnapOutcome,
+		request: SnapRequest,
+		snappedAxes: Axis[]
+	): SnapOutcome {
+		if (this.lineSources.size === 0) return outcome;
+		const lines = [...this.lineSources].flatMap((source) => source());
+		const shifts = snapToLines(moving, lines, {
+			threshold: this.threshold,
+			axes: request.axes,
+			lines: request.lines
+		});
+		const delta = { ...outcome.delta };
+		let guides = [...outcome.guides];
+		let gaps = [...outcome.gaps];
+		for (const axis of ['x', 'y'] as const) {
+			const shift = shifts[axis];
+			if (shift === undefined) continue;
+			const objectSnapped =
+				guides.some((guide) => guide.axis === axis) || gaps.some((gap) => gap.axis === axis);
+			if (objectSnapped && Math.abs(outcome.delta[axis]) < Math.abs(shift)) continue;
+			delta[axis] = shift;
+			guides = guides.filter((guide) => guide.axis !== axis);
+			gaps = gaps.filter((gap) => gap.axis !== axis);
+			snappedAxes.push(axis);
+		}
+		return { delta, guides, gaps };
+	}
+
+	private snapToObjects(moving: Rect, request: SnapRequest): SnapOutcome {
 		const candidates = this.candidateSet(moving, request);
 		const objectRects = [...candidates.neighbours];
 		if (candidates.parent) objectRects.push(candidates.parent);
@@ -131,10 +200,25 @@ export class SnappingService extends Service {
 			axes: request.axes,
 			lines: request.lines
 		});
-		const outcome = this.withSpacing(moving, candidates.neighbours, objects, request);
-		this.state.guides = outcome.guides;
-		this.state.gaps = outcome.gaps;
-		return outcome;
+		return this.withSpacing(moving, candidates.neighbours, objects, request);
+	}
+
+	private withPixelSnap(
+		moving: Rect,
+		outcome: SnapOutcome,
+		request: SnapRequest,
+		lineAxes: readonly Axis[]
+	): SnapOutcome {
+		const rounding = pixelDelta(moving, { axes: request.axes, lines: request.lines });
+		const delta = { ...outcome.delta };
+		for (const axis of ['x', 'y'] as const) {
+			const objectSnapped =
+				lineAxes.includes(axis) ||
+				outcome.guides.some((guide) => guide.axis === axis) ||
+				outcome.gaps.some((gap) => gap.axis === axis);
+			if (!objectSnapped) delta[axis] = rounding[axis];
+		}
+		return { ...outcome, delta };
 	}
 
 	/** Pointer up or cancel: nothing is snapped any more. */

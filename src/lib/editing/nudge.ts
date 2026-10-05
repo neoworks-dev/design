@@ -42,12 +42,29 @@ export function translated(transform: Matrix2x3, x: number, y: number): Matrix2x
 	];
 }
 
+/** The nudge, adjusted so the node's absolute position ends on a whole pixel when asked. */
+function pixelNudge(
+	reader: DocumentReader,
+	id: NodeId,
+	deltaX: number,
+	deltaY: number,
+	roundToPixel: boolean
+): { x: number; y: number } {
+	if (!roundToPixel) return { x: deltaX, y: deltaY };
+	const [[, , originX], [, , originY]] = reader.cache.absoluteTransform(id);
+	return {
+		x: Math.round(originX + deltaX) - originX,
+		y: Math.round(originY + deltaY) - originY
+	};
+}
+
 /** Move the selected nodes by (`deltaX`, `deltaY`) screen pixels. Locked nodes stay put. */
 export function planNudge(
 	reader: DocumentReader,
 	ids: readonly NodeId[],
 	deltaX: number,
-	deltaY: number
+	deltaY: number,
+	roundToPixel = false
 ): NudgePlan {
 	const plan: NudgePlan = { changes: [], blockedByAutoLayout: [] };
 	for (const id of topLevelIds(reader, ids)) {
@@ -58,7 +75,8 @@ export function planNudge(
 			plan.blockedByAutoLayout.push(id);
 			continue;
 		}
-		const delta = parentDelta(reader, node, deltaX, deltaY);
+		const screenDelta = pixelNudge(reader, id, deltaX, deltaY, roundToPixel);
+		const delta = parentDelta(reader, node, screenDelta.x, screenDelta.y);
 		const transform = translated(node.transform, delta.x, delta.y);
 		plan.changes.push(...planSetProps(reader, id, { transform }));
 	}

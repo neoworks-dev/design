@@ -13,6 +13,7 @@ import {
 	fallbackText
 } from '../../lib/editing/clipboardPayload';
 import { planDelete } from '../../lib/editing/nodeCommands';
+import { planSvgImport } from '../../lib/editing/planSvgImport';
 import {
 	buildImageNode,
 	buildTextNode,
@@ -92,6 +93,8 @@ async function planFromClipboard(
 		return planPaste(ctx.document.reader, payload, settingsFor(ctx, mode, args));
 	if (content.png !== null) return planImage(ctx, content.png, mode, args);
 	if (content.text !== null && looksLikeSvg(new TextEncoder().encode(content.text))) {
+		const vectors = planSvgImport(ctx, content.text, settingsFor(ctx, mode, args));
+		if (vectors !== null) return vectors;
 		return planSvgImage(ctx, content.text, mode, args);
 	}
 	if (content.text !== null && content.text.trim() !== '') {
@@ -104,7 +107,7 @@ async function planFromClipboard(
 	return null;
 }
 
-/** SVG markup on the clipboard is pasted as an image (rasterised once), not as text. */
+/** SVG markup nothing imports as vectors is pasted as an image (rasterised once), not as text. */
 async function planSvgImage(
 	ctx: Context,
 	markup: string,

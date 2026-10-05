@@ -3,11 +3,7 @@
 // result is derived (src/lib/renderer/booleanOps.ts); the node only keeps its operands.
 
 import {
-	composeMatrices,
 	createNode,
-	generateNodeId,
-	planRemove,
-	translationMatrix,
 	type Change,
 	type DocumentReader,
 	type NodeId,
@@ -16,7 +12,7 @@ import {
 	type VectorNetwork
 } from '../document';
 import type { BooleanOperationNode } from '../document/types';
-import { normalizeNetwork } from '../vector/geometry';
+import { planFlattenNode, type FlattenPlan } from './flatten';
 import { planWrap } from './grouping';
 import { sortByDocumentOrder, topLevelIds } from './selectionOps';
 
@@ -112,40 +108,16 @@ function nameAfterChange(node: BooleanOperationNode, operation: BooleanOperation
 	return node.name;
 }
 
-export interface FlattenPlan {
-	changes: Change[];
-	vectorId: NodeId;
-}
-
 /**
  * Replace the boolean node `id` (and its operands) by one VECTOR node holding `network`, in the
  * boolean's place with its paint, effects and name. `network` is in the boolean's local space.
+ * Flattening other nodes is `planFlattenNode` (flatten.ts).
  */
 export function planFlatten(
 	reader: DocumentReader,
 	id: NodeId,
 	network: VectorNetwork
 ): FlattenPlan | null {
-	const node = reader.requireNode(id);
-	if (node.type !== 'BOOLEAN_OPERATION' || network.vertices.length === 0) return null;
-	const normalized = normalizeNetwork(network);
-	const vector = createNode('VECTOR', {
-		id: generateNodeId(),
-		name: node.name,
-		parentId: node.parentId,
-		index: node.index,
-		transform: composeMatrices(
-			node.transform,
-			translationMatrix(normalized.origin.x, normalized.origin.y)
-		),
-		width: normalized.width,
-		height: normalized.height,
-		network: normalized.network,
-		fills: node.fills,
-		strokes: node.strokes,
-		effects: node.effects,
-		opacity: node.opacity,
-		blendMode: node.blendMode
-	});
-	return { changes: [...planRemove(reader, id), { t: 'add', node: vector }], vectorId: vector.id };
+	if (reader.requireNode(id).type !== 'BOOLEAN_OPERATION') return null;
+	return planFlattenNode(reader, id, network);
 }

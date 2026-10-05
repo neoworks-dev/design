@@ -34,6 +34,7 @@ import spatial from './spatial';
 import hitTest from './hit-test';
 import snapping from './snapping';
 import fileSession from './file-session';
+import flatten from './flatten';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
@@ -42,7 +43,9 @@ import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
+import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
+import svgImport from './svg-import';
 import textEdit from './text-edit';
 import textFormat from './text-format';
 import textLayout from './text-layout';
@@ -81,6 +84,9 @@ export const builtinPlugins: Plugin[] = [
 	viewport,
 	overlay,
 	pixelGrid,
+	rulersGuides,
+	flatten,
+	svgImport,
 	debug,
 	desktopBridge,
 	fonts,

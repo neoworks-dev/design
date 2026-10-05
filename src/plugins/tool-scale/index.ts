@@ -5,7 +5,7 @@ import { pickAt } from '../../lib/selecting/pick';
 import { ResizeFeedbackState } from '../../lib/selecting/resizeFeedback.svelte';
 import { ResizeGesture } from '../../lib/selecting/resizeGesture';
 import { ScaleSession } from '../../lib/selecting/scaleSession';
-import TransformHandles from '../../lib/selecting/TransformHandles.svelte';
+import { contributeHandles, HandleInteraction } from '../../lib/selecting/handleInteraction';
 import type { ToolPointerEvent } from '../../lib/tools/protocol';
 
 const PRIMARY_BUTTON = 0;
@@ -25,7 +25,8 @@ export default {
 		'snapping',
 		'viewport',
 		'hitTest',
-		'regions'
+		'overlay',
+		'canvasInput'
 	],
 	apply(ctx: Context): void {
 		const feedback = new ResizeFeedbackState();
@@ -57,15 +58,9 @@ export default {
 			'scale tool'
 		);
 
-		ctx.effect(
-			() =>
-				ctx.regions.register({
-					id: 'tool-scale/handles',
-					region: 'canvas-overlay',
-					component: TransformHandles,
-					props: { feedback, gesture, toolId: 'scale' }
-				}),
-			'scale handles overlay'
+		contributeHandles(
+			ctx,
+			new HandleInteraction(ctx, feedback, gesture, { id: 'tool-scale/handles', toolId: 'scale' })
 		);
 
 		ctx.effect(() => watchGestureKeys([gesture]), 'scale key handling');

@@ -1,6 +1,8 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type { Point, ToolKeyEvent, ToolPointerEvent } from '../../lib/tools/protocol';
-import { bindCanvasCursor } from './cursor.svelte';
+import { Registry } from '../../lib/registries/registry.svelte';
+import type { PointerClaimant, PointerGrab } from '../../lib/tools/claim';
+import { bindCanvasCursor, type CursorOverride } from './cursor.svelte';
 import type { ModifierState } from './modifiers.svelte';
 
 declare module '@neoworks/extension-system' {
@@ -9,6 +11,7 @@ declare module '@neoworks/extension-system' {
 	}
 }
 
+const PRIMARY_BUTTON = 0;
 const MIDDLE_BUTTON = 1;
 const SECONDARY_BUTTON = 2;
 const DOUBLE_CLICK_MILLISECONDS = 500;
@@ -22,15 +25,54 @@ export const MIDDLE_DRAG_TOOL_ID = 'hand';
  * canvas has focus. Middle-drag borrows the hand tool, Space-hold is the tools service's `hold`.
  */
 export class CanvasInputService extends Service {
+	/** Interactive overlay parts that take a press before the active tool does. */
+	readonly claimants = new Registry<PointerClaimant>();
 	private pointerId: number | undefined;
 	private middleDragActive = false;
+	private grab: PointerGrab | undefined;
 	private lastPress: { time: number; x: number; y: number; count: number } | undefined;
 
 	constructor(
 		ctx: Context,
-		readonly modifiers: ModifierState
+		readonly modifiers: ModifierState,
+		private readonly cursorOverride: CursorOverride
 	) {
 		super(ctx, 'canvasInput');
+	}
+
+	/** Registers a claimant; the disposer also cancels a grab still running. */
+	claim(claimant: PointerClaimant): () => void {
+		const dispose = this.claimants.register(claimant);
+		return () => {
+			dispose();
+			this.cancelGrab();
+		};
+	}
+
+	private cancelGrab(): void {
+		const grab = this.grab;
+		this.grab = undefined;
+		grab?.cancel();
+	}
+
+	private claimAt(event: ToolPointerEvent): PointerGrab | undefined {
+		for (const claimant of this.claimants.list()) {
+			const grab = claimant.claim(event);
+			if (grab !== undefined) return grab;
+		}
+		return undefined;
+	}
+
+	/** Returns whether the pointer rests on a claimant. */
+	private updateCursorOverride(event: ToolPointerEvent): boolean {
+		for (const claimant of this.claimants.list()) {
+			const cursor = claimant.cursorAt?.(event);
+			if (cursor === undefined) continue;
+			this.cursorOverride.value = cursor;
+			return true;
+		}
+		this.cursorOverride.value = undefined;
+		return false;
 	}
 
 	/** Listen on `element` until the returned disposer runs. Every listener is an effect. */
@@ -40,7 +82,10 @@ export class CanvasInputService extends Service {
 			this.ctx.effect(() => this.listenKeyboard(element), 'canvas-input/keyboard'),
 			this.ctx.effect(() => this.listenFocus(element), 'canvas-input/focus'),
 			this.ctx.effect(() => this.listenWheelAndMenu(element), 'canvas-input/wheel and menu'),
-			this.ctx.effect(() => bindCanvasCursor(this.ctx.tools, element), 'canvas-input/cursor')
+			this.ctx.effect(
+				() => bindCanvasCursor(this.ctx.tools, this.cursorOverride, element),
+				'canvas-input/cursor'
+			)
 		];
 		return () => disposers.reverse().forEach((dispose) => void dispose());
 	}
@@ -59,7 +104,10 @@ export class CanvasInputService extends Service {
 		element.addEventListener('pointermove', move);
 		element.addEventListener('pointerup', up);
 		element.addEventListener('pointercancel', up);
-		const leave = (): void => this.ctx.tools.pointerLeave();
+		const leave = (): void => {
+			this.cursorOverride.value = undefined;
+			this.ctx.tools.pointerLeave();
+		};
 		element.addEventListener('pointerleave', leave);
 		return () => {
 			element.removeEventListener('pointerleave', leave);
@@ -68,6 +116,8 @@ export class CanvasInputService extends Service {
 			element.removeEventListener('pointerup', up);
 			element.removeEventListener('pointercancel', up);
 			this.endMiddleDrag();
+			this.cancelGrab();
+			this.cursorOverride.value = undefined;
 			this.pointerId = undefined;
 		};
 	}
@@ -81,11 +131,13 @@ export class CanvasInputService extends Service {
 		this.pointerId = event.pointerId;
 		element.setPointerCapture(event.pointerId);
 		event.preventDefault();
+		const toolEvent = this.toolEvent(element, event);
+		if (event.button === PRIMARY_BUTTON) {
+			this.grab = this.claimAt(toolEvent);
+			if (this.grab !== undefined) return;
+		}
 		if (event.button === MIDDLE_BUTTON) this.beginMiddleDrag();
-		this.ctx.tools.pointerDown({
-			...this.toolEvent(element, event),
-			detail: this.clickCount(event)
-		});
+		this.ctx.tools.pointerDown({ ...toolEvent, detail: this.clickCount(event) });
 	}
 
 	/**
@@ -108,7 +160,13 @@ export class CanvasInputService extends Service {
 
 	private onPointerMove(element: HTMLCanvasElement, event: PointerEvent): void {
 		this.modifiers.update(event);
-		this.ctx.tools.pointerMove(this.toolEvent(element, event));
+		const toolEvent = this.toolEvent(element, event);
+		if (this.grab !== undefined) {
+			this.grab.move(toolEvent);
+			return;
+		}
+		if (this.pointerId === undefined && this.updateCursorOverride(toolEvent)) return;
+		this.ctx.tools.pointerMove(toolEvent);
 	}
 
 	private onPointerUp(element: HTMLCanvasElement, event: PointerEvent): void {
@@ -116,7 +174,14 @@ export class CanvasInputService extends Service {
 		if (event.pointerId !== this.pointerId) return;
 		this.pointerId = undefined;
 		if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
-		this.ctx.tools.pointerUp(this.toolEvent(element, event));
+		const toolEvent = this.toolEvent(element, event);
+		const grab = this.grab;
+		this.grab = undefined;
+		if (grab !== undefined) {
+			grab.up(toolEvent);
+			return;
+		}
+		this.ctx.tools.pointerUp(toolEvent);
 		this.endMiddleDrag();
 	}
 
