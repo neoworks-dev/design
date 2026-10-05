@@ -32,10 +32,13 @@ import type {
 	OpenFileOptions,
 	PickedImage,
 	RecentFile,
+	RestorePlan,
 	SaveFileOptions,
 	SettingsData,
 	StoreInfo,
-	Thumbnail
+	Thumbnail,
+	VersionHistoryData,
+	VersionMark
 } from '../../../electron/bridge';
 import type { Transaction } from '../../lib/document';
 
@@ -216,6 +219,26 @@ export class DesktopService extends Service {
 	/** Save: checkpoint the open file and clear its unsaved marker. */
 	storeCheckpoint(): Promise<StoreInfo> {
 		return typed(() => this.bridge.store.checkpoint());
+	}
+
+	// ---------- version history ----------
+
+	/** Marks and the newest log entries of the open file. */
+	storeVersions(): Promise<VersionHistoryData> {
+		return typed(() => this.bridge.versions.list());
+	}
+
+	storeAddVersion(name: string): Promise<VersionMark> {
+		return typed(() => this.bridge.versions.add(name));
+	}
+
+	storeDeleteVersion(id: string): Promise<void> {
+		return typed(() => this.bridge.versions.remove(id));
+	}
+
+	/** The changes that undo everything logged after `seq`; `available` is false once pruned. */
+	storeRestorePlan(seq: number): Promise<RestorePlan> {
+		return typed(() => this.bridge.versions.restorePlan(seq));
 	}
 
 	// ---------- settings ----------

@@ -103,6 +103,10 @@ export const payloadSchemas: PayloadSchemas = {
 	'store:commit': z.strictObject({
 		transactions: z.array(transactionSchema).max(MAX_TRANSACTIONS_PER_COMMIT)
 	}),
+	'versions:list': z.void(),
+	'versions:add': z.strictObject({ name: z.string().trim().min(1).max(200) }),
+	'versions:remove': z.strictObject({ id: z.string().min(1).max(64) }),
+	'versions:restorePlan': z.strictObject({ seq: z.number().int().min(0) }),
 	'store:checkpoint': z.void(),
 	'files:openInTab': z.strictObject({ path: storePath }),
 	'files:newInTab': z.void(),

@@ -98,6 +98,12 @@ const bridge: DesktopBridge = {
 		end: (sessionId) => invoke('ai:end', { sessionId }),
 		toolResult: (result) => invoke('ai:toolResult', result)
 	},
+	versions: {
+		list: () => invoke('versions:list'),
+		add: (name) => invoke('versions:add', { name }),
+		remove: (id) => invoke('versions:remove', { id }),
+		restorePlan: (seq) => invoke('versions:restorePlan', { seq })
+	},
 	settings: {
 		load: () => invoke('settings:load'),
 		save: (data) => invoke('settings:save', data)

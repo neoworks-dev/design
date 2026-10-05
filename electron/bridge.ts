@@ -6,7 +6,7 @@
 // methods to `DesktopBridge` and `preload.ts`, and register the routes from a main plugin with
 // `route()`.
 
-import type { AssetRecord, DesignDocument, Transaction } from '../src/lib/document/types';
+import type { AssetRecord, Change, DesignDocument, Transaction } from '../src/lib/document/types';
 
 // ---------- shared value types ----------
 
@@ -64,6 +64,46 @@ export interface CreateStoreRequest {
 	path: string;
 	/** The document to write into the new file; a blank one when omitted. */
 	document?: DesignDocument;
+}
+
+/** What made a version mark: the user (named), a Save, or opening the file. */
+export type VersionKind = 'named' | 'save' | 'session';
+/** A position in the transaction log with a name: the state after the transaction `seq`. */
+export interface VersionMark {
+	id: string;
+	name: string;
+	kind: VersionKind;
+	seq: number;
+	/** Milliseconds since the epoch. */
+	createdAt: number;
+}
+/** One logged transaction, without its changes, for the history list. */
+export interface LogEntrySummary {
+	seq: number;
+	id: string;
+	/** Milliseconds since the epoch. */
+	createdAt: number;
+	/** `user`, `plugin`, `ai` or `sync`. */
+	origin: string;
+	label: string;
+}
+export interface VersionHistoryData {
+	/** Position of the newest logged transaction (survives pruning); 0 before the first. */
+	latestSeq: number;
+	/** Position of the oldest transaction still logged; `latestSeq + 1` when the log is empty. */
+	oldestSeq: number;
+	marks: VersionMark[];
+	/** The newest entries, oldest first. */
+	entries: LogEntrySummary[];
+}
+/** What undoing everything after a position takes; `available` is false once it was pruned. */
+export interface RestorePlan {
+	available: boolean;
+	/** One change list that undoes the transactions after the position, newest first. */
+	changes: Change[];
+	/** Transactions it undoes. */
+	count: number;
+	latestSeq: number;
 }
 
 /** An encoded preview image, as stored in a file's `thumbnails` table. */
@@ -309,6 +349,13 @@ export interface IpcContract {
 	'store:commit': { payload: { transactions: Transaction[] }; result: CommitResult };
 	/** Save: fold the WAL into the file and clear the unsaved marker. */
 	'store:checkpoint': { payload: void; result: StoreInfo };
+	/** Version history of the open file: marks and the newest log entries. */
+	'versions:list': { payload: void; result: VersionHistoryData };
+	/** Mark the current end of the log with a name. */
+	'versions:add': { payload: { name: string }; result: VersionMark };
+	'versions:remove': { payload: { id: string }; result: void };
+	/** The changes that undo everything logged after `seq` (see `RestorePlan`). */
+	'versions:restorePlan': { payload: { seq: number }; result: RestorePlan };
 	/**
 	 * A new empty document in a temporary file in the app's `untitled` directory. `null` when the
 	 * user cancelled leaving an untitled document with edits.
@@ -470,6 +517,12 @@ export interface DesktopBridge {
 		commit(transactions: Transaction[]): Promise<CommitResult>;
 		/** Save: checkpoint the file and clear its unsaved marker. */
 		checkpoint(): Promise<StoreInfo>;
+	};
+	versions: {
+		list(): Promise<VersionHistoryData>;
+		add(name: string): Promise<VersionMark>;
+		remove(id: string): Promise<void>;
+		restorePlan(seq: number): Promise<RestorePlan>;
 	};
 	settings: {
 		load(): Promise<SettingsData>;

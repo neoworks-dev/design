@@ -104,6 +104,12 @@ export function createBrowserBridge(): BrowserBridge {
 			commit: () => unavailable('saving files'),
 			checkpoint: () => unavailable('saving files')
 		},
+		versions: {
+			list: () => unavailable('version history'),
+			add: () => unavailable('version history'),
+			remove: () => unavailable('version history'),
+			restorePlan: () => unavailable('version history')
+		},
 		ai: {
 			providers: () => Promise.resolve([]),
 			start: () => unavailable('the AI agent'),

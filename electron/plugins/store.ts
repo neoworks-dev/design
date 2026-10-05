@@ -137,5 +137,15 @@ export const mainStorePlugin: Plugin.Object = {
 			store.commit(event.sender, request.transactions)
 		);
 		route(ctx, 'store:checkpoint', (_payload, event) => store.checkpoint(event.sender));
+		route(ctx, 'versions:list', (_payload, event) => store.current(event.sender).versionHistory());
+		route(ctx, 'versions:add', (request, event) =>
+			store.current(event.sender).addVersion(request.name)
+		);
+		route(ctx, 'versions:remove', (request, event) =>
+			store.current(event.sender).deleteVersion(request.id)
+		);
+		route(ctx, 'versions:restorePlan', (request, event) =>
+			store.current(event.sender).restorePlan(request.seq)
+		);
 	}
 };

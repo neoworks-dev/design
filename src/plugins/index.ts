@@ -100,6 +100,7 @@ import variablesCore from './variables-core';
 import variablesUi from './variables-ui';
 import styles from './styles';
 import variants from './variants';
+import versionHistory from './version-history';
 import viewport from './viewport';
 import viewTools from './view-tools';
 import zoomMenu from './zoom-menu';
@@ -279,5 +280,6 @@ export const builtinPlugins: Plugin[] = [
 	exportSvg,
 	exportPdf,
 	exportUi,
-	errorUi
+	errorUi,
+	versionHistory
 ];
