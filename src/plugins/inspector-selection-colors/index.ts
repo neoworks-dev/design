@@ -5,7 +5,7 @@ import SelectionColorsSection from './SelectionColorsSection.svelte';
 // undo step. Rows show the variable or style name when the color is bound.
 export default {
 	name: 'inspector-selection-colors',
-	inject: ['inspectors', 'document', 'selection', 'variables'],
+	inject: ['inspectors', 'document', 'selection', 'variables', 'colorPicker'],
 	apply(ctx: Context): void {
 		ctx.effect(
 			() =>

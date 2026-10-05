@@ -3,7 +3,6 @@
 	import { applyEdit } from '../../lib/editing/contribute';
 	import { getKernel } from '../../lib/kernel/context';
 	import { colorToHex } from '../../lib/ui/color';
-	import ColorSwatch from '../../lib/ui/ColorSwatch.svelte';
 	import { collectColors, planColorReplacement, type ColorRow } from './colors';
 
 	const ctx = getKernel();
@@ -38,6 +37,26 @@
 		return name;
 	}
 
+	function openPicker(event: MouseEvent, index: number): void {
+		if (!(event.currentTarget instanceof HTMLElement)) return;
+		const box = event.currentTarget.getBoundingClientRect();
+		ctx.colorPicker.open({
+			anchor: { x: box.left, y: box.top, width: box.width, height: box.height },
+			label: 'Replace color',
+			scope: 'FILL',
+			color: () => {
+				const row = rows[index];
+				if (row === undefined) return { r: 0, g: 0, b: 0, a: 1 };
+				return { ...row.color, a: 1 };
+			},
+			onchange: (color) => {
+				const row = rows[index];
+				if (row === undefined) return;
+				replace(row, index, { r: color.r, g: color.g, b: color.b });
+			}
+		});
+	}
+
 	function replace(row: ColorRow, index: number, color: RGB): void {
 		const reader = ctx.document.reader;
 		const nodes: Node[] = subtreeIds().map((id) => reader.requireNode(id));
@@ -52,11 +71,14 @@
 <div class="flex flex-col gap-1 px-3 pb-3" data-selection-colors>
 	{#each rows as row, index (index)}
 		<div class="flex items-center gap-2" data-color-row={row.key}>
-			<ColorSwatch
-				name={`Replace ${label(row)}`}
-				color={row.color}
-				onchange={(color) => replace(row, index, color)}
-			/>
+			<button
+				type="button"
+				aria-label={`Replace ${label(row)}`}
+				class="border-line size-6 shrink-0 cursor-pointer rounded border"
+				style:background={colorToHex(row.color)}
+				data-color-swatch={row.key}
+				onclick={(event) => openPicker(event, index)}
+			></button>
 			<span class="text-default min-w-0 flex-1 truncate text-xs tabular-nums">
 				{label(row)}
 			</span>

@@ -1,14 +1,15 @@
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Paint } from '../../lib/document';
+import type { Paint, RGBA } from '../../lib/document';
 import { PanelHarness, panelProviders } from '../../lib/editing/fixtures/panelHarness';
 import { describePlugin } from '../../lib/kernel/testing';
+import colorPicker from '../color-picker';
 import designPanel from '../design-panel';
 import { collectColors, planColorReplacement } from './colors';
 import inspectorSelectionColors from './index';
 
 describePlugin('inspector-selection-colors', inspectorSelectionColors, {
-	providers: panelProviders(),
+	providers: [...panelProviders(), colorPicker],
 	contributes: ({ ctx }) => {
 		expect(ctx.panels.sectionRegistry.get('design/selection-colors')).toBeDefined();
 	}
@@ -26,17 +27,18 @@ afterEach(async () => {
 });
 
 async function open(): Promise<PanelHarness> {
-	harness = await PanelHarness.create(inspectorSelectionColors, [designPanel]);
+	harness = await PanelHarness.create(inspectorSelectionColors, [designPanel, colorPicker]);
 	harness.setProps('a', { fills: [solid(1, 0, 0)] });
 	harness.setProps('b', { fills: [solid(1, 0, 0)] });
 	harness.setProps('c', { fills: [solid(0, 0, 1)] });
 	return harness;
 }
 
-function pick(panel: PanelHarness, name: string, hex: string): void {
-	const input = panel.field(name);
-	input.value = hex;
-	input.dispatchEvent(new Event('input', { bubbles: true }));
+function pick(panel: PanelHarness, name: string, color: RGBA): void {
+	panel.click(`button[aria-label="${name}"]`);
+	const request = panel.ctx.colorPicker.state.current;
+	if (request === null) throw new Error('the picker did not open');
+	request.onchange(color, 'scrub');
 	flushSync();
 }
 
@@ -51,7 +53,7 @@ describe('selection colors section', () => {
 	it('replaces a color in every usage and undoes it in one step', async () => {
 		const panel = await open();
 		panel.select(['f']);
-		pick(panel, 'Replace #ff0000', '#00ff00');
+		pick(panel, 'Replace #ff0000', { r: 0, g: 1, b: 0, a: 1 });
 		for (const id of ['a', 'b']) {
 			expect(panel.ctx.document.require(id)).toMatchObject({
 				fills: [{ color: { r: 0, g: 1, b: 0 } }]
