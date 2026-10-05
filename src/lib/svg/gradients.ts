@@ -89,7 +89,7 @@ function coordinate(
 	return number;
 }
 
-function linearMatrix(from: [number, number], to: [number, number]): Matrix2x3 {
+export function linearMatrix(from: [number, number], to: [number, number]): Matrix2x3 {
 	const vectorX = to[0] - from[0];
 	const vectorY = to[1] - from[1];
 	return [
@@ -98,7 +98,7 @@ function linearMatrix(from: [number, number], to: [number, number]): Matrix2x3 {
 	];
 }
 
-function radialMatrix(centerX: number, centerY: number, radius: number): Matrix2x3 {
+export function radialMatrix(centerX: number, centerY: number, radius: number): Matrix2x3 {
 	return [
 		[2 * radius, 0, centerX - radius],
 		[0, 2 * radius, centerY - radius]
