@@ -155,9 +155,9 @@ describe('cache', () => {
 		const milliseconds = performance.now() - started;
 		const builds = kit.engine.buildCount - built;
 		const requests = 20 * 300;
-		console.log(
-			`text layout cache: ${requests} requests, ${builds} layouts, hit rate ${(((requests - builds) / requests) * 100).toFixed(1)}%, ${milliseconds.toFixed(0)} ms`
-		);
+		const hitRate = (requests - builds) / requests;
+		expect(hitRate).toBeGreaterThanOrEqual(0.95);
+		expect(milliseconds).toBeLessThan(2000);
 		expect(builds).toBe(300);
 		nodes[7] = { ...nodes[7], paragraphs: [paragraphOf('edited')] };
 		for (const node of nodes) kit.engine.layout(node);

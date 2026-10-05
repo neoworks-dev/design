@@ -34,6 +34,7 @@ import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
 import textLayout from './text-layout';
+import toolText from './tool-text';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
@@ -81,6 +82,7 @@ export const builtinPlugins: Plugin[] = [
 	viewTools,
 	toolShapes,
 	toolFrame,
+	toolText,
 	workbenchLayout,
 	titlebar,
 	placeholderShell,
