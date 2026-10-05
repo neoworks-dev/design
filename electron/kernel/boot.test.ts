@@ -34,6 +34,7 @@ describe('bootMainKernel', () => {
 		expect(report.failed).toEqual([]);
 		expect(report.pending).toEqual([]);
 		expect(report.loaded.sort()).toEqual([
+			'main-ai',
 			'main-app',
 			'main-assets',
 			'main-clipboard',
@@ -55,7 +56,7 @@ describe('bootMainKernel', () => {
 		const root = createMainContext({ writeLine: () => {} });
 		const reversed = [...mainPlugins(testPluginOptions(host))].reverse();
 		const report = await bootMainKernel(root, reversed);
-		expect(report.loaded).toHaveLength(13);
+		expect(report.loaded).toHaveLength(14);
 		expect(report.pending).toEqual([]);
 	});
 
@@ -86,6 +87,7 @@ describe('bootMainKernel', () => {
 		expect(report.failed[0].plugin).toBe('main-ipc');
 		// everything that needs ipc waits instead of running without its sender policy
 		expect(report.pending.map((entry) => entry.plugin).sort()).toEqual([
+			'main-ai',
 			'main-app',
 			'main-assets',
 			'main-clipboard',

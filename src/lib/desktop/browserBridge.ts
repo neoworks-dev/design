@@ -87,6 +87,14 @@ export function createBrowserBridge(): BrowserBridge {
 			commit: () => unavailable('saving files'),
 			checkpoint: () => unavailable('saving files')
 		},
+		ai: {
+			providers: () => Promise.resolve([]),
+			start: () => unavailable('the AI agent'),
+			send: () => unavailable('the AI agent'),
+			cancel: () => Promise.resolve(),
+			end: () => Promise.resolve(),
+			toolResult: () => Promise.resolve()
+		},
 		settings: {
 			load: () => Promise.resolve(structuredClone(settings)),
 			save: (data) => {

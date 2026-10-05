@@ -18,7 +18,10 @@ import {
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ClipboardContent, ClipboardWrite } from '../bridge';
+import { HarnessAgentHost } from '../ai/harnessAgents';
+import { qaScript, ScriptedAgentHost } from '../ai/scriptedAgents';
 import { fontDirectories, scanFonts } from '../fonts/scan';
+import type { AgentHost } from './agentHost';
 import type {
 	ElectronHost,
 	MessageBoxRequest,
@@ -151,6 +154,15 @@ function wrapWindow(window: BrowserWindow): WindowHandle {
 			};
 		}
 	};
+}
+
+// DESIGN_QA_AI=fake (QA sessions only) swaps the harness for a scripted agent, so the chat panel
+// can be driven without credentials or a model. Never set in normal use.
+function createAgentHost(): AgentHost {
+	if (process.env.DESIGN_QA === '1' && process.env.DESIGN_QA_AI === 'fake') {
+		return new ScriptedAgentHost(qaScript);
+	}
+	return new HarnessAgentHost();
 }
 
 export function createRealHost(): ElectronHost {
@@ -313,6 +325,7 @@ export function createRealHost(): ElectronHost {
 			scan: () => scanFonts(fontDirectories(process.platform, app.getPath('home'), process.env)),
 			read: async (file) => new Uint8Array(await fs.promises.readFile(file))
 		},
+		agents: createAgentHost(),
 		createWindow,
 		windows: () => [...handles.values()],
 		windowFromSender: (sender) => {

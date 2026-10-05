@@ -55,6 +55,14 @@ const settingsData = z.strictObject({
 	plugins: z.record(z.string(), z.record(z.string(), z.unknown()))
 });
 
+const aiToolDefinition = z.strictObject({
+	name: z.string().min(1).max(64),
+	description: z.string().max(4000),
+	inputSchema: z.record(z.string(), z.unknown()),
+	write: z.boolean()
+});
+const sessionId = z.string().min(1);
+
 export type PayloadSchemas = {
 	[Channel in IpcChannel]: z.ZodType<IpcContract[Channel]['payload']>;
 };
@@ -116,6 +124,25 @@ export const payloadSchemas: PayloadSchemas = {
 	'assets:embeddedFonts': z.void(),
 	'settings:load': z.void(),
 	'settings:save': settingsData,
+	'ai:providers': z.void(),
+	'ai:start': z.strictObject({
+		provider: z.string().min(1),
+		model: z.string().min(1).optional(),
+		system: z.string().max(100_000),
+		tools: z.array(aiToolDefinition).max(64)
+	}),
+	'ai:send': z.strictObject({
+		sessionId,
+		runId: z.string().min(1),
+		prompt: z.string().min(1).max(200_000)
+	}),
+	'ai:cancel': z.strictObject({ sessionId }),
+	'ai:end': z.strictObject({ sessionId }),
+	'ai:toolResult': z.strictObject({
+		callId: z.string().min(1),
+		ok: z.boolean(),
+		text: z.string().max(2_000_000)
+	}),
 	'files:recent': z.void(),
 	'files:drafts': z.void(),
 	'files:removeRecent': z.strictObject({ path: storePath }),
