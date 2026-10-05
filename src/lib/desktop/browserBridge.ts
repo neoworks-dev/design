@@ -132,6 +132,11 @@ export function createBrowserBridge(): BrowserBridge {
 			flushed: () => Promise.resolve(),
 			pathForFile: () => ''
 		},
+		plugins: {
+			list: () => Promise.resolve({ plugins: [], project: null, projectTrust: null }),
+			setTrust: () => unavailable('trusting a project'),
+			readFile: () => unavailable('reading plugin files')
+		},
 		events: {
 			on: (channel, listener) => {
 				const set = listeners.get(channel) ?? new Set<(payload: never) => void>();

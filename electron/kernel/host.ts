@@ -154,6 +154,21 @@ export interface HostMenuItem {
 	submenu?: HostMenuItem[];
 }
 
+/** The file system as plugin discovery needs it: reading plugin directories and watching them. */
+export interface PluginFilesHost {
+	/** Names of the subdirectories of `directory`, sorted; empty when it does not exist. */
+	listDirectories(directory: string): Promise<string[]>;
+	/** The file's text, or `undefined` when it does not exist or cannot be read. */
+	readText(file: string): Promise<string | undefined>;
+	/** Create `directory` (and parents) when missing. */
+	ensureDirectory(directory: string): Promise<void>;
+	/**
+	 * Call `onChange` when something below `directory` is added, removed or edited. Returns the
+	 * function that closes the watcher; a directory that does not exist is not watched.
+	 */
+	watch(directory: string, onChange: () => void): () => void;
+}
+
 export interface ElectronHost {
 	ipcMain: IpcMainApi;
 	app: AppApi;
@@ -187,6 +202,8 @@ export interface ElectronHost {
 		readText(name: string): string | undefined;
 		writeText(name: string, text: string): void;
 	};
+	/** Plugin directories: listing, reading and watching. */
+	pluginFiles: PluginFilesHost;
 	/** Installed system fonts; `scan` reads the font directories, `read` returns a file's bytes. */
 	fonts: {
 		scan(): Promise<HostFontFile[]>;

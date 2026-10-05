@@ -1,0 +1,44 @@
+{
+	"id": "example-grid",
+	"name": "Grid Maker",
+	"version": "1.0.0",
+	"description": "Example plugin: lays out a grid of rectangles through the plugin API.",
+	"api": "1.0",
+	"main": "main.js",
+	"permissions": ["document:read", "document:write", "selection", "ui:panel"],
+	"contributes": {
+		"commands": [
+			{
+				"id": "example-grid.make-grid",
+				"title": "Grid Maker: Make grid"
+			},
+			{
+				"id": "example-grid.clear-grids",
+				"title": "Grid Maker: Remove grids"
+			}
+		],
+		"menus": [
+			{
+				"menu": "app/plugins",
+				"id": "example-grid.make-grid",
+				"command": "example-grid.make-grid",
+				"group": "1_grid",
+				"order": 1
+			},
+			{
+				"menu": "app/plugins",
+				"id": "example-grid.clear-grids",
+				"command": "example-grid.clear-grids",
+				"group": "1_grid",
+				"order": 2
+			}
+		],
+		"panels": [
+			{
+				"id": "example-grid.panel",
+				"title": "Grid Maker",
+				"side": "left"
+			}
+		]
+	}
+}

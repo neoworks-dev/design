@@ -14,6 +14,7 @@ import { APP_SCHEME } from './plugins/protocol';
 // Compiled output lives in electron/dist, so the project root is two levels up.
 const distDirectory = path.dirname(fileURLToPath(import.meta.url));
 const buildDirectory = path.join(distDirectory, '../../build');
+const bundledPluginsDirectory = path.join(distDirectory, '../../plugins');
 // Set by `bun run electron:dev`; NODE_ENV is avoided because bun build inlines it.
 const devServerUrl = process.env.DEV_SERVER_URL;
 const appOrigin = `${APP_SCHEME}://design`;
@@ -51,6 +52,7 @@ async function boot(): Promise<void> {
 			host: createRealHost(),
 			trustedOrigins: trustedOrigins(),
 			buildDirectory,
+			bundledPluginsDirectory,
 			launchPaths: process.argv.slice(1).filter((argument) => argument.endsWith('.ndesign')),
 			window: {
 				entryUrl: entryUrl(),

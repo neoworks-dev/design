@@ -23,6 +23,7 @@ export function testPluginOptions(host: FakeHost): MainPluginOptions {
 		host,
 		trustedOrigins: [TEST_ORIGIN],
 		buildDirectory: '/fake/build',
+		bundledPluginsDirectory: '/fake/bundled-plugins',
 		window: {
 			entryUrl: `${TEST_ORIGIN}/`,
 			devServer: false,

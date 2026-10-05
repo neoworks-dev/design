@@ -21,7 +21,7 @@
 	<div
 		role="tablist"
 		aria-label="{side} sidebar"
-		class="border-line-faint flex h-10 shrink-0 items-center gap-1 border-b px-3"
+		class="border-line-faint flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-3"
 	>
 		{#each tabs as tab (tab.id)}
 			<button
@@ -29,7 +29,7 @@
 				role="tab"
 				aria-selected={active?.id === tab.id}
 				data-panel-tab={tab.id}
-				class="hover:bg-hover rounded-md px-2 py-1 text-xs font-medium"
+				class="hover:bg-hover shrink-0 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap"
 				class:bg-raised={active?.id === tab.id}
 				class:text-default={active?.id === tab.id}
 				class:text-dim={active?.id !== tab.id}

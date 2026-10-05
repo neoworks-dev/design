@@ -242,6 +242,38 @@ export interface AiToolResultMessage {
 	text: string;
 }
 
+// ---------- third-party plugins (main-plugins) ----------
+
+/** Where a plugin was found: bundled with the app, in the user data directory, or in a project. */
+export type PluginSourceKind = 'builtin' | 'user' | 'project';
+
+/**
+ * A plugin directory as main found it. The manifest is parsed JSON, not validated: the renderer's
+ * `plugin-manifests` plugin owns the schema and reports path-level errors.
+ */
+export interface DiscoveredPlugin {
+	source: PluginSourceKind;
+	/** Name of the plugin's directory; with `source` it addresses the plugin in `plugins:readFile`. */
+	directoryName: string;
+	directory: string;
+	/** The parsed `manifest.json`; `null` when the file is missing or not JSON (see `error`). */
+	manifest: unknown;
+	error?: string;
+	/** Project plugins are untrusted until the user trusts the project; the others always are. */
+	trusted: boolean;
+}
+
+export type ProjectTrust = 'trusted' | 'untrusted' | 'undecided';
+
+/** What one window sees: the plugins of its three roots, and the project they were read for. */
+export interface PluginList {
+	plugins: DiscoveredPlugin[];
+	/** The project directory (the open document's folder); `null` for untitled documents. */
+	project: string | null;
+	/** The stored decision for `project`; `null` when there is no project. */
+	projectTrust: ProjectTrust | null;
+}
+
 // ---------- errors ----------
 
 export type IpcErrorCode =
@@ -361,6 +393,15 @@ export interface IpcContract {
 	'ai:end': { payload: { sessionId: string }; result: void };
 	/** The answer to an `ai:tool-call` push. */
 	'ai:toolResult': { payload: AiToolResultMessage; result: void };
+	/** Third-party plugins found in the three roots for the sender's window. */
+	'plugins:list': { payload: void; result: PluginList };
+	/** Trust (or distrust) the sender's project and its plugins; answers the new list. */
+	'plugins:setTrust': { payload: { trusted: boolean }; result: PluginList };
+	/** A file inside a plugin's directory as text (its `main` module). Untrusted plugins refuse. */
+	'plugins:readFile': {
+		payload: { source: PluginSourceKind; directoryName: string; file: string };
+		result: string;
+	};
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -377,6 +418,8 @@ export interface IpcEvents {
 	'menu:command': { command: string; args?: unknown };
 	'ai:event': AiEventMessage;
 	'ai:tool-call': AiToolCallMessage;
+	/** A plugin root changed (added, removed, edited) or the window's project did. */
+	'plugins:changed': PluginList;
 }
 export type IpcEventChannel = keyof IpcEvents;
 
@@ -389,7 +432,8 @@ export const EVENT_CHANNELS = [
 	'files:open-request',
 	'menu:command',
 	'ai:event',
-	'ai:tool-call'
+	'ai:tool-call',
+	'plugins:changed'
 ] as const;
 type MissingEventChannels = Exclude<IpcEventChannel, (typeof EVENT_CHANNELS)[number]>;
 export const eventChannelsAreExhaustive: MissingEventChannels extends never ? true : never = true;
@@ -495,6 +539,11 @@ export interface DesktopBridge {
 		cancel(sessionId: string): Promise<void>;
 		end(sessionId: string): Promise<void>;
 		toolResult(result: AiToolResultMessage): Promise<void>;
+	};
+	plugins: {
+		list(): Promise<PluginList>;
+		setTrust(trusted: boolean): Promise<PluginList>;
+		readFile(source: PluginSourceKind, directoryName: string, file: string): Promise<string>;
 	};
 	system: {
 		platform: NodeJS.Platform;

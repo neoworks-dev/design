@@ -14,6 +14,7 @@ import { mainElectronPlugin } from './electron';
 import { mainFontsPlugin } from './fonts';
 import { mainIpcPlugin } from './ipc';
 import { mainMenuPlugin } from './menu';
+import { mainPluginsPlugin } from './pluginDiscovery';
 import { mainProtocolPlugin } from './protocol';
 import { mainSettingsPlugin } from './settings';
 import { mainStorePlugin } from './store';
@@ -23,6 +24,8 @@ export interface MainPluginOptions {
 	host: ElectronHost;
 	trustedOrigins: string[];
 	buildDirectory: string;
+	/** The `plugins/` directory bundled with the app (third-party plugin discovery). */
+	bundledPluginsDirectory: string;
 	window: WindowsConfig;
 	/** Design files named on the command line of this launch. */
 	launchPaths?: string[];
@@ -44,6 +47,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainAiPlugin },
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin },
+		{ plugin: mainPluginsPlugin, config: { bundledDirectory: options.bundledPluginsDirectory } },
 		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }
 	];
 }

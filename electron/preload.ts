@@ -127,6 +127,12 @@ const bridge: DesktopBridge = {
 		flushed: (requestId) => invoke('files:flushed', { requestId }),
 		pathForFile: (file) => webUtils.getPathForFile(file)
 	},
+	plugins: {
+		list: () => invoke('plugins:list'),
+		setTrust: (trusted) => invoke('plugins:setTrust', { trusted }),
+		readFile: (source, directoryName, file) =>
+			invoke('plugins:readFile', { source, directoryName, file })
+	},
 	events: { on: subscribe },
 	system: {
 		platform: process.platform,

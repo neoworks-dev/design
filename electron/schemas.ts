@@ -149,6 +149,13 @@ export const payloadSchemas: PayloadSchemas = {
 		ok: z.boolean(),
 		text: z.string().max(2_000_000)
 	}),
+	'plugins:list': z.void(),
+	'plugins:setTrust': z.strictObject({ trusted: z.boolean() }),
+	'plugins:readFile': z.strictObject({
+		source: z.enum(['builtin', 'user', 'project']),
+		directoryName: z.string().min(1).max(255),
+		file: z.string().min(1).max(1024)
+	}),
 	'files:recent': z.void(),
 	'files:drafts': z.void(),
 	'files:removeRecent': z.strictObject({ path: storePath }),

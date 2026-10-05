@@ -34,6 +34,41 @@ import type {
 	WindowOptions
 } from './host';
 
+function createPluginFilesHost(): ElectronHost['pluginFiles'] {
+	return {
+		listDirectories: async (directory) => {
+			try {
+				const entries = await fs.promises.readdir(directory, { withFileTypes: true });
+				return entries
+					.filter((entry) => entry.isDirectory())
+					.map((entry) => entry.name)
+					.sort();
+			} catch {
+				return [];
+			}
+		},
+		readText: async (file) => {
+			try {
+				return await fs.promises.readFile(file, 'utf8');
+			} catch {
+				return undefined;
+			}
+		},
+		ensureDirectory: async (directory) => {
+			await fs.promises.mkdir(directory, { recursive: true });
+		},
+		watch: (directory, onChange) => {
+			try {
+				const watcher = fs.watch(directory, { recursive: true }, () => onChange());
+				watcher.on('error', () => watcher.close());
+				return () => watcher.close();
+			} catch {
+				return () => {};
+			}
+		}
+	};
+}
+
 async function readBlobType(item: ClipboardItem, type: string): Promise<Blob | null> {
 	if (!item.types.includes(type)) return null;
 	const blob = await item.getType(type);
@@ -336,6 +371,7 @@ export function createRealHost(): ElectronHost {
 			scan: () => scanFonts(fontDirectories(process.platform, app.getPath('home'), process.env)),
 			read: async (file) => new Uint8Array(await fs.promises.readFile(file))
 		},
+		pluginFiles: createPluginFilesHost(),
 		agents: createAgentHost(),
 		createWindow,
 		windows: () => [...handles.values()],
