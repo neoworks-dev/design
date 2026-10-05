@@ -8,9 +8,10 @@
 
 	const ctx = getKernel();
 	const devtools = ctx.pluginConsole;
+	const ALL = '*';
 	const lines = $derived(devtools.lines());
 	const filterOptions = $derived([
-		{ value: '', label: 'All plugins' },
+		{ value: ALL, label: 'All plugins' },
 		...devtools.pluginIds().map((id) => ({ value: id, label: id }))
 	]);
 
@@ -45,9 +46,9 @@
 			<div class="w-44">
 				<Select
 					size="sm"
-					value={devtools.filter === null ? '' : devtools.filter}
+					value={devtools.filter === null ? ALL : devtools.filter}
 					options={filterOptions}
-					onChange={(value) => devtools.setFilter(value === '' ? null : String(value))}
+					onChange={(value) => devtools.setFilter(value === ALL ? null : String(value))}
 				/>
 			</div>
 			<span class="flex-1"></span>

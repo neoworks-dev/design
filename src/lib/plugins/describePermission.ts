@@ -10,7 +10,7 @@ const DESCRIPTIONS: Record<PluginPermission, string> = {
 	ai: 'Offer tools to the AI',
 	'ui:panel': 'Show panels and dialogs',
 	'ui:tool': 'Add canvas tools',
-	storage: 'Store data in the document'
+	storage: 'Keep data in the document and on this computer'
 };
 
 /** A sentence fragment for a permission, as the permission prompt and the plugin manager show it. */
