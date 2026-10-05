@@ -62,6 +62,7 @@ import toolPen from './tool-pen';
 import toolPencil from './tool-pencil';
 import vectorEdit from './vector-edit';
 import workbenchLayout from './workbench-layout';
+import gradientEditor from './gradient-editor';
 import grouping from './grouping';
 import mask from './mask';
 import nodeCommands from './node-commands';
@@ -111,6 +112,7 @@ export const builtinPlugins: Plugin[] = [
 	inspectorLayoutSize,
 	inspectorAppearance,
 	colorPicker,
+	gradientEditor,
 	coreTools,
 	canvasInput,
 	viewTools,
