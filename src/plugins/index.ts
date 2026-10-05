@@ -79,6 +79,7 @@ import pixelGrid from './pixel-grid';
 import pluginApi from './plugin-api';
 import pluginHost from './plugin-host';
 import pluginManifests from './plugin-manifests';
+import pluginUi from './plugin-ui';
 import placeholderShell from './placeholder-shell';
 import assetsPanel from './assets-panel';
 import resourcesSearch from './resources-search';
@@ -247,5 +248,6 @@ export const builtinPlugins: Plugin[] = [
 	aiChat,
 	pluginManifests,
 	pluginHost,
-	pluginApi
+	pluginApi,
+	pluginUi
 ];

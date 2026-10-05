@@ -24,6 +24,7 @@ import {
 	type WorkerFactory
 } from '../plugins/connection';
 import type { PluginPermission } from '../plugins/manifest';
+import { RegistrationBook } from '../plugins/registrations';
 import type { PluginRecord, PluginRuntime } from '../plugins/types';
 import type { PluginRegistryService } from './pluginRegistry';
 
@@ -140,6 +141,9 @@ export class PluginHostService extends Service {
 
 	/** What `plugin-manifests`' stubs call; registered with the registry by the plugin. */
 	readonly runtime: PluginRuntime;
+
+	/** Run-time registrations by handle; every API namespace that registers things uses it. */
+	readonly registrations = new RegistrationBook();
 
 	/**
 	 * `registry` is captured from the providing plugin's ctx (it injects `pluginRegistry`): a

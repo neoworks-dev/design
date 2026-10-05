@@ -18,7 +18,7 @@ import type { ApiNamespace, PluginHostService } from '../../services/pluginHost'
 import type { SelectionService } from '../../services/selection';
 import { AsyncCodegenCache, pluginCodegenProvider } from './asyncCodegen.svelte';
 import { pluginAiTool, pluginToolContribution } from '../stubs';
-import type { PluginConnection } from '../connection';
+import type { RegistrationBook } from '../registrations';
 import { applyOperations } from './operations';
 import { apiSchemas, parseParams } from './schemas';
 import type { PluginUndo } from './undo';
@@ -56,31 +56,6 @@ const DEFAULT_QUERY_LIMIT = 100;
 function requirePrefix(id: string, prefix: string): void {
 	if (id.startsWith(prefix)) return;
 	throw new Error(`"${id}" must start with "${prefix}" (the plugin's id)`);
-}
-
-/** Registrations of one plugin by handle, so the worker can release one before it stops. */
-export class RegistrationBook {
-	private readonly books = new WeakMap<PluginConnection, Map<number, () => unknown>>();
-	private counter = 0;
-
-	add(connection: PluginConnection, release: () => unknown): { handle: number } {
-		let book = this.books.get(connection);
-		if (book === undefined) {
-			book = new Map();
-			this.books.set(connection, book);
-		}
-		this.counter += 1;
-		book.set(this.counter, release);
-		return { handle: this.counter };
-	}
-
-	release(connection: PluginConnection, handle: number): void {
-		const book = this.books.get(connection);
-		const release = book?.get(handle);
-		if (release === undefined) return;
-		book?.delete(handle);
-		void release();
-	}
 }
 
 function documentNamespace(services: ApiServices): ApiNamespace {
@@ -406,21 +381,12 @@ function codegenNamespace(services: ApiServices, book: RegistrationBook): ApiNam
 	};
 }
 
-function registrationsNamespace(book: RegistrationBook): ApiNamespace {
-	return {
-		release: (call, params) => {
-			const { handle } = parseParams(apiSchemas.release, params);
-			book.release(call.connection, handle);
-		}
-	};
-}
-
 /** The namespaces of plugin API v1, by name. */
 export function createApiNamespaces(
 	services: ApiServices,
 	guard: DeletionGuard
 ): Record<string, ApiNamespace> {
-	const book = new RegistrationBook();
+	const book = services.host.registrations;
 	const document = documentNamespace(services);
 	return {
 		document: { ...document, ...protectionMethods(services, book, guard) },
@@ -431,7 +397,6 @@ export function createApiNamespaces(
 		menus: menusNamespace(services, book),
 		tools: toolsNamespace(services, book),
 		aiTools: aiToolsNamespace(services, book),
-		codegen: codegenNamespace(services, book),
-		registrations: registrationsNamespace(book)
+		codegen: codegenNamespace(services, book)
 	};
 }

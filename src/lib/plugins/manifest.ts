@@ -76,6 +76,8 @@ const panelContribution = z.strictObject({
 	title: z.string().min(1),
 	side: z.enum(['left', 'right']).default('right'),
 	shortcut: z.string().min(1).optional(),
+	/** Position among the sidebar's tabs; plugin panels come after the built-in ones by default. */
+	order: z.number().optional(),
 	when: contextExpression.optional()
 });
 const inspectorContribution = z.strictObject({

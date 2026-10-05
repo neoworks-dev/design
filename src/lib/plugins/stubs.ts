@@ -8,14 +8,16 @@
 //
 // A contributor declares which services it needs; the plugin's fiber injects exactly the union of
 // those for the contributions its manifest uses, so a plugin that only adds a command does not wait
-// for the AI service. A contributor for a service of a later plugin (panels and inspectors need
-// `pluginUi`) is appended to STUB_CONTRIBUTORS by the issue that adds that plugin.
+// for the AI service. Panels and inspectors need `pluginUi` (plugin `plugin-ui`), which renders
+// the plugin's surface into them.
 
 import type { Context } from '@neoworks/extension-system';
 import PuzzlePieceIcon from 'phosphor-svelte/lib/PuzzlePieceIcon';
 import type { AiToolHandler } from '../ai/types';
+import type { InspectorSelection } from '../inspectors/selection';
 import type { ToolContribution } from '../registries/tools.svelte';
 import type { ToolKeyEvent, ToolPointerEvent } from '../tools/protocol';
+import SurfaceView from './ui/SurfaceView.svelte';
 import { AsyncCodegenCache, pluginCodegenProvider } from './api/asyncCodegen.svelte';
 import type { PluginManifest } from './manifest';
 import type { PluginRecord, PluginRuntime } from './types';
@@ -210,6 +212,62 @@ function codegenStubs(ctx: Context, record: LoadablePluginRecord): void {
 	}
 }
 
+/** Plugin tabs and inspector sections sort after the built-in ones unless the manifest says otherwise. */
+const PLUGIN_ORDER = 100;
+
+function panelStubs(ctx: Context, record: LoadablePluginRecord): void {
+	const pluginId = record.manifest.id;
+	for (const panel of record.manifest.contributes.panels) {
+		let order = PLUGIN_ORDER;
+		if (panel.order !== undefined) order = panel.order;
+		ctx.effect(
+			() =>
+				ctx.panels.registerTab({
+					id: panel.id,
+					side: panel.side,
+					title: panel.title,
+					order,
+					when: panel.when,
+					shortcut: panel.shortcut,
+					component: SurfaceView,
+					props: { pluginId, surfaceId: panel.id }
+				}),
+			`plugin ${pluginId} panel ${panel.id}`
+		);
+	}
+}
+
+/** Whether an inspector section declared for `nodeTypes` shows for this selection. */
+export function appliesToSelection(
+	nodeTypes: readonly string[] | undefined,
+	selection: InspectorSelection
+): boolean {
+	if (selection.count === 0) return false;
+	if (nodeTypes === undefined) return true;
+	return selection.kinds.every((kind) => nodeTypes.includes(kind));
+}
+
+function inspectorStubs(ctx: Context, record: LoadablePluginRecord): void {
+	const pluginId = record.manifest.id;
+	for (const inspector of record.manifest.contributes.inspectors) {
+		let order = PLUGIN_ORDER;
+		if (inspector.order !== undefined) order = inspector.order;
+		ctx.effect(
+			() =>
+				ctx.inspectors.register({
+					id: inspector.id,
+					tab: inspector.tab,
+					title: inspector.title,
+					order,
+					applies: (selection) => appliesToSelection(inspector.nodeTypes, selection),
+					component: SurfaceView,
+					props: { pluginId, surfaceId: inspector.id }
+				}),
+			`plugin ${pluginId} inspector ${inspector.id}`
+		);
+	}
+}
+
 export const STUB_CONTRIBUTORS: readonly StubContributor[] = [
 	{
 		needs: ['commands', 'pluginRegistry'],
@@ -235,6 +293,16 @@ export const STUB_CONTRIBUTORS: readonly StubContributor[] = [
 		needs: ['ai', 'pluginRegistry'],
 		applies: (manifest) => manifest.contributes.aiTools.length > 0,
 		contribute: aiToolStubs
+	},
+	{
+		needs: ['panels', 'pluginUi', 'pluginRegistry'],
+		applies: (manifest) => manifest.contributes.panels.length > 0,
+		contribute: panelStubs
+	},
+	{
+		needs: ['inspectors', 'pluginUi', 'pluginRegistry'],
+		applies: (manifest) => manifest.contributes.inspectors.length > 0,
+		contribute: inspectorStubs
 	},
 	{
 		needs: ['codegen', 'pluginRegistry'],

@@ -1,10 +1,13 @@
 // Grid Maker: an example third-party plugin. It runs in its own Web Worker and only sees the
-// `design` object. Everything one command changes is a single undo step.
+// `design` object: commands, document edits through `design.document`, and a declarative panel
+// (`design.ui`). Everything one command or button press changes is a single undo step.
 
-const settings = { columns: 4, rows: 3, size: 48, gap: 12 };
+const PANEL = 'example-grid.panel';
+
+const state = { columns: 4, rows: 3, size: 48, gap: 12, grids: 0, selected: 0 };
 
 function cellColor(row, column) {
-	const hue = ((row * settings.columns + column) * 28) % 360;
+	const hue = ((row * state.columns + column) * 28) % 360;
 	const lightness = 0.55;
 	const chroma = (1 - Math.abs(2 * lightness - 1)) * 0.7;
 	const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
@@ -26,7 +29,7 @@ function cellColor(row, column) {
 }
 
 async function makeGrid() {
-	const { columns, rows, size, gap } = settings;
+	const { columns, rows, size, gap } = state;
 	const operations = [
 		{
 			op: 'create',
@@ -75,5 +78,80 @@ async function clearGrids() {
 	design.log.info(`removed ${grids.length} grid(s)`);
 }
 
+function numberField(label, key, min, max) {
+	return {
+		type: 'input',
+		label,
+		inputType: 'number',
+		value: String(state[key]),
+		min,
+		max,
+		onChange: (value) => {
+			if (Number.isFinite(value)) state[key] = Math.min(max, Math.max(min, Math.round(value)));
+			return render();
+		}
+	};
+}
+
+function view() {
+	return {
+		type: 'stack',
+		gap: 'lg',
+		children: [
+			{
+				type: 'section',
+				title: 'Grid',
+				children: [
+					{
+						type: 'stack',
+						direction: 'row',
+						children: [numberField('Columns', 'columns', 1, 12), numberField('Rows', 'rows', 1, 12)]
+					},
+					{
+						type: 'stack',
+						direction: 'row',
+						children: [numberField('Cell size', 'size', 8, 200), numberField('Gap', 'gap', 0, 64)]
+					}
+				]
+			},
+			{
+				type: 'button',
+				label: `Make ${state.columns} x ${state.rows} grid`,
+				variant: 'primary',
+				full: true,
+				onClick: makeGrid
+			},
+			{ type: 'divider' },
+			{
+				type: 'text',
+				tone: 'muted',
+				text: `${state.grids} grid(s) on this page, ${state.selected} layer(s) selected`
+			},
+			{
+				type: 'button',
+				label: 'Remove grids',
+				disabled: state.grids === 0,
+				onClick: clearGrids
+			}
+		]
+	};
+}
+
+async function render() {
+	await design.ui.set(PANEL, view());
+}
+
+async function refresh() {
+	const grids = await design.document.query({ type: 'FRAME', name: 'Grid' });
+	state.grids = grids.length;
+	state.selected = (await design.selection.get()).length;
+	await render();
+}
+
 await design.commands.register('example-grid.make-grid', makeGrid);
 await design.commands.register('example-grid.clear-grids', clearGrids);
+
+design.on('documentchange', refresh);
+design.on('currentpagechange', refresh);
+design.on('selectionchange', refresh);
+await refresh();

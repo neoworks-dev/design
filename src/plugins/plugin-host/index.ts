@@ -93,6 +93,15 @@ export default {
 		);
 		ctx.effect(
 			() =>
+				host.registerApi('registrations', {
+					release: (call, params) => {
+						host.registrations.release(call.connection, readHandle(params));
+					}
+				}),
+			'plugin api registrations'
+		);
+		ctx.effect(
+			() =>
 				host.registerApi('log', {
 					write: (call, params) => {
 						call.connection.addLog(readLevel(params), readMessage(params));
@@ -109,6 +118,14 @@ function readName(params: unknown): string {
 		if (typeof name === 'string' && name.length > 0) return name;
 	}
 	throw new Error('an event name is required');
+}
+
+function readHandle(params: unknown): number {
+	if (typeof params === 'object' && params !== null) {
+		const handle: unknown = Reflect.get(params, 'handle');
+		if (typeof handle === 'number') return handle;
+	}
+	throw new Error('a registration handle is required');
 }
 
 function readMessage(params: unknown): string {

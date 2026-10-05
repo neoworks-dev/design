@@ -8,7 +8,10 @@ import type {
 	PluginList,
 	PluginSourceKind
 } from '../../../../electron/bridge';
+import coreInspectors from '../../../plugins/core-inspectors';
+import corePanels from '../../../plugins/core-panels';
 import coreTools from '../../../plugins/core-tools';
+import pluginApi from '../../../plugins/plugin-api';
 import pluginHost from '../../../plugins/plugin-host';
 import pluginManifests from '../../../plugins/plugin-manifests';
 import { aiProviders } from '../../ai/fixtures/aiFixture';
@@ -126,4 +129,20 @@ export function fakePluginsSection(
 			return Promise.resolve(text);
 		}
 	};
+}
+
+/** `core-panels` that keeps its state in memory instead of localStorage. */
+export const corePanelsInMemory: Plugin = {
+	name: 'core-panels',
+	inject: corePanels.inject,
+	apply: (ctx: Context) =>
+		corePanels.apply(ctx, { storage: { getItem: (): null => null, setItem: (): void => {} } })
+};
+
+/** Providers of the UI plugin: the API plugin, panels and inspectors on top of the API providers. */
+export function pluginUiProviders(
+	factory: WorkerFactory,
+	options: Parameters<typeof pluginApiProviders>[1] = {}
+): Plugin[] {
+	return [...pluginApiProviders(factory, options), corePanelsInMemory, coreInspectors, pluginApi];
 }

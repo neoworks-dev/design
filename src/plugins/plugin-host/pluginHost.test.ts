@@ -67,7 +67,7 @@ describePlugin('plugin-host', pluginHost, {
 	desktop: { plugins: fakePluginsSection(() => listOf()) },
 	contributes: ({ ctx }) => {
 		expect(ctx.pluginHost).toBeDefined();
-		expect(ctx.pluginHost.snapshotState().apis).toEqual(['events', 'log']);
+		expect(ctx.pluginHost.snapshotState().apis).toEqual(['events', 'log', 'registrations']);
 	}
 });
 
