@@ -5,6 +5,9 @@ import type { Plugin } from '@neoworks/extension-system';
 import assetsStore from './assets-store';
 import canvasInput from './canvas-input';
 import canvaskit from './canvaskit';
+import componentSync from './component-sync';
+import componentProperties from './component-properties';
+import components from './components';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
 import coreKeymap from './core-keymap';
@@ -74,6 +77,7 @@ import textLayout from './text-layout';
 import toolText from './tool-text';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
+import variants from './variants';
 import viewport from './viewport';
 import viewTools from './view-tools';
 import zoomMenu from './zoom-menu';
@@ -126,6 +130,10 @@ export const builtinPlugins: Plugin[] = [
 	textEdit,
 	textFormat,
 	documentPlugin,
+	componentSync,
+	components,
+	variants,
+	componentProperties,
 	documentScene,
 	selection,
 	spatial,
