@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolCallMessage } from '../bridge';
+import { renamesFor, taskOf } from './qaTasks';
 import { contentOf, McpServer } from './mcpServer';
 import { qaScript, ScriptedAgentHost } from './scriptedAgents';
 import { ToolBroker } from './toolBroker';
@@ -172,5 +173,26 @@ describe('contentOf', () => {
 		expect(contentOf({ ok: true, text: '{"a":1}' })).toEqual([{ type: 'text', text: '{"a":1}' }]);
 		expect(contentOf({ ok: true, text: 'plain' })).toEqual([{ type: 'text', text: 'plain' }]);
 		expect(contentOf({ ok: false, text: picture })).toEqual([{ type: 'text', text: picture }]);
+	});
+});
+
+describe('QA task scripts', () => {
+	it('reads the task tag and names layers predictably', () => {
+		const prompt = [
+			'Task: rename-layers',
+			'Layers (id | type | size | parent | content):',
+			'- a | RECTANGLE | 10x10 | in "F"',
+			'- b | RECTANGLE | 10x10 | in "F"',
+			'- c | TEXT | 10x10 | in "F" | text "welcome back friend again"',
+			'- d | FRAME | 10x10 | in "F" | contains x'
+		].join('\n');
+		expect(taskOf(prompt)).toBe('rename-layers');
+		expect(taskOf('draw 3 cards')).toBeUndefined();
+		expect(renamesFor(prompt)).toEqual([
+			{ id: 'a', name: 'Background' },
+			{ id: 'b', name: 'Background 2' },
+			{ id: 'c', name: 'Welcome Back Friend' },
+			{ id: 'd', name: 'Container' }
+		]);
 	});
 });

@@ -35,6 +35,8 @@ export interface AiAttachment {
 }
 
 export interface AiRunOptions {
+	/** What the chat shows (and the undo step is labelled with) instead of the raw prompt. */
+	display?: string;
 	/** Defaults to `write`. */
 	scope?: AiScope;
 	attachments?: AiAttachment[];
@@ -48,6 +50,8 @@ export interface AiRunInfo {
 	/** Label of the history entry and audit trail: the prompt, shortened. */
 	label: string;
 	prompt: string;
+	/** The prompt as the user should read it, when it differs from the text sent to the model. */
+	display?: string;
 	origin: 'ai';
 	scope: AiScope;
 	provider: string;

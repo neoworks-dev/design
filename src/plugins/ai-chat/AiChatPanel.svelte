@@ -57,7 +57,7 @@
 					class="bg-raised text-default max-w-[88%] self-end rounded-lg px-3 py-2 text-xs [overflow-wrap:anywhere] whitespace-pre-wrap"
 					data-ai-user-message
 				>
-					{record.prompt}
+					{record.display === undefined ? record.prompt : record.display}
 				</div>
 
 				{#each rows as row (row.key)}

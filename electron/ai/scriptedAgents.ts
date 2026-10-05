@@ -4,6 +4,7 @@
 // yields what the model would stream and calls document tools through `tools.call`.
 
 import type { AiProviderInfo, AiStreamEvent } from '../bridge';
+import { taskOf, TASK_SCRIPTS } from './qaTasks';
 import type { AgentHost, AgentSession, AgentStartInit, AgentToolResult } from '../kernel/agentHost';
 
 export interface ScriptTools {
@@ -123,6 +124,11 @@ function textOf(result: AgentToolResult): string {
  * the prompt, default 3) in one `apply_changes` call, so a run is easy to undo and to check.
  */
 export async function* qaScript(prompt: string, tools: ScriptTools): AsyncGenerator<AiStreamEvent> {
+	const task = taskOf(prompt);
+	if (task !== undefined && TASK_SCRIPTS[task] !== undefined) {
+		yield* TASK_SCRIPTS[task](prompt, tools);
+		return;
+	}
 	yield { type: 'thought', text: 'Checking the selection and what is on the page first.' };
 	yield { type: 'tool_call', callId: 'qa-1', name: 'get_selection', status: 'running' };
 	const selection = await tools.call('get_selection', {});

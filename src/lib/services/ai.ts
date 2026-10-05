@@ -338,8 +338,9 @@ export class AiService extends Service {
 		if (model === undefined) model = this.modelId;
 		return {
 			id,
-			label: summarizePrompt(prompt),
+			label: summarizePrompt(options.display === undefined ? prompt : options.display),
 			prompt,
+			display: options.display,
 			origin: 'ai',
 			scope: options.scope === undefined ? 'write' : options.scope,
 			provider,
@@ -354,6 +355,7 @@ export class AiService extends Service {
 			id: record.id,
 			label: record.label,
 			prompt: record.prompt,
+			display: record.display,
 			origin: record.origin,
 			scope: record.scope,
 			provider: record.provider,
