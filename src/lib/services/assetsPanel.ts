@@ -109,12 +109,16 @@ export class AssetsPanelService extends Service {
 
 	/** Components matching the search, grouped; groups and entries keep document order. */
 	componentGroups(): ComponentGroup[] {
-		const needle = this.state.query.trim().toLowerCase();
-		const entries = this.ctx.componentSync
+		return groupEntries(this.searchComponents(this.state.query));
+	}
+
+	/** Components whose name or group contains `query`, in document order (reactive). */
+	searchComponents(query: string): ComponentEntry[] {
+		const needle = query.trim().toLowerCase();
+		return this.ctx.componentSync
 			.components()
 			.map((summary) => this.entryOf(summary))
 			.filter((entry) => matches(entry, needle));
-		return groupEntries(entries);
 	}
 
 	/** Styles per type, filtered by the search; empty sections are left out. */
@@ -149,6 +153,31 @@ export class AssetsPanelService extends Service {
 		const reader = this.ctx.document.reader;
 		const parentId = insertionParent(reader, hitId, this.ctx.document.currentPageId);
 		return this.insertInto(mainId, parentId, world);
+	}
+
+	/**
+	 * What dropping a component on the canvas does: insert an instance under the pointer, or with
+	 * `swap` (Alt held) over an instance replace that instance by one of `mainId`, which the
+	 * `components.swap` command does when the components plugin is loaded.
+	 */
+	drop(mainId: NodeId, world: Point, hitId: NodeId | undefined, swap: boolean): void {
+		const target = this.swapTarget(hitId, swap);
+		if (target === undefined) {
+			this.insertAt(mainId, world, hitId);
+			return;
+		}
+		this.ctx.commands.run('components.swap', { mainId, instanceId: target }).then(
+			() => {
+				this.state.notice = '';
+			},
+			(failure: unknown) => {
+				if (failure instanceof ComponentCycleError) {
+					this.state.notice = 'A component cannot contain an instance of itself.';
+					return;
+				}
+				if (failure instanceof Error) this.state.notice = failure.message;
+			}
+		);
 	}
 
 	/** Insert at the middle of the selected frame, else of what the canvas shows. */
@@ -203,6 +232,13 @@ export class AssetsPanelService extends Service {
 	}
 
 	// ---------- internals ----------
+
+	private swapTarget(hitId: NodeId | undefined, swap: boolean): NodeId | undefined {
+		if (!swap || hitId === undefined || !this.ctx.commands.has('components.swap')) return undefined;
+		const instance = this.ctx.componentSync.instanceOf(hitId);
+		if (instance === undefined) return undefined;
+		return instance.id;
+	}
 
 	private insertInto(mainId: NodeId, parentId: NodeId, world: Point): NodeId | undefined {
 		try {

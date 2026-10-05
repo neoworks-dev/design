@@ -1,82 +1,15 @@
-import type { Context, Plugin } from '@neoworks/extension-system';
+import type { Context } from '@neoworks/extension-system';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NodeId } from '../../lib/document';
-import { buildDocument, frame, node, page, rectangle } from '../../lib/document/fixtures';
-import { at, box, editingProviders } from '../../lib/editing/fixtures/editingFixture';
-import { panelProviders } from '../../lib/editing/fixtures/panelHarness';
 import { solidPaint } from '../../lib/editing/paints';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
-import componentSync from '../component-sync';
 import assetsPanel from './index';
+import { assetsProviders, hit } from './fixtures/assetsFixture';
 import TabHost from './fixtures/TabHost.svelte';
 
-function sample(): ReturnType<typeof buildDocument> {
-	return buildDocument([
-		page(
-			'Page',
-			[
-				frame({ id: 'f', name: 'Host', transform: at(0, 0), width: 400, height: 400 }, [
-					box('a', 0, 0),
-					box('b', 20, 20)
-				]),
-				node(
-					'COMPONENT',
-					{
-						id: 'm-primary',
-						name: 'Button/Primary',
-						transform: at(500, 0),
-						width: 100,
-						height: 40
-					},
-					[rectangle({ id: 'm-primary-bg', name: 'bg', width: 100, height: 40 })]
-				),
-				node(
-					'COMPONENT',
-					{ id: 'm-icon', name: 'Icon', transform: at(500, 100), width: 24, height: 24 },
-					[rectangle({ id: 'm-icon-glyph', name: 'glyph', width: 24, height: 24 })]
-				),
-				node(
-					'COMPONENT',
-					{ id: 'm-host', name: 'Card', transform: at(500, 200), width: 200, height: 200 },
-					[rectangle({ id: 'm-host-inner', name: 'inner', width: 10, height: 10 })]
-				)
-			],
-			{ id: 'p' }
-		)
-	]);
-}
-
-const fakeViewport = {
-	name: 'viewport',
-	inject: [],
-	apply: (ctx: Context) =>
-		void ctx.provide('viewport', {
-			zoom: 1,
-			screenToWorld: (point: { x: number; y: number }) => point,
-			visibleRect: () => ({ x: 1000, y: 1000, width: 200, height: 100 }),
-			zoomToSelection: (): boolean => true
-		})
-} as Plugin;
-
-const fakeHitTest = {
-	name: 'hit-test',
-	inject: [],
-	apply: (ctx: Context) => void ctx.provide('hitTest', { deepest: () => undefined })
-} as Plugin;
-
-function providers(): Plugin[] {
-	// The panel providers load the standard sample document; swap in this file's.
-	const base = panelProviders().filter(
-		(plugin) => plugin.name !== 'viewport' && plugin.name !== 'document'
-	);
-	const documentPlugin = editingProviders(sample()).find((plugin) => plugin.name === 'document');
-	if (documentPlugin === undefined) throw new Error('no document provider');
-	return [...base, documentPlugin, componentSync, fakeViewport, fakeHitTest];
-}
-
 describePlugin('assets-panel', assetsPanel, {
-	providers: providers(),
+	providers: assetsProviders(),
 	contributes: ({ ctx }) => {
 		expect(ctx.assetsPanel).toBeDefined();
 		expect(ctx.commands.has('panels.show.assets')).toBe(true);
@@ -98,12 +31,13 @@ afterEach(async () => {
 	host = undefined;
 	target = undefined;
 	mounted = undefined;
+	hit.id = undefined;
 	document.body.querySelector('[data-canvas-host]')?.remove();
 	Reflect.deleteProperty(document, 'elementFromPoint');
 });
 
 async function open(): Promise<Context> {
-	mounted = await mountPlugin(assetsPanel, { providers: providers() });
+	mounted = await mountPlugin(assetsPanel, { providers: assetsProviders() });
 	target = document.createElement('div');
 	document.body.append(target);
 	host = mount(TabHost, { target, props: { ctx: mounted.ctx } });
@@ -236,6 +170,52 @@ describe('inserting instances', () => {
 		expect(ctx.assetsPanel.notice).toContain('itself');
 		expect(document.body.querySelector('[data-assets-notice]')).not.toBeNull();
 		expect(ctx.document.query((candidate) => candidate.type === 'INSTANCE')).toHaveLength(0);
+	});
+});
+
+describe('Alt+drag over an instance', () => {
+	function dragOnto(ctx: Context, altKey: boolean): void {
+		const canvasHost = document.createElement('div');
+		canvasHost.setAttribute('data-canvas-host', '');
+		const canvas = document.createElement('canvas');
+		canvasHost.append(canvas);
+		document.body.append(canvasHost);
+		Reflect.set(document, 'elementFromPoint', () => canvas);
+		const row = document.body.querySelector('[data-asset-component="m-primary"]');
+		if (!(row instanceof HTMLElement)) throw new Error('no row');
+		const pointer = (type: string, x: number, y: number): PointerEvent =>
+			new PointerEvent(type, { clientX: x, clientY: y, button: 0, altKey, bubbles: true });
+		row.dispatchEvent(pointer('pointerdown', 10, 10));
+		window.dispatchEvent(pointer('pointermove', 300, 700));
+		flushSync();
+		expect(document.body.querySelector('[data-asset-swap-hint]') !== null).toBe(altKey);
+		window.dispatchEvent(pointer('pointerup', 300, 700));
+		flushSync();
+		void ctx;
+	}
+
+	it('asks components.swap to swap the instance under the pointer', async () => {
+		const ctx = await open();
+		const instanceId = ctx.assetsPanel.insertAtDefault('m-icon');
+		if (instanceId === undefined) throw new Error('no instance');
+		const calls: unknown[] = [];
+		ctx.commands.register({
+			id: 'components.swap',
+			title: 'Swap',
+			run: (args) => void calls.push(args)
+		});
+		hit.id = instanceId;
+		dragOnto(ctx, true);
+		expect(calls).toEqual([{ mainId: 'm-primary', instanceId }]);
+		expect(ctx.document.query((candidate) => candidate.type === 'INSTANCE')).toHaveLength(1);
+	});
+
+	it('inserts a new instance instead when Alt is not held', async () => {
+		const ctx = await open();
+		const instanceId = ctx.assetsPanel.insertAtDefault('m-icon');
+		hit.id = instanceId;
+		dragOnto(ctx, false);
+		expect(ctx.document.query((candidate) => candidate.type === 'INSTANCE')).toHaveLength(2);
 	});
 });
 

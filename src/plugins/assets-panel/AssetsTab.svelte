@@ -19,7 +19,7 @@
 	const media = $derived(panel.media());
 	const searching = $derived(panel.query.trim() !== '');
 
-	let drag = $state<{ entry: ComponentEntry; x: number; y: number } | null>(null);
+	let drag = $state<{ entry: ComponentEntry; x: number; y: number; swap: boolean } | null>(null);
 
 	function expanded(key: string): boolean {
 		if (searching) return true;
@@ -46,7 +46,9 @@
 			) {
 				dragging = true;
 			}
-			if (dragging) drag = { entry, x: moveEvent.clientX, y: moveEvent.clientY };
+			if (dragging) {
+				drag = { entry, x: moveEvent.clientX, y: moveEvent.clientY, swap: moveEvent.altKey };
+			}
 		};
 		const up = (upEvent: PointerEvent): void => {
 			const wasDragging = dragging;
@@ -79,7 +81,7 @@
 			y: event.clientY - box.top
 		});
 		const hit = ctx.hitTest.deepest({ point: world });
-		panel.insertAt(entry.id, world, hit);
+		panel.drop(entry.id, world, hit, event.altKey);
 	}
 
 	function insertOnEnter(event: KeyboardEvent, entry: ComponentEntry): void {
@@ -256,5 +258,6 @@
 	>
 		<DiamondIcon size={12} weight="fill" class="text-accent" />
 		{drag.entry.label}
+		{#if drag.swap}<span class="text-muted" data-asset-swap-hint>swaps an instance</span>{/if}
 	</div>
 {/if}

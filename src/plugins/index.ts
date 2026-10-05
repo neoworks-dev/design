@@ -67,6 +67,7 @@ import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
 import assetsPanel from './assets-panel';
+import resourcesSearch from './resources-search';
 import renderer from './renderer';
 import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
@@ -205,6 +206,7 @@ export const builtinPlugins: Plugin[] = [
 	titlebar,
 	placeholderShell,
 	assetsPanel,
+	resourcesSearch,
 	nudge,
 	selectionCommands,
 	zOrder,
