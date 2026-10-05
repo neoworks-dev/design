@@ -114,6 +114,7 @@ import grouping from './grouping';
 import layersPanel from './layers-panel';
 import mask from './mask';
 import pagesPanel from './pages-panel';
+import prototypePanel from './prototype-panel';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import selectionCommands from './selection-commands';
@@ -180,6 +181,7 @@ export const builtinPlugins: Plugin[] = [
 	corePanels,
 	coreInspectors,
 	designPanel,
+	prototypePanel,
 	inspectorPage,
 	inspectorPosition,
 	inspectorLayoutSize,
