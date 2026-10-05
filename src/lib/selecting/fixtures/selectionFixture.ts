@@ -110,7 +110,7 @@ const fakeViewport: Plugin = {
 };
 
 // Stands in for the overlay plugin (snapping draws its guides through it).
-const fakeOverlay: Plugin = {
+export const fakeOverlay: Plugin = {
 	name: 'overlay',
 	apply(ctx: Context): void {
 		const registry = new OverlayRegistry();

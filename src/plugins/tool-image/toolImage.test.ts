@@ -12,7 +12,7 @@ import { editingProviders } from '../../lib/editing/fixtures/editingFixture';
 import { imageSizeOf } from '../../lib/editing/imageCrop';
 import { prepareImage } from '../../lib/editing/placeImages';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
-import { selectionScene } from '../../lib/selecting/fixtures/selectionFixture';
+import { fakeOverlay, selectionScene } from '../../lib/selecting/fixtures/selectionFixture';
 import type { ResizeGesture } from '../../lib/selecting/resizeGesture';
 import type { ToolPointerEvent } from '../../lib/tools/protocol';
 import coreTools from '../core-tools';
@@ -85,6 +85,7 @@ function providers(bridge: BrowserBridge): Plugin[] {
 		coreTools,
 		spatial,
 		hitTest,
+		fakeOverlay,
 		snapping,
 		fakeViewport,
 		fakeRenderer,
