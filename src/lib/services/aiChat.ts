@@ -6,6 +6,7 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type { AiProviderInfo } from '../../../electron/bridge';
 import { AiConsentRequiredError, type AiAttachment, type AiRunRecord } from '../ai/types';
+import { Registry, type RegistryEntry } from '../registries/registry.svelte';
 import type { AiRunHistoryState } from './aiHistory';
 import type { AiChatState } from './aiChatState.svelte';
 
@@ -39,24 +40,34 @@ export interface AiChatHistory {
 	revertLastRun(): boolean;
 }
 
-/** The parts of the document and selection the chat uses. */
+/** The parts of the document the chat uses. */
 export interface AiChatDocument {
 	readonly documentId: string;
-	get(id: string): { id: string; name: string; type: string } | undefined;
-}
-export interface AiChatSelection {
-	readonly ids: readonly string[];
 }
 
-const MAX_ATTACHED_LAYERS = 20;
+/** What `aiContext` offers the chat: the selection as a prompt attachment. */
+export interface AiChatContext {
+	selectionAttachment(): AiAttachment | undefined;
+}
+
+/** A `/name text` action of the chat input, contributed by a plugin (for example `/generate`). */
+export interface ChatSlashAction extends RegistryEntry {
+	/** The word after the slash; also the registry id. */
+	id: string;
+	title: string;
+	run(argument: string): void | Promise<void>;
+}
 
 export class AiChatService extends Service {
+	/** Actions the input accepts as `/id argument` instead of sending a prompt. */
+	readonly slashActions = new Registry<ChatSlashAction>();
+
 	constructor(
 		ctx: Context,
 		private readonly ai: AiChatAi,
 		private readonly aiHistory: AiChatHistory,
 		private readonly document: AiChatDocument,
-		private readonly selection: AiChatSelection,
+		private readonly context: AiChatContext,
 		private readonly state: AiChatState
 	) {
 		super(ctx, 'aiChat');
@@ -148,10 +159,23 @@ export class AiChatService extends Service {
 		this.state.expanded = [...this.state.expanded, key];
 	}
 
+	registerSlashAction(action: ChatSlashAction): () => void {
+		return this.slashActions.register(action);
+	}
+
+	/** The titles shown as a hint under the input, e.g. `/generate`. */
+	slashHints(): string[] {
+		return this.slashActions.list().map((action) => `/${action.id}`);
+	}
+
 	/** Send the draft. Without consent for this document nothing is sent and the panel asks. */
 	send(): boolean {
 		if (!this.canSend) return false;
 		const prompt = this.state.draft.trim();
+		if (this.runSlashAction(prompt)) {
+			this.state.draft = '';
+			return true;
+		}
 		if (!this.start(prompt, this.attachments())) return false;
 		this.state.draft = '';
 		return true;
@@ -197,6 +221,15 @@ export class AiChatService extends Service {
 
 	// ---------- internals ----------
 
+	private runSlashAction(prompt: string): boolean {
+		const match = /^\/(\w[\w-]*)\s*(.*)$/s.exec(prompt);
+		if (match === null) return false;
+		const action = this.slashActions.get(match[1]);
+		if (action === undefined) return false;
+		void Promise.resolve(action.run(match[2].trim()));
+		return true;
+	}
+
 	private start(prompt: string, attachments: AiAttachment[]): boolean {
 		try {
 			this.ai.run(prompt, { attachments });
@@ -211,20 +244,9 @@ export class AiChatService extends Service {
 	}
 
 	private attachments(): AiAttachment[] {
-		if (!this.state.attachSelection || this.selection.ids.length === 0) return [];
-		const lines: string[] = [];
-		for (const id of this.selection.ids.slice(0, MAX_ATTACHED_LAYERS)) {
-			const node = this.document.get(id);
-			if (node !== undefined) lines.push(`${node.type} ${node.id} "${node.name}"`);
-		}
-		const extra = this.selection.ids.length - MAX_ATTACHED_LAYERS;
-		if (extra > 0) lines.push(`and ${extra} more`);
-		return [
-			{
-				kind: 'selection',
-				label: `Selection (${this.selection.ids.length})`,
-				text: lines.join('\n')
-			}
-		];
+		if (!this.state.attachSelection) return [];
+		const attachment = this.context.selectionAttachment();
+		if (attachment === undefined) return [];
+		return [attachment];
 	}
 }

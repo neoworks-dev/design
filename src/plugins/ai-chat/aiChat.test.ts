@@ -16,6 +16,7 @@ import { fakeOverlay } from '../../lib/selecting/fixtures/selectionFixture';
 import { AiChatService, type AiChatAi } from '../../lib/services/aiChat';
 import { AiChatState } from '../../lib/services/aiChatState.svelte';
 import ai from '../ai';
+import aiContext from '../ai-context';
 import aiHistory from '../ai-history';
 import aiTools from '../ai-tools';
 import corePanels from '../core-panels';
@@ -41,6 +42,7 @@ function providers(): Plugin[] {
 		fakeOverlay,
 		ai,
 		aiTools,
+		aiContext,
 		aiHistory
 	];
 }
@@ -127,11 +129,17 @@ function chatWith(fake: FakeAi, selected: string[] = []): AiChatService {
 			revertRun: () => {},
 			revertLastRun: () => false
 		},
+		{ documentId: 'doc' },
 		{
-			documentId: 'doc',
-			get: (id) => ({ id, name: `Layer ${id}`, type: 'RECTANGLE' })
+			selectionAttachment: () => {
+				if (selected.length === 0) return undefined;
+				return {
+					kind: 'selection',
+					label: `Selection (${selected.length})`,
+					text: selected.join()
+				};
+			}
 		},
-		{ ids: selected },
 		new AiChatState()
 	);
 }

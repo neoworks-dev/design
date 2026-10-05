@@ -14,6 +14,11 @@
 
 	const conversation = $derived(chat.conversation());
 	const revertibleRunId = $derived(chat.revertibleRunId);
+	const placeholder = $derived.by(() => {
+		const hints = chat.slashHints();
+		if (hints.length === 0) return 'Ask for changes';
+		return `Ask for changes, or ${hints.join(' ')}`;
+	});
 	let scroller: HTMLElement | undefined = $state();
 
 	$effect(() => {
@@ -57,7 +62,7 @@
 					class="bg-raised text-default max-w-[88%] self-end rounded-lg px-3 py-2 text-xs [overflow-wrap:anywhere] whitespace-pre-wrap"
 					data-ai-user-message
 				>
-					{record.prompt}
+					{record.display === undefined ? record.prompt : record.display}
 				</div>
 
 				{#each rows as row (row.key)}
@@ -170,7 +175,7 @@
 	>
 		<textarea
 			class="text-default placeholder:text-faint min-h-14 w-full resize-none bg-transparent px-1 text-xs outline-none"
-			placeholder="Ask for changes"
+			{placeholder}
 			aria-label="Message the assistant"
 			rows="3"
 			value={chat.draft}

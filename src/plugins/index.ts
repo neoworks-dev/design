@@ -24,8 +24,15 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import ai from './ai';
+import aiBatch from './ai-batch';
 import aiChat from './ai-chat';
+import aiContext from './ai-context';
+import aiGenerate from './ai-generate';
 import aiHistory from './ai-history';
+import aiPalette from './ai-palette';
+import aiRename from './ai-rename';
+import aiSearch from './ai-search';
+import aiReview from './ai-review';
 import aiTools from './ai-tools';
 import align from './align';
 import autolayout from './autolayout';
@@ -227,5 +234,12 @@ export const builtinPlugins: Plugin[] = [
 	ai,
 	aiTools,
 	aiHistory,
+	aiContext,
+	aiReview,
+	aiRename,
+	aiSearch,
+	aiGenerate,
+	aiPalette,
+	aiBatch,
 	aiChat
 ];

@@ -52,7 +52,16 @@ export interface DocumentToolsOptions {
 export const DEFAULT_TOOL_OPTIONS: DocumentToolsOptions = {
 	maxOpsPerCall: 200,
 	maxDeletionsPerRun: 50,
-	blockedCommandPrefixes: ['app.', 'file.', 'ai.', 'home.', 'tabs.', 'edit.undo', 'edit.redo'],
+	blockedCommandPrefixes: [
+		'app.',
+		'file.',
+		'ai.',
+		'ai-',
+		'home.',
+		'tabs.',
+		'edit.undo',
+		'edit.redo'
+	],
 	maxImageBytes: 1_500_000,
 	maxResultChars: 60_000
 };
@@ -137,7 +146,7 @@ function describeNode(node: Node): string {
 	return `${node.type} ${node.id} "${node.name}"`;
 }
 
-function base64Of(bytes: Uint8Array): string {
+export function base64Of(bytes: Uint8Array): string {
 	let binary = '';
 	const chunk = 0x8000;
 	for (let start = 0; start < bytes.length; start += chunk) {

@@ -315,6 +315,9 @@ export class AiService extends Service {
 				.join(', ');
 			return { ok: false, text: `unknown tool "${message.tool}"; available: ${known}` };
 		}
+		if (record.tools !== undefined && !record.tools.includes(message.tool)) {
+			return { ok: false, text: `"${message.tool}" is not available to this run` };
+		}
 		if (handler.write && record.scope === 'read') {
 			return {
 				ok: false,
@@ -338,8 +341,10 @@ export class AiService extends Service {
 		if (model === undefined) model = this.modelId;
 		return {
 			id,
-			label: summarizePrompt(prompt),
+			label: summarizePrompt(options.display === undefined ? prompt : options.display),
 			prompt,
+			display: options.display,
+			tools: options.tools,
 			origin: 'ai',
 			scope: options.scope === undefined ? 'write' : options.scope,
 			provider,
@@ -354,6 +359,8 @@ export class AiService extends Service {
 			id: record.id,
 			label: record.label,
 			prompt: record.prompt,
+			display: record.display,
+			tools: record.tools,
 			origin: record.origin,
 			scope: record.scope,
 			provider: record.provider,
@@ -384,6 +391,7 @@ export class AiService extends Service {
 		return this.tools
 			.list()
 			.filter((tool) => tool.write === false || record.scope === 'write')
+			.filter((tool) => record.tools === undefined || record.tools.includes(tool.id))
 			.map((tool) => ({
 				name: tool.id,
 				description: tool.description,

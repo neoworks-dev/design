@@ -11,9 +11,9 @@ import AiChatPanel from './AiChatPanel.svelte';
 // the `aiChat` service; it talks to the `ai` and `aiHistory` services only.
 export default {
 	name: 'ai-chat',
-	inject: ['panels', 'ai', 'aiHistory', 'selection', 'document', 'commands'],
+	inject: ['panels', 'ai', 'aiHistory', 'aiContext', 'document', 'commands'],
 	apply(ctx: Context): void {
-		new AiChatService(ctx, ctx.ai, ctx.aiHistory, ctx.document, ctx.selection, new AiChatState());
+		new AiChatService(ctx, ctx.ai, ctx.aiHistory, ctx.document, ctx.aiContext, new AiChatState());
 
 		ctx.effect(
 			() =>

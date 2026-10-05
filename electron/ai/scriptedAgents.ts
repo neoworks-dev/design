@@ -4,6 +4,7 @@
 // yields what the model would stream and calls document tools through `tools.call`.
 
 import type { AiProviderInfo, AiStreamEvent } from '../bridge';
+import { taskOf, TASK_SCRIPTS } from './qaTasks';
 import type { AgentHost, AgentSession, AgentStartInit, AgentToolResult } from '../kernel/agentHost';
 
 export interface ScriptTools {
@@ -123,13 +124,34 @@ function textOf(result: AgentToolResult): string {
  * the prompt, default 3) in one `apply_changes` call, so a run is easy to undo and to check.
  */
 export async function* qaScript(prompt: string, tools: ScriptTools): AsyncGenerator<AiStreamEvent> {
+	const task = taskOf(prompt);
+	if (task !== undefined && TASK_SCRIPTS[task] !== undefined) {
+		yield* TASK_SCRIPTS[task](prompt, tools);
+		return;
+	}
 	yield { type: 'thought', text: 'Checking the selection and what is on the page first.' };
 	yield { type: 'tool_call', callId: 'qa-1', name: 'get_selection', status: 'running' };
 	const selection = await tools.call('get_selection', {});
 	yield { type: 'tool_call', callId: 'qa-1', name: 'get_selection', status: 'done' };
 	yield { type: 'text', text: `Selection: ${textOf(selection).slice(0, 120)}\n\n` };
 
-	const count = countIn(prompt);
+	const attached = /\[Selection \((\d+)\)\]\n/.exec(prompt);
+	if (attached) {
+		yield { type: 'text', text: `Context attached: ${attached[1]} selected layers.\n\n` };
+	}
+	if (/screenshot/i.test(prompt)) {
+		yield { type: 'tool_call', callId: 'qa-shot', name: 'get_screenshot', status: 'running' };
+		const shot = await tools.call('get_screenshot', {});
+		yield {
+			type: 'tool_call',
+			callId: 'qa-shot',
+			name: 'get_screenshot',
+			status: shot.ok ? 'done' : 'failed'
+		};
+		yield { type: 'text', text: `Screenshot: ${shot.ok ? 'received' : textOf(shot)}\n\n` };
+	}
+
+	const count = countIn(prompt.split('\n')[0]);
 	const operations = [];
 	for (let position = 0; position < count; position += 1) {
 		operations.push({

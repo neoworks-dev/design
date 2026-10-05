@@ -20,7 +20,7 @@ const aiToolsConfigSchema = z
 			.describe('Most layers one AI run may delete (0 forbids deleting).'),
 		blockedCommandPrefixes: z
 			.array(z.string())
-			.default(['app.', 'file.', 'ai.', 'home.', 'tabs.', 'edit.undo', 'edit.redo'])
+			.default(['app.', 'file.', 'ai.', 'ai-', 'home.', 'tabs.', 'edit.undo', 'edit.redo'])
 			.describe('Commands whose id starts with one of these are not available to the agent.'),
 		maxImageBytes: z
 			.number()

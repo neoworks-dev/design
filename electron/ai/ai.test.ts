@@ -1,7 +1,17 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolCallMessage } from '../bridge';
-import { McpServer } from './mcpServer';
+import {
+	altTextFor,
+	commandFor,
+	contentFor,
+	designFor,
+	directionFor,
+	matchesFor,
+	renamesFor,
+	taskOf
+} from './qaTasks';
+import { contentOf, McpServer } from './mcpServer';
 import { qaScript, ScriptedAgentHost } from './scriptedAgents';
 import { ToolBroker } from './toolBroker';
 
@@ -159,5 +169,83 @@ describe('scripted agent', () => {
 		const input = received[1].input as { ops: unknown[] };
 		expect(input.ops).toHaveLength(4);
 		expect(events.at(-1)).toMatchObject({ type: 'text' });
+	});
+});
+
+describe('contentOf', () => {
+	it('sends an image answer as MCP image content and anything else as text', () => {
+		const picture = JSON.stringify({ width: 4, height: 3, mimeType: 'image/png', base64: 'AAAA' });
+		expect(contentOf({ ok: true, text: picture })).toEqual([
+			{ type: 'image', data: 'AAAA', mimeType: 'image/png' },
+			{ type: 'text', text: 'image 4x3' }
+		]);
+		expect(contentOf({ ok: true, text: '{"a":1}' })).toEqual([{ type: 'text', text: '{"a":1}' }]);
+		expect(contentOf({ ok: true, text: 'plain' })).toEqual([{ type: 'text', text: 'plain' }]);
+		expect(contentOf({ ok: false, text: picture })).toEqual([{ type: 'text', text: picture }]);
+	});
+});
+
+describe('QA task scripts', () => {
+	it('reads the task tag and names layers predictably', () => {
+		const prompt = [
+			'Task: rename-layers',
+			'Layers (id | type | size | parent | content):',
+			'- a | RECTANGLE | 10x10 | in "F"',
+			'- b | RECTANGLE | 10x10 | in "F"',
+			'- c | TEXT | 10x10 | in "F" | text "welcome back friend again"',
+			'- d | FRAME | 10x10 | in "F" | contains x'
+		].join('\n');
+		expect(taskOf(prompt)).toBe('rename-layers');
+		expect(taskOf('draw 3 cards')).toBeUndefined();
+		expect(renamesFor(prompt)).toEqual([
+			{ id: 'a', name: 'Background' },
+			{ id: 'b', name: 'Background 2' },
+			{ id: 'c', name: 'Welcome Back Friend' },
+			{ id: 'd', name: 'Container' }
+		]);
+	});
+
+	it('finds search candidates by word or alias', () => {
+		const prompt = [
+			'Task: search-layers',
+			'Query: sign in',
+			'- a | FRAME | Login form | ',
+			'- b | RECTANGLE | Hero image | ',
+			'- c | TEXT | Heading | Sign in to continue'
+		].join('\n');
+		expect(matchesFor(prompt).sort()).toEqual(['a', 'c']);
+	});
+
+	it('designs a frame of the template size, with the first component when the file has one', () => {
+		const prompt = [
+			'Task: generate-design',
+			'Template: Basic site (1440x1024)',
+			'Request: pricing page for a startup',
+			'Components of this file (use one with "component": "<name>" where it fits): Button, Card'
+		].join('\n');
+		const design = designFor(prompt);
+		expect(design).toMatchObject({
+			type: 'FRAME',
+			name: 'pricing page for a',
+			props: { width: 1440, height: 1024, layoutMode: 'VERTICAL' }
+		});
+		expect(design.children?.map((child) => child.name)).toEqual([
+			'Header',
+			'Hero image',
+			'Cards',
+			'Button',
+			'Made with pricing page for a startup'
+		]);
+	});
+
+	it('maps phrases to commands and picks batch answers predictably', () => {
+		expect(commandFor('align these to left')).toBe('align.left');
+		expect(commandFor('Align everything to the right')).toBe('align.right');
+		expect(commandFor('make me a sandwich')).toBeUndefined();
+		expect(altTextFor('hero-image_2')).toBe('A picture of hero image 2.');
+		expect(contentFor('Page title')).toBe('Plan your week');
+		expect(contentFor('Card body')).toBe('Fresh ingredients, delivered to your door.');
+		expect(directionFor('A 10x10 at 0,0; B 10x10 at 50,2')).toBe('HORIZONTAL');
+		expect(directionFor('A 10x10 at 0,0; B 10x10 at 3,50')).toBe('VERTICAL');
 	});
 });
