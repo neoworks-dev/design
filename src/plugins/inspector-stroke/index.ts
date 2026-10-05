@@ -27,7 +27,8 @@ export default {
 		'colorPicker',
 		'gradientEditor',
 		'commands',
-		'keymap'
+		'keymap',
+		'styles'
 	],
 	apply(ctx: Context): void {
 		ctx.effect(

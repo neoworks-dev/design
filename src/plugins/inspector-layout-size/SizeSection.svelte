@@ -10,10 +10,12 @@
 		selectedNodes,
 		setSelectionProps
 	} from '../../lib/inspector-inputs/selectionEdit';
-	import { sharedValue } from '../../lib/inspector-inputs/values';
+	import { sharedValue, type InspectorValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
 	import { currentSizing, sizingProps } from '../../lib/layout/sizing';
 	import type { Sizing } from '../../lib/layout/types';
+	import BindVariable from '../../lib/inspector-inputs/BindVariable.svelte';
+	import ConstraintWidget from './ConstraintWidget.svelte';
 	import DropdownField from '../../lib/ui/DropdownField.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 	import NumberField from '../../lib/ui/NumberField.svelte';
@@ -170,6 +172,10 @@
 		return node.constraints[axis];
 	}
 
+	function sharedConstraint(axis: Axis): InspectorValue<string> {
+		return sharedValue(nodes, (node) => constraintOf(node, axis));
+	}
+
 	function setConstraint(axis: Axis, value: string): void {
 		setSelectionProps(
 			ctx,
@@ -193,7 +199,11 @@
 			boundTo={widthVariable}
 			disabled={widthVariable !== undefined}
 			onchange={(value, gesture) => resizeTo('width', value, gesture)}
-		/>
+		>
+			{#snippet trailing()}
+				<BindVariable {nodes} property="width" scopes={['WIDTH_HEIGHT']} label="Width" />
+			{/snippet}
+		</NumberField>
 		<IconToggleButton
 			icon={proportions.value === true ? LinkSimpleHorizontalIcon : LinkSimpleHorizontalBreakIcon}
 			label="Constrain proportions"
@@ -209,7 +219,11 @@
 			boundTo={heightVariable}
 			disabled={heightVariable !== undefined}
 			onchange={(value, gesture) => resizeTo('height', value, gesture)}
-		/>
+		>
+			{#snippet trailing()}
+				<BindVariable {nodes} property="height" scopes={['WIDTH_HEIGHT']} label="Height" />
+			{/snippet}
+		</NumberField>
 	</div>
 
 	{#if showSizing}
@@ -246,16 +260,23 @@
 	{/if}
 
 	{#if showConstraints}
-		<div class="grid grid-cols-2 gap-2" data-constraints>
-			{#each ['horizontal', 'vertical'] as const as axis (axis)}
-				{@const shared = sharedValue(nodes, (node) => constraintOf(node, axis))}
-				<DropdownField
-					options={CONSTRAINT_OPTIONS[axis]}
-					value={shared.value}
-					mixed={shared.mixed}
-					onchange={(value) => setConstraint(axis, value)}
-				/>
-			{/each}
+		<div class="flex items-center gap-3" data-constraints>
+			<ConstraintWidget
+				horizontal={sharedConstraint('horizontal').value}
+				vertical={sharedConstraint('vertical').value}
+				onchange={setConstraint}
+			/>
+			<div class="flex min-w-0 flex-1 flex-col gap-2">
+				{#each ['horizontal', 'vertical'] as const as axis (axis)}
+					{@const shared = sharedConstraint(axis)}
+					<DropdownField
+						options={CONSTRAINT_OPTIONS[axis]}
+						value={shared.value}
+						mixed={shared.mixed}
+						onchange={(value) => setConstraint(axis, value)}
+					/>
+				{/each}
+			</div>
 		</div>
 	{/if}
 

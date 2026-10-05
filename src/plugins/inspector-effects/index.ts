@@ -8,7 +8,7 @@ const NO_EFFECT_KINDS = ['PAGE', 'SECTION', 'SLICE'];
 // each with visibility, a settings popover and drag reordering.
 export default {
 	name: 'inspector-effects',
-	inject: ['inspectors', 'document', 'selection', 'variables', 'colorPicker'],
+	inject: ['inspectors', 'document', 'selection', 'variables', 'colorPicker', 'styles'],
 	apply(ctx: Context): void {
 		ctx.effect(
 			() =>

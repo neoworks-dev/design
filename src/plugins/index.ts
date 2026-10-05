@@ -35,6 +35,7 @@ import boolean from './boolean';
 import clipboard from './clipboard';
 import colorPicker from './color-picker';
 import comments from './comments';
+import constraints from './constraints';
 import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
@@ -69,6 +70,8 @@ import overlay from './overlay';
 import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
+import assetsPanel from './assets-panel';
+import resourcesSearch from './resources-search';
 import renderer from './renderer';
 import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
@@ -81,6 +84,8 @@ import textLayout from './text-layout';
 import toolText from './tool-text';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
+import variablesUi from './variables-ui';
+import styles from './styles';
 import variants from './variants';
 import viewport from './viewport';
 import viewTools from './view-tools';
@@ -131,6 +136,7 @@ export const builtinPlugins: Plugin[] = [
 	effects,
 	textLayout,
 	autolayout,
+	constraints,
 	textEdit,
 	textFormat,
 	documentPlugin,
@@ -152,6 +158,8 @@ export const builtinPlugins: Plugin[] = [
 	home,
 	tabs,
 	variablesCore,
+	variablesUi,
+	styles,
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,
@@ -201,6 +209,8 @@ export const builtinPlugins: Plugin[] = [
 	workbenchLayout,
 	titlebar,
 	placeholderShell,
+	assetsPanel,
+	resourcesSearch,
 	nudge,
 	selectionCommands,
 	zOrder,

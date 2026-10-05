@@ -9,6 +9,7 @@ import { selectionProviders } from '../../lib/selecting/fixtures/selectionFixtur
 import colorPicker from '../color-picker';
 import coreInspectors from '../core-inspectors';
 import corePanels from '../core-panels';
+import styles from '../styles';
 import variablesCore from '../variables-core';
 import layoutGrids from './index';
 
@@ -16,7 +17,14 @@ const storage = { getItem: (): null => null, setItem: (): void => {} };
 const panels = { ...corePanels, apply: (ctx: never) => corePanels.apply(ctx, { storage }) };
 
 function providers(): Plugin[] {
-	return [...selectionProviders(), variablesCore, panels as Plugin, coreInspectors, colorPicker];
+	return [
+		...selectionProviders(),
+		variablesCore,
+		styles,
+		panels as Plugin,
+		coreInspectors,
+		colorPicker
+	];
 }
 
 describePlugin('layout-grids', layoutGrids, {

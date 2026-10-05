@@ -223,10 +223,10 @@ export function scaleTransform(
 	};
 }
 
-type Constraint = 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE';
+export type Constraint = 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'SCALE';
 
 /** The 1-D map (scale and offset) that a child's span `[start, end]` goes through. */
-function constrainSpan(
+export function constrainSpan(
 	constraint: Constraint,
 	span: { start: number; end: number },
 	oldSize: number,

@@ -16,6 +16,7 @@
 	import TextUnderlineIcon from 'phosphor-svelte/lib/TextUnderlineIcon';
 	import type { Paragraph, TextNode, TextStyle } from '../../lib/document';
 	import { selectedNodes, setSelectionProps } from '../../lib/inspector-inputs/selectionEdit';
+	import StyleButton from '../../lib/inspector-inputs/StyleButton.svelte';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
 	import DropdownField from '../../lib/ui/DropdownField.svelte';
@@ -217,7 +218,18 @@
 </script>
 
 <div class="flex flex-col gap-2 px-3 pb-3" data-typography-section>
-	<FontFamilyPicker {families} value={family} mixed={font.mixed} {missing} onchange={setFamily} />
+	<div class="flex items-center gap-1">
+		<div class="min-w-0 flex-1">
+			<FontFamilyPicker
+				{families}
+				value={family}
+				mixed={font.mixed}
+				{missing}
+				onchange={setFamily}
+			/>
+		</div>
+		<StyleButton target="text" nodes={textNodes} />
+	</div>
 
 	<div class="grid grid-cols-[1fr_4.5rem] gap-1">
 		<div class="min-w-0" data-font-style>

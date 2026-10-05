@@ -12,6 +12,7 @@ import coreRegions from '../core-regions';
 import coreTools from '../core-tools';
 import toolbar from '../toolbar';
 import placeholderShell from '../placeholder-shell';
+import PlaceholderText from '../placeholder-shell/PlaceholderText.svelte';
 import workbenchLayout from './index';
 import { LAYOUT_STORAGE_KEY } from './layoutState.svelte';
 import { memoryStorage, type MemoryStorage } from './testStorage';
@@ -142,6 +143,14 @@ describe('workbench-layout rendering', () => {
 		await mounted.ctx.commands.run('workbench-layout.toggle-left-sidebar');
 		flushSync();
 		expect(sidebar('left')).toBeNull();
+		mounted.ctx.panels.registerTab({
+			id: 'assets',
+			side: 'left',
+			title: 'Assets',
+			order: 1,
+			component: PlaceholderText,
+			props: { text: 'assets panel' }
+		});
 		await mounted.ctx.commands.run('panels.show.assets');
 		flushSync();
 		expect(sidebar('left')).not.toBeNull();

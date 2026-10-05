@@ -423,6 +423,7 @@ export interface AutoLayoutProps {
 	gridRowGap: number;
 	gridColumnGap: number;
 	layoutGrids: LayoutGrid[];
+	gridStyleId?: string;
 }
 
 // ---------- node types ----------

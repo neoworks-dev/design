@@ -75,6 +75,26 @@ describe('size section', () => {
 		expect(panel.ctx.document.require('a')).toMatchObject({ minWidth: null });
 	});
 
+	it('the constraint widget pins sides, stretches with both bars and centres', async () => {
+		const panel = await open();
+		panel.select(['a']);
+		const press = (bar: string): void => {
+			panel.query<HTMLButtonElement>(`[data-bar="${bar}"]`)?.click();
+			flushSync();
+		};
+		const constraints = (): unknown => panel.ctx.document.require('a');
+		press('right');
+		expect(constraints()).toMatchObject({ constraints: { horizontal: 'STRETCH' } });
+		press('left');
+		expect(constraints()).toMatchObject({ constraints: { horizontal: 'MAX' } });
+		press('bottom');
+		expect(constraints()).toMatchObject({ constraints: { vertical: 'STRETCH' } });
+		press('center-horizontal');
+		expect(constraints()).toMatchObject({ constraints: { horizontal: 'CENTER' } });
+		press('center-vertical');
+		expect(constraints()).toMatchObject({ constraints: { vertical: 'CENTER' } });
+	});
+
 	it('edits constraints of frame children and clip content of frames', async () => {
 		const panel = await open();
 		panel.select(['a']);

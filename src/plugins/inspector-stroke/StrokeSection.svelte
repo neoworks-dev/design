@@ -143,6 +143,7 @@
 			stored={storedPaints}
 			nodeId={nodes[0].id}
 			mixed={paints.mixed}
+			{nodes}
 			onedit={editPaints}
 		/>
 		{#if hasStroke}

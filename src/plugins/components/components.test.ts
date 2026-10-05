@@ -8,8 +8,7 @@ import components from './index';
 
 const BINDINGS: Record<string, string> = {
 	'ctrl+alt+k': 'components.create',
-	'ctrl+alt+b': 'components.detach',
-	'shift+i': 'components.create-instance'
+	'ctrl+alt+b': 'components.detach'
 };
 
 describePlugin('components', components, {
