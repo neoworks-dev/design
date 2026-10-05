@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { RGBA } from '../../lib/document';
 	import { getKernel } from '../../lib/kernel/context';
 	import { variablesForScope } from '../../lib/services/colorPicker';
@@ -24,9 +25,9 @@
 
 	const documentColors = $derived.by(() => {
 		if (request === null) return [];
-		void ctx.document.revision;
+		// Read once per picker: swatches must not reshuffle while a drag edits the document.
 		const found: Record<string, RGBA> = {};
-		for (const node of ctx.document.query((candidate) => 'fills' in candidate)) {
+		for (const node of untrack(() => ctx.document.query((candidate) => 'fills' in candidate))) {
 			if (!('fills' in node)) continue;
 			for (const paint of node.fills) {
 				if (paint.type !== 'SOLID') continue;
@@ -55,7 +56,12 @@
 
 {#if request !== null}
 	{#key request}
-		<Popover anchor={request.anchor} label={request.label} onclose={() => ctx.colorPicker.close()}>
+		<Popover
+			anchor={request.anchor}
+			width={256}
+			label={request.label}
+			onclose={() => ctx.colorPicker.close()}
+		>
 			<ColorPickerPanel
 				color={request.color()}
 				{variables}

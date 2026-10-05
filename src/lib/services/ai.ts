@@ -18,6 +18,7 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type {
 	AiEventMessage,
+	AiImage,
 	AiProviderInfo,
 	AiSendRequest,
 	AiStartRequest,
@@ -39,7 +40,9 @@ import {
 	type AiRunOptions,
 	type AiRunRecord,
 	type AiRunStatus,
-	type AiToolHandler
+	type AiSkill,
+	type AiToolHandler,
+	type AiToolOutcome
 } from '../ai/types';
 import { Registry } from '../registries/registry.svelte';
 import type { DocumentService } from './document';
@@ -85,11 +88,24 @@ interface RunHandle {
 	attachments: string[];
 }
 
+/** Longest tool answer a run keeps for the chat; images are kept whole so they can be shown. */
+const RECORDED_RESULT_LENGTH = 20_000;
+
+function isImageResult(text: string): boolean {
+	return text.startsWith('{') && text.includes('"base64"') && text.includes('"mimeType"');
+}
+
 function toolSignature(definitions: AiToolDefinition[]): string {
 	return definitions
 		.map((definition) => definition.name)
 		.sort()
 		.join(',');
+}
+
+/** Whether a run gets a tool: the ones it names, else every tool that is not a task's own. */
+function offers(record: AiRunInfo, tool: AiToolHandler): boolean {
+	if (record.tools === undefined) return tool.taskOnly !== true;
+	return record.tools.includes(tool.id);
 }
 
 function describeError(error: unknown): string {
@@ -100,6 +116,8 @@ function describeError(error: unknown): string {
 export class AiService extends Service {
 	/** The document tools plugins offer to the agent. */
 	readonly tools = new Registry<AiToolHandler>();
+	/** Guidance the agent loads with the `skill` tool. */
+	readonly skills = new Registry<AiSkill>();
 	private readonly handles = new Map<string, RunHandle>();
 	private nextRunNumber = 1;
 
@@ -152,6 +170,10 @@ export class AiService extends Service {
 		return '';
 	}
 
+	get effortId(): string {
+		return this.state.effortId;
+	}
+
 	hasConsent(documentId: string): boolean {
 		if (this.options.requireConsent === false) return true;
 		return this.state.consented.includes(documentId);
@@ -163,6 +185,12 @@ export class AiService extends Service {
 	selectModel(providerId: string, modelId: string): void {
 		this.state.providerId = providerId;
 		this.state.modelId = modelId;
+		this.keepEffortOffered();
+	}
+
+	/** Choose the reasoning effort of the next run; empty means the harness default. */
+	selectEffort(effort: string): void {
+		this.state.effortId = effort;
 	}
 
 	grantConsent(documentId: string): void {
@@ -178,11 +206,33 @@ export class AiService extends Service {
 	async refreshProviders(): Promise<readonly AiProviderInfo[]> {
 		if (!this.available) return [];
 		this.state.providers = await this.desktop.aiProviders();
+		this.keepEffortOffered();
 		return this.state.providers;
+	}
+
+	/** Drop a chosen effort the current provider does not offer (after switching provider). */
+	private keepEffortOffered(): void {
+		if (this.state.effortId === '') return;
+		const provider = this.state.providers.find((candidate) => candidate.id === this.providerId);
+		if (provider === undefined) return;
+		if (provider.efforts.includes(this.state.effortId)) return;
+		this.state.effortId = '';
 	}
 
 	registerTool(handler: AiToolHandler): () => void {
 		return this.tools.register(handler);
+	}
+
+	registerSkill(skill: AiSkill): () => void {
+		return this.skills.register(skill);
+	}
+
+	/** The text of a skill, or `undefined` when no plugin offers it. */
+	skillText(id: string): string | undefined {
+		const skill = this.skills.get(id);
+		if (skill === undefined) return undefined;
+		if (typeof skill.body === 'string') return skill.body;
+		return skill.body();
 	}
 
 	// ---------- runs ----------
@@ -207,6 +257,7 @@ export class AiService extends Service {
 			...info,
 			status: 'running',
 			events: [],
+			toolResults: [],
 			endedAt: null,
 			error: null
 		};
@@ -293,6 +344,7 @@ export class AiService extends Service {
 	/** An `ai:tool-call` push: run the registered tool and answer main. */
 	async handleToolCall(message: AiToolCallMessage): Promise<void> {
 		const result = await this.runTool(message);
+		this.recordToolResult(message, result);
 		await this.desktop
 			.aiToolResult({ callId: message.callId, ok: result.ok, text: result.text })
 			.catch((error: unknown) => {
@@ -301,6 +353,25 @@ export class AiService extends Service {
 	}
 
 	// ---------- internals ----------
+
+	private recordToolResult(
+		message: AiToolCallMessage,
+		result: { ok: boolean; text: string }
+	): void {
+		const record = this.getRun(message.runId);
+		if (!record) return;
+		let text = result.text;
+		if (text.length > RECORDED_RESULT_LENGTH && !isImageResult(text)) {
+			text = `${text.slice(0, RECORDED_RESULT_LENGTH)}\n… (${text.length - RECORDED_RESULT_LENGTH} more characters)`;
+		}
+		const outcome: AiToolOutcome = {
+			tool: message.tool,
+			input: message.input,
+			ok: result.ok,
+			text
+		};
+		this.updateRun(record.id, { toolResults: [...record.toolResults, outcome] });
+	}
 
 	private async runTool(message: AiToolCallMessage): Promise<{ ok: boolean; text: string }> {
 		const record = this.getRun(message.runId);
@@ -315,7 +386,7 @@ export class AiService extends Service {
 				.join(', ');
 			return { ok: false, text: `unknown tool "${message.tool}"; available: ${known}` };
 		}
-		if (record.tools !== undefined && !record.tools.includes(message.tool)) {
+		if (!offers(record, handler)) {
 			return { ok: false, text: `"${message.tool}" is not available to this run` };
 		}
 		if (handler.write && record.scope === 'read') {
@@ -339,6 +410,8 @@ export class AiService extends Service {
 		if (provider === undefined) provider = this.providerId;
 		let model = options.model;
 		if (model === undefined) model = this.modelId;
+		let effort = options.effort;
+		if (effort === undefined) effort = this.effortId;
 		return {
 			id,
 			label: summarizePrompt(options.display === undefined ? prompt : options.display),
@@ -349,6 +422,8 @@ export class AiService extends Service {
 			scope: options.scope === undefined ? 'write' : options.scope,
 			provider,
 			model: model === '' ? null : model,
+			effort: effort === '' ? null : effort,
+			images: options.images ?? [],
 			documentId,
 			startedAt: now()
 		};
@@ -365,6 +440,8 @@ export class AiService extends Service {
 			scope: record.scope,
 			provider: record.provider,
 			model: record.model,
+			effort: record.effort,
+			images: record.images,
 			documentId: record.documentId,
 			startedAt: record.startedAt
 		};
@@ -377,7 +454,12 @@ export class AiService extends Service {
 			const handle = this.handles.get(runId);
 			if (!record || !handle || record.status !== 'running') return;
 			const parts = [record.prompt, ...handle.attachments];
-			await this.desktop.aiSend({ sessionId, runId, prompt: parts.join('\n\n') });
+			await this.desktop.aiSend({
+				sessionId,
+				runId,
+				prompt: parts.join('\n\n'),
+				images: this.imagesFor(record)
+			});
 		} catch (error) {
 			const record = this.getRun(runId);
 			if (!record || record.status !== 'running') return;
@@ -387,11 +469,19 @@ export class AiService extends Service {
 		}
 	}
 
+	/** The run's images, unless its provider cannot take any. */
+	private imagesFor(record: AiRunRecord): AiImage[] | undefined {
+		if (record.images.length === 0) return undefined;
+		const provider = this.state.providers.find((candidate) => candidate.id === record.provider);
+		if (provider !== undefined && !provider.images) return undefined;
+		return [...record.images];
+	}
+
 	private definitionsFor(record: AiRunRecord): AiToolDefinition[] {
 		return this.tools
 			.list()
 			.filter((tool) => tool.write === false || record.scope === 'write')
-			.filter((tool) => record.tools === undefined || record.tools.includes(tool.id))
+			.filter((tool) => offers(record, tool))
 			.map((tool) => ({
 				name: tool.id,
 				description: tool.description,
@@ -408,12 +498,19 @@ export class AiService extends Service {
 		}
 		const provider = await this.resolveProvider(record);
 		const definitions = this.definitionsFor(record);
-		const signature = `${record.scope}:${toolSignature(definitions)}`;
+		const skills = this.skills.list();
+		const toolNames = definitions.map((definition) => definition.name);
+		const inlined = skills.filter(
+			(skill) => skill.inlineWith !== undefined && toolNames.includes(skill.inlineWith)
+		);
+		const skillIds = skills.map((skill) => skill.id).join(',');
+		const signature = `${record.scope}:${toolSignature(definitions)}:${skillIds}`;
 		const current = this.state.session;
 		if (
 			current !== null &&
 			current.provider === provider &&
 			current.model === record.model &&
+			current.effort === record.effort &&
 			current.toolSignature === signature &&
 			current.documentId === record.documentId
 		) {
@@ -424,10 +521,16 @@ export class AiService extends Service {
 		const started = await this.desktop.aiStart({
 			provider,
 			model: record.model === null ? undefined : record.model,
+			effort: record.effort === null ? undefined : record.effort,
 			system: buildSystemPrompt({
 				documentName: this.document.documentName,
 				pageName: this.document.currentPage.name,
-				canWrite: record.scope === 'write'
+				canWrite: record.scope === 'write',
+				tools: toolNames,
+				skills: skills
+					.filter((skill) => !inlined.includes(skill))
+					.map((skill) => ({ id: skill.id, summary: skill.summary })),
+				guides: inlined.map((skill) => this.skillText(skill.id) ?? '')
 			}),
 			tools: definitions
 		});
@@ -435,6 +538,7 @@ export class AiService extends Service {
 			sessionId: started.sessionId,
 			provider,
 			model: record.model,
+			effort: record.effort,
 			toolSignature: signature,
 			documentId: record.documentId
 		};

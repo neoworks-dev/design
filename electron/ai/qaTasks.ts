@@ -144,105 +144,58 @@ async function* searchLayers(prompt: string, tools: TaskTools): AsyncGenerator<A
 
 // ---------- generate-design ----------
 
-interface DesignSpec {
-	type: string;
-	name?: string;
-	props?: Record<string, unknown>;
-	component?: string;
-	children?: DesignSpec[];
+function escapeHtml(text: string): string {
+	return text
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;');
 }
 
-function label(text: string, size: number, color = '#1a1a1a'): DesignSpec {
-	return {
-		type: 'TEXT',
-		name: text,
-		props: { characters: text, fontSize: size, textColor: color }
-	};
+function label(text: string, size: number, color = '#1a1a1a'): string {
+	const safe = escapeHtml(text);
+	return `<p data-name="${safe}" style="font-size:${size}px;color:${color}">${safe}</p>`;
 }
 
-function card(title: string, body: string, wide: boolean): DesignSpec {
-	return {
-		type: 'FRAME',
-		name: `${title} card`,
-		props: {
-			layoutMode: 'VERTICAL',
-			itemSpacing: 8,
-			padding: 16,
-			cornerRadius: 12,
-			fill: '#ffffff',
-			stroke: '#e1e1e6',
-			layoutSizingHorizontal: wide ? 'FILL' : 'FIXED',
-			width: 240
-		},
-		children: [label(title, 18), label(body, 14, '#6b6b76')]
-	};
+function card(title: string, body: string, wide: boolean): string {
+	const sizing = wide ? 'align-self:stretch' : 'width:240px';
+	return [
+		`<div data-name="${title} card" style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:12px;background:#ffffff;border:1px solid #e1e1e6;${sizing}">`,
+		label(title, 18),
+		label(body, 14, '#6b6b76'),
+		'</div>'
+	].join('');
 }
 
-/** A small, predictable design for a generate prompt: header, hero, three cards, footer. */
-export function designFor(prompt: string): DesignSpec {
+/** A small, predictable design for a generate prompt as HTML: header, hero, three cards, footer. */
+export function designFor(prompt: string): string {
 	const request = /^Request: (.*)$/m.exec(prompt)?.[1] ?? 'Design';
 	const size = /^Template: .*\((\d+)x(\d+)\)/m.exec(prompt);
 	const width = size ? Number(size[1]) : 390;
 	const height = size ? Number(size[2]) : 844;
 	const wide = width > 600;
 	const component = /Components of this file \(.*?\): ([^,\n]+)/.exec(prompt)?.[1];
-	const title = request.split(/\s+/).slice(0, 4).join(' ');
+	const title = escapeHtml(request.split(/\s+/).slice(0, 4).join(' '));
 	const cards = ['Fast', 'Simple', 'Shared'].map((name) => card(name, `${name} by design`, !wide));
-	const children: DesignSpec[] = [
-		{
-			type: 'FRAME',
-			name: 'Header',
-			props: {
-				layoutMode: 'HORIZONTAL',
-				itemSpacing: 12,
-				counterAxisAlignItems: 'CENTER',
-				layoutSizingHorizontal: 'FILL',
-				height: 56
-			},
-			children: [label(title, 24), label('Menu', 14, '#6b6b76')]
-		},
-		{
-			type: 'RECTANGLE',
-			name: 'Hero image',
-			props: {
-				width: wide ? 800 : 340,
-				height: wide ? 320 : 200,
-				cornerRadius: 16,
-				fill: '#c9c4f5'
-			}
-		},
-		{
-			type: 'FRAME',
-			name: 'Cards',
-			props: {
-				layoutMode: wide ? 'HORIZONTAL' : 'VERTICAL',
-				itemSpacing: 16,
-				layoutSizingHorizontal: 'FILL'
-			},
-			children: cards
-		}
+	const direction = wide ? 'row' : 'column';
+	const parts = [
+		`<div data-name="${title}" style="width:${width}px;height:${height}px;display:flex;flex-direction:column;gap:24px;padding:24px;background:#f7f7fb">`,
+		`<div data-name="Header" style="display:flex;gap:12px;align-items:center;height:56px">${label(title, 24)}${label('Menu', 14, '#6b6b76')}</div>`,
+		`<div data-name="Hero image" style="width:${wide ? 800 : 340}px;height:${wide ? 320 : 200}px;border-radius:16px;background:#c9c4f5"></div>`,
+		`<div data-name="Cards" style="display:flex;flex-direction:${direction};gap:16px">${cards.join('')}</div>`
 	];
-	if (component !== undefined) children.push({ type: 'FRAME', name: component, component });
-	children.push(label(`Made with ${request}`, 12, '#8c8c8c'));
-	return {
-		type: 'FRAME',
-		name: title,
-		props: {
-			width,
-			height,
-			layoutMode: 'VERTICAL',
-			itemSpacing: 24,
-			padding: 24,
-			fill: '#f7f7fb'
-		},
-		children
-	};
+	if (component !== undefined) {
+		const safe = escapeHtml(component);
+		parts.push(`<div data-name="${safe}" data-component="${safe}"></div>`);
+	}
+	parts.push(label(`Made with ${request}`, 12, '#8c8c8c'), '</div>');
+	return parts.join('');
 }
 
 async function* generateDesign(prompt: string, tools: TaskTools): AsyncGenerator<AiStreamEvent> {
-	yield { type: 'thought', text: 'Sketching the layout, then building it in one call.' };
+	yield { type: 'thought', text: 'Sketching the layout, then writing it in one call.' };
 	const result: { value: AgentToolResult | undefined } = { value: undefined };
-	yield* callTool(tools, 'qa-generate', 'generate_design', { root: designFor(prompt) }, result);
+	yield* callTool(tools, 'qa-generate', 'write', { html: designFor(prompt) }, result);
 	if (result.value === undefined || !result.value.ok) {
 		yield { type: 'text', text: `That did not work: ${result.value?.text ?? 'no answer'}` };
 		return;
@@ -278,8 +231,8 @@ async function* paletteCommand(prompt: string, tools: TaskTools): AsyncGenerator
 		return;
 	}
 	const listing: { value: AgentToolResult | undefined } = { value: undefined };
-	yield* callTool(tools, 'qa-list', 'list_commands', { search: wanted }, listing);
-	const known = listing.value?.ok === true && listing.value.text.includes(`"${wanted}"`);
+	yield* callTool(tools, 'qa-list', 'skill', { name: 'commands' }, listing);
+	const known = listing.value?.ok === true && listing.value.text.includes(`- ${wanted}:`);
 	if (!known) {
 		yield { type: 'text', text: `The command ${wanted} is not available here.` };
 		return;

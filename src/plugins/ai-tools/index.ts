@@ -1,17 +1,11 @@
 import type { Context } from '@neoworks/extension-system';
 import { z } from 'zod';
-import { DocumentTools } from '../../lib/ai/tools/documentTools';
+import { CoreTools } from '../../lib/ai/tools/coreTools';
 
 // The plugin's settings (shown in Settings, stored by main). They are the run permissions of the
 // document tools: how much one call or one run may do.
 const aiToolsConfigSchema = z
 	.object({
-		maxOpsPerCall: z
-			.number()
-			.int()
-			.positive()
-			.default(200)
-			.describe('Most operations one apply_changes call may carry.'),
 		maxDeletionsPerRun: z
 			.number()
 			.int()
@@ -38,29 +32,41 @@ const aiToolsConfigSchema = z
 	.prefault({});
 export type AiToolsConfig = z.infer<typeof aiToolsConfigSchema>;
 
-// The document as tools for the AI agent (#144): read_tree, get_selection, get_node, query,
-// apply_changes, create_node, set_props, run_command, list_commands, export_png, list_variables,
-// list_styles, list_components. Reads answer compact JSON with resolved values; every write goes
-// through `document.apply` tagged `origin: 'ai'` with the run id. Write tools are only offered to
-// runs with write scope.
+// The document as tools for the AI agent (#144): read, write, edit, screenshot and skill. The
+// document reads and writes as HTML (src/lib/ai/html); every write goes through `document.apply`
+// tagged `origin: 'ai'` with the run id, and write tools are only offered to runs with write
+// scope. The plugin also contributes the skills behind these tools (html, edit, components,
+// variables, styles, commands).
 export default {
 	name: 'ai-tools',
-	inject: ['ai', 'document', 'selection', 'commands', 'headlessRenderer', 'variables'],
+	inject: [
+		'ai',
+		'document',
+		'selection',
+		'commands',
+		'headlessRenderer',
+		'variables',
+		'htmlLayout'
+	],
 	Config: aiToolsConfigSchema,
 	apply(ctx: Context, config: AiToolsConfig): void {
-		const tools = new DocumentTools(
+		const tools = new CoreTools(
 			{
 				document: ctx.document,
 				selection: ctx.selection,
 				commands: ctx.commands,
 				variables: ctx.variables,
 				headlessRenderer: ctx.headlessRenderer,
+				htmlLayout: ctx.htmlLayout,
 				ai: ctx.ai
 			},
 			config
 		);
 		for (const handler of tools.handlers()) {
 			ctx.effect(() => ctx.ai.registerTool(handler), `ai tool ${handler.id}`);
+		}
+		for (const skill of tools.skills()) {
+			ctx.effect(() => ctx.ai.registerSkill(skill), `ai skill ${skill.id}`);
 		}
 		ctx.on('ai/run-end', (run) => tools.forgetRun(run.id));
 	}

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { Window } from 'happy-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolCallMessage } from '../bridge';
 import {
@@ -18,6 +19,13 @@ import { ToolBroker } from './toolBroker';
 afterEach(() => {
 	vi.useRealTimers();
 });
+
+/** The elements `html` parses into (this suite runs in node, without a DOM of its own). */
+function parseHtml(html: string): Element {
+	const window = new Window();
+	window.document.body.innerHTML = html;
+	return window.document.body as unknown as Element;
+}
 
 describe('ToolBroker', () => {
 	it('resolves a call with the renderer answer', async () => {
@@ -149,7 +157,7 @@ describe('McpServer', () => {
 });
 
 describe('scripted agent', () => {
-	it('qaScript draws the number of cards named in the prompt through apply_changes', async () => {
+	it('qaScript draws the number of cards named in the prompt through write', async () => {
 		const host = new ScriptedAgentHost(qaScript);
 		const received: { name: string; input: unknown }[] = [];
 		const session = await host.start({
@@ -165,10 +173,37 @@ describe('scripted agent', () => {
 		});
 		const events = [];
 		for await (const event of session.prompt('draw 4 cards')) events.push(event);
-		expect(received.map((call) => call.name)).toEqual(['get_selection', 'apply_changes']);
-		const input = received[1].input as { ops: unknown[] };
-		expect(input.ops).toHaveLength(4);
+		expect(received.map((call) => call.name)).toEqual(['read', 'write']);
+		const input = received[1].input as { html: string; label: string };
+		const cards = parseHtml(input.html).children;
+		expect(Array.from(cards, (card) => card.getAttribute('data-name'))).toEqual([
+			'AI card 1',
+			'AI card 2',
+			'AI card 3',
+			'AI card 4'
+		]);
+		expect(input.label).toBe('Draw 4 cards');
 		expect(events.at(-1)).toMatchObject({ type: 'text' });
+	});
+
+	it('qaScript takes a screenshot when the prompt asks for one', async () => {
+		const host = new ScriptedAgentHost(qaScript);
+		const received: string[] = [];
+		const session = await host.start({
+			provider: 'fake',
+			system: '',
+			tools: [],
+			mcp: null,
+			env: {},
+			callTool: (name) => {
+				received.push(name);
+				return Promise.resolve({ ok: true, text: '[]' });
+			}
+		});
+		for await (const event of session.prompt('draw 2 cards, then take a screenshot')) {
+			expect(event).toBeDefined();
+		}
+		expect(received).toEqual(['read', 'screenshot', 'write']);
 	});
 });
 
@@ -216,26 +251,40 @@ describe('QA task scripts', () => {
 		expect(matchesFor(prompt).sort()).toEqual(['a', 'c']);
 	});
 
-	it('designs a frame of the template size, with the first component when the file has one', () => {
+	it('designs a root div of the template size, with the first component when the file has one', () => {
 		const prompt = [
 			'Task: generate-design',
 			'Template: Basic site (1440x1024)',
 			'Request: pricing page for a startup',
-			'Components of this file (use one with "component": "<name>" where it fits): Button, Card'
+			'Components of this file (place one with data-component="<name>" where it fits): Button, Card'
 		].join('\n');
-		const design = designFor(prompt);
-		expect(design).toMatchObject({
-			type: 'FRAME',
-			name: 'pricing page for a',
-			props: { width: 1440, height: 1024, layoutMode: 'VERTICAL' }
-		});
-		expect(design.children?.map((child) => child.name)).toEqual([
+		const parsed = parseHtml(designFor(prompt));
+		expect(parsed.children).toHaveLength(1);
+		const root = parsed.children[0];
+		expect(root.getAttribute('data-name')).toBe('pricing page for a');
+		const style = root.getAttribute('style') ?? '';
+		expect(style).toContain('width:1440px');
+		expect(style).toContain('height:1024px');
+		expect(style).toContain('flex-direction:column');
+		expect(Array.from(root.children, (child) => child.getAttribute('data-name'))).toEqual([
 			'Header',
 			'Hero image',
 			'Cards',
 			'Button',
 			'Made with pricing page for a startup'
 		]);
+		expect(root.querySelector('[data-component]')?.getAttribute('data-component')).toBe('Button');
+	});
+
+	it('designs without a component element when the file has none', () => {
+		const prompt = ['Task: generate-design', 'Template: Basic app (390x844)', 'Request: x'].join(
+			'\n'
+		);
+		const parsed = parseHtml(designFor(prompt));
+		const style = parsed.children[0].getAttribute('style') ?? '';
+		expect(style).toContain('width:390px');
+		expect(style).toContain('height:844px');
+		expect(parsed.querySelector('[data-component]')).toBeNull();
 	});
 
 	it('maps phrases to commands and picks batch answers predictably', () => {

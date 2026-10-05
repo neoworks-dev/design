@@ -8,6 +8,7 @@ export interface AiSessionRef {
 	sessionId: string;
 	provider: string;
 	model: string | null;
+	effort: string | null;
 	toolSignature: string;
 	documentId: string;
 }
@@ -21,6 +22,8 @@ export class AiState {
 	/** The provider and model the next run uses; empty provider means "first available". */
 	providerId = $state.raw('');
 	modelId = $state.raw('');
+	/** Empty means the harness default. */
+	effortId = $state.raw('');
 	session: AiSessionRef | null = null;
 	/** The run a command is executing for right now; not reactive, read during `document/begin`. */
 	attributedRun: AiRunInfo | null = null;

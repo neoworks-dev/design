@@ -3,19 +3,16 @@
 	import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
 	import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlashIcon';
 	import MinusIcon from 'phosphor-svelte/lib/MinusIcon';
-	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import SlidersIcon from 'phosphor-svelte/lib/SlidersIcon';
 	import { planSetProps, type Effect, type Node } from '../../lib/document';
 	import {
 		convertEffect,
 		EFFECT_LABELS,
 		EFFECT_TYPES,
-		newEffect,
 		type EffectType
 	} from '../../lib/editing/effects';
 	import { removeAt, reorder, replaceAt } from '../../lib/editing/paints';
 	import { startRowDrag } from '../../lib/inspector-inputs/rowReorder';
-	import StyleButton from '../../lib/inspector-inputs/StyleButton.svelte';
 	import { editSelection, selectedNodes } from '../../lib/inspector-inputs/selectionEdit';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
@@ -46,6 +43,8 @@
 		return effectsOf(ctx.document.require(first.id));
 	});
 
+	const hasRows = $derived(effects.mixed || shown.length > 0);
+
 	let list = $state<HTMLElement>();
 	let settings = $state<{ index: number; anchor: DOMRect } | null>(null);
 
@@ -75,10 +74,6 @@
 			if (effect === undefined) return current;
 			return replaceAt(current, index, change(effect));
 		});
-	}
-
-	function addEffect(): void {
-		editEffects('Add effect', 'commit', (current) => [...current, newEffect('DROP_SHADOW')]);
 	}
 
 	function move(from: number, to: number): void {
@@ -121,29 +116,23 @@
 </script>
 
 {#if nodes.length > 0}
-	<div class="flex flex-col gap-2 px-3 pb-3" data-effects-section bind:this={list}>
-		<div class="flex items-center justify-between">
-			{#if effects.mixed}
-				<span class="text-muted text-xs" data-effects-mixed>Mixed</span>
-			{:else if shown.length === 0}
-				<span class="text-faint text-xs">None</span>
-			{:else}
-				<span></span>
-			{/if}
-			<div class="flex items-center">
-				<StyleButton target="effect" {nodes} />
-				<IconToggleButton icon={PlusIcon} label="Add effect" onclick={addEffect} />
-			</div>
-		</div>
+	<div
+		class={['flex flex-col gap-1.5', hasRows && 'px-3 pb-3']}
+		data-effects-section
+		bind:this={list}
+	>
+		{#if effects.mixed}
+			<span class="text-muted text-xs" data-effects-mixed>Mixed</span>
+		{/if}
 
 		{#if !effects.mixed}
 			{#each shown as effect, index (index)}
-				<div class="flex items-center gap-1" data-effect-row={index}>
+				<div class="group relative flex items-center gap-0.5" data-effect-row={index}>
 					<button
 						type="button"
 						aria-label="Reorder effect {index + 1}"
 						title="Drag, or press Up / Down, to reorder"
-						class="text-faint hover:text-default flex h-6 w-3 cursor-grab items-center justify-center"
+						class="text-faint hover:text-default absolute top-1/2 -left-3 flex h-6 w-3 -translate-y-1/2 cursor-grab items-center justify-center opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
 						onpointerdown={(event) => {
 							if (list !== undefined) startRowDrag(event, list, 'data-effect-row', index, move);
 						}}

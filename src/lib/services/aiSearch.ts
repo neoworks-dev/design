@@ -12,6 +12,9 @@ import { SearchIndex, tokenize, type SearchHit } from '../ai/searchIndex';
 import { AiConsentRequiredError } from '../ai/types';
 import type { AiSearchState } from './aiSearchState.svelte';
 
+/** A search run reads and answers through its own tool, nothing else. */
+const SEARCH_TOOLS: readonly string[] = ['read', 'report_matches'];
+
 declare module '@neoworks/extension-system' {
 	interface Context {
 		aiSearch: AiSearchService;
@@ -38,7 +41,7 @@ export interface SearchAi {
 	readonly available: boolean;
 	run(
 		prompt: string,
-		options?: { scope?: 'read' | 'write'; display?: string }
+		options?: { scope?: 'read' | 'write'; display?: string; tools?: readonly string[] }
 	): { id: string; finished: Promise<unknown> };
 }
 
@@ -137,6 +140,7 @@ export class AiSearchService extends Service {
 		try {
 			run = this.ai.run(searchPrompt(text, candidates), {
 				scope: 'read',
+				tools: SEARCH_TOOLS,
 				display: `Find: ${text}`
 			});
 		} catch (error) {

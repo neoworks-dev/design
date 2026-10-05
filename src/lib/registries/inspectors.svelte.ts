@@ -57,6 +57,8 @@ export interface InspectorContribution {
 	/** Reactive: read while the section list renders, so it may read the selection. */
 	applies: (selection: InspectorSelection) => boolean;
 	component: AnyComponent;
+	/** Header controls shown next to the title, aligned with it. */
+	actions?: AnyComponent;
 	props?: Record<string, unknown>;
 	collapsed?: boolean;
 }
@@ -118,6 +120,7 @@ export class InspectorsService extends Service {
 			title: inspector.title,
 			order: inspector.order,
 			component: inspector.component,
+			actions: inspector.actions,
 			props: inspector.props,
 			collapsed: inspector.collapsed,
 			owner,

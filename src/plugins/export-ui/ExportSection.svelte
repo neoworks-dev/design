@@ -1,14 +1,9 @@
 <script lang="ts">
 	import { Button, Select } from '@neoworks-dev/ui';
 	import MinusIcon from 'phosphor-svelte/lib/MinusIcon';
-	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import type { ExportSetting } from '../../lib/document';
 	import { objectUrlFor } from '../../lib/export/objectUrl';
-	import {
-		formatConstraint,
-		parseConstraint,
-		suffixForConstraint
-	} from '../../lib/export/settings';
+	import { formatConstraint, parseConstraint } from '../../lib/export/settings';
 	import type { ExportFormatName } from '../../lib/export/types';
 	import { getKernel } from '../../lib/kernel/context';
 	import IconButton from '../../lib/ui/IconButton.svelte';
@@ -51,20 +46,6 @@
 		ctx.export.updateSetting(ids, index, { format: format as ExportFormatName });
 	}
 
-	function addSetting(): void {
-		const last = settings.at(-1);
-		if (last === undefined) {
-			ctx.export.addSetting(ids);
-			return;
-		}
-		const constraint = { ...last.constraint };
-		ctx.export.addSetting(ids, {
-			suffix: suffixForConstraint(constraint),
-			format: last.format,
-			constraint
-		});
-	}
-
 	async function exportNow(): Promise<void> {
 		busy = true;
 		message = null;
@@ -87,7 +68,7 @@
 		let cancelled = false;
 		let url: string | null = null;
 		const [first] = ids;
-		if (first === undefined) return;
+		if (first === undefined || settings.length === 0) return;
 		void renderPreview(first).then((result) => {
 			if (cancelled || result === null) {
 				if (result !== null) URL.revokeObjectURL(result.url);
@@ -118,11 +99,6 @@
 </script>
 
 <div class="flex flex-col gap-2 px-3 pb-3" data-export-section>
-	<div class="flex items-center justify-between">
-		<span class="text-muted text-[11px]">{settings.length === 0 ? 'No export settings' : ''}</span>
-		<IconButton icon={PlusIcon} label="Add export setting" onclick={addSetting} />
-	</div>
-
 	{#each settings as setting, index (index)}
 		<div class="flex items-center gap-1.5" data-export-setting={index}>
 			<input
@@ -162,12 +138,13 @@
 				{buttonLabel}
 			</Button>
 		</div>
+	{:else}
+		<Button size="sm" variant="ghost" full onclick={() => ctx.exportDialog.open('selection')}>
+			{buttonLabel}...
+		</Button>
 	{/if}
-	<Button size="sm" variant="ghost" full onclick={() => ctx.exportDialog.open('selection')}>
-		Export dialog...
-	</Button>
 
-	{#if previewUrl !== null}
+	{#if settings.length > 0 && previewUrl !== null}
 		<div class="bg-raised border-line-faint flex flex-col items-center gap-1 rounded border p-2">
 			<img
 				src={previewUrl}

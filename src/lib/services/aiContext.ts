@@ -2,7 +2,7 @@
 // generate, rename and the palette. `build()` is the compact text (selection subtree, page and
 // frame summary, names of components, variables and styles) within a size budget;
 // `selectionAttachment()` wraps it as a prompt attachment; `screenshot()` renders the selection
-// (or the first top-level layer) with the headless renderer, for the `get_screenshot` tool.
+// (or the first top-level layer) with the headless renderer.
 
 import { Service, type Context } from '@neoworks/extension-system';
 import type { Node, NodeId } from '../document';
@@ -57,7 +57,7 @@ export class AiContextService extends Service {
 	selectionAttachment(): AiAttachment | undefined {
 		if (this.selection.ids.length === 0) return undefined;
 		const result = this.build();
-		const note = '\nA screenshot of the selection is available with the get_screenshot tool.';
+		const note = '\nThe screenshot tool shows the selection; read gives it as HTML.';
 		return {
 			kind: 'selection',
 			label: `Selection (${result.selectedCount})`,

@@ -64,16 +64,14 @@ describe('natural language in the palette', () => {
 		await ctx.aiPalette.ask('align these to left');
 		const offered = main.started[0].tools.map((tool) => tool.name).sort();
 		expect(offered).toEqual([...PALETTE_TOOLS].sort());
-		expect(offered).not.toContain('apply_changes');
-		expect(offered).not.toContain('set_props');
+		expect(offered).not.toContain('write');
+		expect(offered).not.toContain('edit');
 	});
 
 	it('refuses a tool outside the list even when the model calls it', async () => {
 		let answer = { ok: true, text: '' };
 		const { ctx } = await setup(async (turn) => {
-			answer = await turn.callTool('apply_changes', {
-				ops: [{ op: 'delete', id: 'a' }]
-			});
+			answer = await turn.callTool('edit', { ops: [{ delete: 'a' }] });
 		});
 		await ctx.aiPalette.ask('delete everything');
 		expect(answer).toMatchObject({ ok: false, text: expect.stringContaining('not available') });

@@ -80,6 +80,7 @@ export default {
 						id: tool.id,
 						description: tool.description,
 						write: true,
+						taskOnly: true,
 						inputSchema: schemaOf(tool.schema),
 						run: (input, run) => JSON.stringify(tool.run(run, input))
 					}),

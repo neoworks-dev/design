@@ -1,5 +1,6 @@
 import type { Context } from '@neoworks/extension-system';
 import EffectsSection from './EffectsSection.svelte';
+import EffectsActions from './EffectsActions.svelte';
 
 // Node types that carry `effects` (everything but pages, sections and slices).
 const NO_EFFECT_KINDS = ['PAGE', 'SECTION', 'SLICE'];
@@ -19,7 +20,8 @@ export default {
 					order: 60,
 					applies: (selection) =>
 						selection.count > 0 && selection.kinds.every((kind) => !NO_EFFECT_KINDS.includes(kind)),
-					component: EffectsSection
+					component: EffectsSection,
+					actions: EffectsActions
 				}),
 			'effects section'
 		);

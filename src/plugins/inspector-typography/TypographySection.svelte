@@ -16,12 +16,12 @@
 	import TextUnderlineIcon from 'phosphor-svelte/lib/TextUnderlineIcon';
 	import type { Paragraph, TextNode, TextStyle } from '../../lib/document';
 	import { selectedNodes, setSelectionProps } from '../../lib/inspector-inputs/selectionEdit';
-	import StyleButton from '../../lib/inspector-inputs/StyleButton.svelte';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
 	import DropdownField from '../../lib/ui/DropdownField.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 	import NumberField from '../../lib/ui/NumberField.svelte';
+	import Popover from '../../lib/ui/Popover.svelte';
 	import type { NumberGesture } from '../../lib/ui/numberField';
 	import ToggleGroup from '../../lib/ui/ToggleGroup.svelte';
 	import FontFamilyPicker from './FontFamilyPicker.svelte';
@@ -47,7 +47,17 @@
 	const style = $derived(ctx.textFormat.style());
 	const paragraphs = $derived(ctx.textFormat.touchedParagraphs());
 
-	let settingsOpen = $state(false);
+	let settingsAnchor = $state<{ x: number; y: number; width: number; height: number } | null>(null);
+
+	function toggleSettings(event: MouseEvent): void {
+		if (settingsAnchor !== null) {
+			settingsAnchor = null;
+			return;
+		}
+		if (!(event.currentTarget instanceof HTMLElement)) return;
+		const rect = event.currentTarget.getBoundingClientRect();
+		settingsAnchor = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+	}
 
 	// ---------- font ----------
 
@@ -217,18 +227,21 @@
 	}
 </script>
 
+{#snippet unitButton(name: string, unit: 'PIXELS' | 'PERCENT', toggle: () => void)}
+	<button
+		type="button"
+		aria-label={name}
+		title={name}
+		class="text-faint hover:text-default px-1 text-xs"
+		onclick={toggle}
+	>
+		{unit === 'PERCENT' ? '%' : 'px'}
+	</button>
+{/snippet}
+
 <div class="flex flex-col gap-2 px-3 pb-3" data-typography-section>
-	<div class="flex items-center gap-1">
-		<div class="min-w-0 flex-1">
-			<FontFamilyPicker
-				{families}
-				value={family}
-				mixed={font.mixed}
-				{missing}
-				onchange={setFamily}
-			/>
-		</div>
-		<StyleButton target="text" nodes={textNodes} />
+	<div class="min-w-0">
+		<FontFamilyPicker {families} value={family} mixed={font.mixed} {missing} onchange={setFamily} />
 	</div>
 
 	<div class="grid grid-cols-[1fr_4.5rem] gap-1">
@@ -253,97 +266,53 @@
 	</div>
 
 	<div class="grid grid-cols-2 gap-1">
-		<div class="flex items-center gap-0.5">
-			<NumberField
-				label="↕"
-				name="Line height"
-				min={0}
-				placeholder="Auto"
-				value={lineHeightNumber()}
-				mixed={lineHeight.mixed}
-				onclear={() => ctx.textFormat.applyPatch(lineHeightValuePatch(null), 'Line height')}
-				onchange={setLineHeight}
-			/>
-			<button
-				type="button"
-				aria-label="Line height unit"
-				class="text-muted hover:text-default w-5 shrink-0 text-[10px]"
-				onclick={toggleLineHeightUnit}
-			>
-				{lineHeightUnit() === 'PERCENT' ? '%' : 'px'}
-			</button>
-		</div>
-		<div class="flex items-center gap-0.5">
-			<NumberField
-				label="↔"
-				name="Letter spacing"
-				step={0.1}
-				value={letterSpacing.value === null ? null : letterSpacing.value.value}
-				mixed={letterSpacing.mixed}
-				onchange={setLetterSpacing}
-			/>
-			<button
-				type="button"
-				aria-label="Letter spacing unit"
-				class="text-muted hover:text-default w-5 shrink-0 text-[10px]"
-				onclick={toggleLetterSpacingUnit}
-			>
-				{letterSpacingUnit() === 'PERCENT' ? '%' : 'px'}
-			</button>
-		</div>
+		<NumberField
+			label="↕"
+			name="Line height"
+			min={0}
+			placeholder="Auto"
+			value={lineHeightNumber()}
+			mixed={lineHeight.mixed}
+			onclear={() => ctx.textFormat.applyPatch(lineHeightValuePatch(null), 'Line height')}
+			onchange={setLineHeight}
+		>
+			{#snippet trailing()}
+				{@render unitButton('Line height unit', lineHeightUnit(), toggleLineHeightUnit)}
+			{/snippet}
+		</NumberField>
+		<NumberField
+			label="↔"
+			name="Letter spacing"
+			step={0.1}
+			value={letterSpacing.value === null ? null : letterSpacing.value.value}
+			mixed={letterSpacing.mixed}
+			onchange={setLetterSpacing}
+		>
+			{#snippet trailing()}
+				{@render unitButton('Letter spacing unit', letterSpacingUnit(), toggleLetterSpacingUnit)}
+			{/snippet}
+		</NumberField>
 	</div>
 
-	<ToggleGroup
-		name="Text align"
-		options={HORIZONTAL_OPTIONS}
-		value={horizontal.value}
-		mixed={horizontal.mixed}
-		onchange={setHorizontal}
-	/>
-	<div class="flex items-center gap-1">
-		<div class="flex-1">
-			<ToggleGroup
-				name="Vertical align"
-				options={VERTICAL_OPTIONS}
-				value={vertical.value}
-				mixed={vertical.mixed}
-				onchange={setVertical}
-			/>
-		</div>
-		<IconToggleButton
-			icon={TextUnderlineIcon}
-			label="Underline"
-			pressed={decoration.value === 'UNDERLINE'}
-			onclick={() => setDecoration('UNDERLINE')}
+	<div class="flex items-center justify-between gap-1">
+		<ToggleGroup
+			name="Text align"
+			options={HORIZONTAL_OPTIONS}
+			value={horizontal.value}
+			mixed={horizontal.mixed}
+			onchange={setHorizontal}
 		/>
-		<IconToggleButton
-			icon={TextStrikethroughIcon}
-			label="Strikethrough"
-			pressed={decoration.value === 'STRIKETHROUGH'}
-			onclick={() => setDecoration('STRIKETHROUGH')}
-		/>
-		<IconToggleButton
-			icon={ListBulletsIcon}
-			label="Bulleted list"
-			pressed={listKind.value === 'UNORDERED'}
-			onclick={() => ctx.textFormat.toggleList('UNORDERED')}
-		/>
-		<IconToggleButton
-			icon={ListNumbersIcon}
-			label="Numbered list"
-			pressed={listKind.value === 'ORDERED'}
-			onclick={() => ctx.textFormat.toggleList('ORDERED')}
+		<ToggleGroup
+			name="Vertical align"
+			options={VERTICAL_OPTIONS}
+			value={vertical.value}
+			mixed={vertical.mixed}
+			onchange={setVertical}
 		/>
 	</div>
-	<ToggleGroup
-		name="Text case"
-		options={CASE_OPTIONS}
-		value={textCase.value}
-		mixed={textCase.mixed}
-		onchange={setCase}
-	/>
+
 	<div class="flex items-center gap-1">
-		<div class="flex-1">
+		<div class="min-w-0 flex-1">
 			<ToggleGroup
 				name="Text resize"
 				options={RESIZE_OPTIONS}
@@ -355,86 +324,127 @@
 		<IconToggleButton
 			icon={SlidersHorizontalIcon}
 			label="Type settings"
-			pressed={settingsOpen}
-			onclick={() => (settingsOpen = !settingsOpen)}
+			pressed={settingsAnchor !== null}
+			onclick={toggleSettings}
 		/>
 	</div>
 
-	{#if settingsOpen}
-		<div class="bg-input border-line flex flex-col gap-2 rounded-md border p-2" data-type-settings>
-			<div class="grid grid-cols-2 gap-1">
-				<NumberField
-					label="¶"
-					name="Paragraph spacing"
-					min={0}
-					value={spacingAfter.value}
-					mixed={spacingAfter.mixed}
-					onchange={(value) =>
-						ctx.textFormat.setParagraphProps({ spacingAfter: value }, 'Paragraph spacing')}
+	{#if settingsAnchor !== null}
+		<Popover
+			anchor={settingsAnchor}
+			label="Type settings"
+			width={232}
+			onclose={() => (settingsAnchor = null)}
+		>
+			<div class="flex flex-col gap-2 p-3" data-type-settings>
+				<span class="text-default text-xs font-medium">Type settings</span>
+				<div class="flex items-center gap-1">
+					<IconToggleButton
+						icon={TextUnderlineIcon}
+						label="Underline"
+						pressed={decoration.value === 'UNDERLINE'}
+						onclick={() => setDecoration('UNDERLINE')}
+					/>
+					<IconToggleButton
+						icon={TextStrikethroughIcon}
+						label="Strikethrough"
+						pressed={decoration.value === 'STRIKETHROUGH'}
+						onclick={() => setDecoration('STRIKETHROUGH')}
+					/>
+					<IconToggleButton
+						icon={ListBulletsIcon}
+						label="Bulleted list"
+						pressed={listKind.value === 'UNORDERED'}
+						onclick={() => ctx.textFormat.toggleList('UNORDERED')}
+					/>
+					<IconToggleButton
+						icon={ListNumbersIcon}
+						label="Numbered list"
+						pressed={listKind.value === 'ORDERED'}
+						onclick={() => ctx.textFormat.toggleList('ORDERED')}
+					/>
+				</div>
+				<ToggleGroup
+					name="Text case"
+					options={CASE_OPTIONS}
+					value={textCase.value}
+					mixed={textCase.mixed}
+					onchange={setCase}
 				/>
-				<NumberField
-					label="→"
-					name="Paragraph indent"
-					min={0}
-					value={indent.value}
-					mixed={indent.mixed}
-					onchange={(value) =>
-						ctx.textFormat.setParagraphProps({ indent: value }, 'Paragraph indent')}
-				/>
-			</div>
-			<label class="text-muted flex items-center justify-between text-xs">
-				Truncate text
-				<input
-					type="checkbox"
-					aria-label="Truncate text"
-					checked={truncation.value === 'ENDING'}
-					onchange={(event) =>
-						setNodeProps('Truncation', {
-							textTruncation: event.currentTarget.checked ? 'ENDING' : 'DISABLED',
-							maxLines: event.currentTarget.checked ? maxLines.value : null
-						})}
-				/>
-			</label>
-			{#if truncation.value === 'ENDING'}
-				<NumberField
-					label="≡"
-					name="Max lines"
-					min={1}
-					precision={0}
-					placeholder="Auto"
-					value={maxLines.value}
-					mixed={maxLines.mixed}
-					onclear={() => setNodeProps('Max lines', { maxLines: null })}
-					onchange={(value, gesture) => setNodeProps('Max lines', { maxLines: value }, gesture)}
-				/>
-			{/if}
-			<label class="text-muted flex items-center justify-between text-xs">
-				Trim to cap height
-				<input
-					type="checkbox"
-					aria-label="Trim to cap height"
-					checked={leadingTrim.value === 'CAP_HEIGHT'}
-					onchange={(event) =>
-						setNodeProps('Leading trim', {
-							leadingTrim: event.currentTarget.checked ? 'CAP_HEIGHT' : 'NONE'
-						})}
-				/>
-			</label>
-			{#each OPEN_TYPE_FEATURES as feature (feature.tag)}
+				<div class="grid grid-cols-2 gap-1">
+					<NumberField
+						label="¶"
+						name="Paragraph spacing"
+						min={0}
+						value={spacingAfter.value}
+						mixed={spacingAfter.mixed}
+						onchange={(value) =>
+							ctx.textFormat.setParagraphProps({ spacingAfter: value }, 'Paragraph spacing')}
+					/>
+					<NumberField
+						label="→"
+						name="Paragraph indent"
+						min={0}
+						value={indent.value}
+						mixed={indent.mixed}
+						onchange={(value) =>
+							ctx.textFormat.setParagraphProps({ indent: value }, 'Paragraph indent')}
+					/>
+				</div>
 				<label class="text-muted flex items-center justify-between text-xs">
-					{feature.label}
+					Truncate text
 					<input
 						type="checkbox"
-						aria-label={feature.label}
-						checked={featureOn(feature.tag, feature.defaultOn)}
+						aria-label="Truncate text"
+						checked={truncation.value === 'ENDING'}
 						onchange={(event) =>
-							ctx.textFormat.applyPatch(
-								openTypeFeaturePatch(feature.tag, event.currentTarget.checked),
-								feature.label
-							)}
+							setNodeProps('Truncation', {
+								textTruncation: event.currentTarget.checked ? 'ENDING' : 'DISABLED',
+								maxLines: event.currentTarget.checked ? maxLines.value : null
+							})}
 					/>
 				</label>
-			{/each}
-		</div>
+				{#if truncation.value === 'ENDING'}
+					<NumberField
+						label="≡"
+						name="Max lines"
+						min={1}
+						precision={0}
+						placeholder="Auto"
+						value={maxLines.value}
+						mixed={maxLines.mixed}
+						onclear={() => setNodeProps('Max lines', { maxLines: null })}
+						onchange={(value, gesture) => setNodeProps('Max lines', { maxLines: value }, gesture)}
+					/>
+				{/if}
+				<label class="text-muted flex items-center justify-between text-xs">
+					Trim to cap height
+					<input
+						type="checkbox"
+						aria-label="Trim to cap height"
+						checked={leadingTrim.value === 'CAP_HEIGHT'}
+						onchange={(event) =>
+							setNodeProps('Leading trim', {
+								leadingTrim: event.currentTarget.checked ? 'CAP_HEIGHT' : 'NONE'
+							})}
+					/>
+				</label>
+				{#each OPEN_TYPE_FEATURES as feature (feature.tag)}
+					<label class="text-muted flex items-center justify-between text-xs">
+						{feature.label}
+						<input
+							type="checkbox"
+							aria-label={feature.label}
+							checked={featureOn(feature.tag, feature.defaultOn)}
+							onchange={(event) =>
+								ctx.textFormat.applyPatch(
+									openTypeFeaturePatch(feature.tag, event.currentTarget.checked),
+									feature.label
+								)}
+						/>
+					</label>
+				{/each}
+			</div>
+		</Popover>
 	{/if}
 </div>

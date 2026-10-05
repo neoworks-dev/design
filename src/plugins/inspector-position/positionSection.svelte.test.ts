@@ -80,4 +80,15 @@ describe('position section', () => {
 		panel.click('button[aria-label="Flip horizontal"]');
 		expect(panel.ctx.document.require('a')).not.toEqual(before);
 	});
+
+	it('toggles absolute position for children of auto layout frames only', async () => {
+		const panel = await open();
+		panel.select(['b']);
+		expect(panel.query('[data-absolute-position]')).toBeNull();
+		panel.setProps('f', { layoutMode: 'HORIZONTAL' });
+		panel.click('button[aria-label="Absolute position"]');
+		expect(panel.ctx.document.require('b')).toMatchObject({ layoutPositioning: 'ABSOLUTE' });
+		panel.undo();
+		expect(panel.ctx.document.require('b')).toMatchObject({ layoutPositioning: 'AUTO' });
+	});
 });

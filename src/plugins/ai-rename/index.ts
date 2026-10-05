@@ -54,6 +54,7 @@ export default {
 					description:
 						'Rename layers. Only the layers a rename task listed, and only while they still have their default name.',
 					write: true,
+					taskOnly: true,
 					inputSchema,
 					run: (input, run) => {
 						const parsed = renameLayersInput.parse(input);

@@ -46,16 +46,16 @@ function geometry(panel: PanelHarness, id: string): Record<string, number> {
 }
 
 describe('auto layout section', () => {
-	it('shows for frames and for children of auto layout frames only', async () => {
+	it('shows for frames only, not for plain children of auto layout frames', async () => {
 		const panel = await open();
 		panel.select(['loose']);
 		expect(panel.sectionIds()).not.toContain('design/autolayout');
 		panel.select(['a']);
 		expect(panel.sectionIds()).not.toContain('design/autolayout');
 		panel.setProps('f', { layoutMode: 'HORIZONTAL' });
-		expect(panel.sectionIds()).toContain('design/autolayout');
-		expect(panel.query('[data-absolute-position]')).not.toBeNull();
+		expect(panel.sectionIds()).not.toContain('design/autolayout');
 		panel.select(['f']);
+		expect(panel.sectionIds()).toContain('design/autolayout');
 		expect(panel.query('[data-toggle-group="Flow"]')).not.toBeNull();
 	});
 
@@ -177,7 +177,7 @@ describe('auto layout section', () => {
 		expect(panel.field('Row spacing').value).toBe('9');
 	});
 
-	it('toggles strokes in layout and absolute position', async () => {
+	it('toggles strokes in layout', async () => {
 		const panel = await open();
 		panel.setProps('f', { layoutMode: 'HORIZONTAL' });
 		panel.select(['f']);
@@ -185,18 +185,5 @@ describe('auto layout section', () => {
 		checkbox?.click();
 		flushSync();
 		expect(panel.ctx.document.require('f')).toMatchObject({ strokesIncludedInLayout: true });
-		panel.select(['b']);
-		press(panel, 'Absolute position');
-		expect(panel.ctx.document.require('b')).toMatchObject({ layoutPositioning: 'ABSOLUTE' });
-		panel.setProps('b', {
-			transform: [
-				[1, 0, 77],
-				[0, 1, 66]
-			]
-		});
-		expect(geometry(panel, 'b')).toMatchObject({ x: 77, y: 66 });
-		panel.undo();
-		panel.undo();
-		expect(panel.ctx.document.require('b')).toMatchObject({ layoutPositioning: 'AUTO' });
 	});
 });

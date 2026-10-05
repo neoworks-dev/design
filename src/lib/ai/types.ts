@@ -3,7 +3,7 @@
 // electron/bridge.ts; a run's events add `edit`, which the renderer itself reports when a write
 // tool changed the document.
 
-import type { AiToolStatus } from '../../../electron/bridge';
+import type { AiImage, AiToolStatus } from '../../../electron/bridge';
 import type { RegistryEntry } from '../registries/registry.svelte';
 
 export type AiRunStatus = 'running' | 'done' | 'cancelled' | 'error';
@@ -42,8 +42,11 @@ export interface AiRunOptions {
 	/** Only these tools are offered to (and accepted from) the run; all by default. */
 	tools?: readonly string[];
 	attachments?: AiAttachment[];
+	/** Pictures sent with the prompt; providers without image input never get them. */
+	images?: AiImage[];
 	provider?: string;
 	model?: string;
+	effort?: string;
 }
 
 /** The run registry's view of one run; `origin` is what the document tags its edits with. */
@@ -60,14 +63,28 @@ export interface AiRunInfo {
 	scope: AiScope;
 	provider: string;
 	model: string | null;
+	/** The reasoning effort, `null` for the harness default. */
+	effort: string | null;
+	images: readonly AiImage[];
 	documentId: string;
 	startedAt: number;
 }
 
 /** A run as the chat shows it: info, status and what streamed so far. */
+/** A tool call the renderer answered: what the agent sent and what it got back. */
+export interface AiToolOutcome {
+	tool: string;
+	input: unknown;
+	ok: boolean;
+	/** The answer the model saw, shortened for long reads. */
+	text: string;
+}
+
 export interface AiRunRecord extends AiRunInfo {
 	status: AiRunStatus;
 	events: AiEvent[];
+	/** Answered tool calls in order, for the chat's tool cards. */
+	toolResults: AiToolOutcome[];
 	endedAt: number | null;
 	error: string | null;
 }
@@ -80,8 +97,31 @@ export interface AiToolHandler extends RegistryEntry {
 	write: boolean;
 	/** JSON Schema of the arguments. */
 	inputSchema: Record<string, unknown>;
+	/**
+	 * Offered only to runs that name it in `tools` (a task's answer channel, like
+	 * `rename_layers`); runs without a tool list get the general tools only.
+	 */
+	taskOnly?: boolean;
 	/** Returns the text the model sees; throws a readable message to fail the call. */
 	run(input: unknown, run: AiRunInfo): string | Promise<string>;
+}
+
+/**
+ * Guidance the agent loads on demand with the `skill` tool, instead of carrying every detail in
+ * the system prompt and tool descriptions. Plugins register the skills of their features.
+ */
+export interface AiSkill extends RegistryEntry {
+	/** What the agent passes to `skill`, e.g. `layout`. */
+	id: string;
+	/** One line for the index in the system prompt: when to load it. */
+	summary: string;
+	/** The guidance, as markdown; a function when it reads live state (commands, components). */
+	body: string | (() => string);
+	/**
+	 * A tool name: when the session offers that tool, the body goes straight into the system prompt
+	 * instead of the index (for guidance the agent needs on every use of the tool).
+	 */
+	inlineWith?: string;
 }
 
 export class AiConsentRequiredError extends Error {

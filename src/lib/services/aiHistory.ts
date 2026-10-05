@@ -78,9 +78,14 @@ export class AiHistoryService extends Service {
 		return this.stateOf(runId) === 'applied';
 	}
 
+	/** The outermost nodes the last run touched: a written subtree is one outline, not dozens. */
 	get highlightedIds(): readonly NodeId[] {
 		if (!this.state.highlightEnabled) return [];
-		return this.state.highlightIds.filter((id) => this.document.has(id));
+		const present = this.state.highlightIds.filter((id) => this.document.has(id));
+		const touched = new Set(present);
+		return present.filter((id) =>
+			this.document.ancestors(id).every((ancestor) => !touched.has(ancestor.id))
+		);
 	}
 
 	get highlightEnabled(): boolean {

@@ -10,13 +10,19 @@
 	import BroomIcon from 'phosphor-svelte/lib/BroomIcon';
 	import FlipHorizontalIcon from 'phosphor-svelte/lib/FlipHorizontalIcon';
 	import FlipVerticalIcon from 'phosphor-svelte/lib/FlipVerticalIcon';
+	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
 	import type { Component } from 'svelte';
 	import type { Node } from '../../lib/document';
 	import { isAutoLayoutChild } from '../../lib/editing/selectionOps';
 	import { planMoveTo, planRotateTo, rotationDegrees } from '../../lib/inspector-inputs/geometry';
-	import { editSelection, selectedNodes } from '../../lib/inspector-inputs/selectionEdit';
+	import {
+		editSelection,
+		selectedNodes,
+		setSelectionProps
+	} from '../../lib/inspector-inputs/selectionEdit';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
+	import { isStackContainer } from '../../lib/layout/build';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 	import NumberField from '../../lib/ui/NumberField.svelte';
 	import type { NumberGesture } from '../../lib/ui/numberField';
@@ -90,6 +96,32 @@
 		nodes.length > 0 && nodes.every((node) => isAutoLayoutChild(ctx.document.reader, node))
 	);
 
+	// Absolute position: a child of an auto layout frame opts out of the flow and sits where it is
+	// placed, while staying inside the frame.
+	const inAutoLayout = $derived(
+		nodes.length > 0 &&
+			nodes.every((node) => {
+				if (node.parentId === null) return false;
+				return isStackContainer(ctx.document.require(node.parentId));
+			})
+	);
+	const absolute = $derived(
+		nodes.length > 0 &&
+			nodes.every((node) => 'layoutPositioning' in node && node.layoutPositioning === 'ABSOLUTE')
+	);
+
+	function toggleAbsolute(): void {
+		const next = absolute ? 'AUTO' : 'ABSOLUTE';
+		setSelectionProps(
+			ctx,
+			{ label: 'Absolute position', mergeKey: 'inspector:absolute', gesture: 'commit' },
+			(node) => {
+				if (!('layoutPositioning' in node)) return {};
+				return { layoutPositioning: next };
+			}
+		);
+	}
+
 	function moveTo(axis: 'x' | 'y', value: number, gesture: NumberGesture): void {
 		editSelection(ctx, { label: 'Move', mergeKey: `inspector:${axis}`, gesture }, (reader, node) =>
 			planMoveTo(reader, node.id, { [axis]: value })
@@ -108,12 +140,14 @@
 		void ctx.commands.run(command);
 	}
 
+	// Nine 28px buttons do not fit the 211px of a sidebar row: align on top, distribute below.
 	const layoutReason = 'Position is controlled by auto layout';
 </script>
 
 <div class="flex flex-col gap-2 px-3 pb-3" data-position-section>
 	{#if showAlignment && alignButtons.length > 0}
-		<div class="flex items-center justify-between" data-alignment-row>
+		<!-- Six columns: the align buttons fill the first row, distribute and tidy wrap below. -->
+		<div class="grid grid-cols-6 justify-items-center gap-y-0.5" data-alignment-row>
 			{#each alignButtons as button (button.command)}
 				{@const enough = nodes.length >= button.needs}
 				<IconToggleButton
@@ -164,6 +198,17 @@
 				label="Flip vertical"
 				onclick={() => run('node.flip-vertical')}
 			/>
+			{#if inAutoLayout}
+				<span data-absolute-position class="flex">
+					<IconToggleButton
+						icon={PushPinIcon}
+						label="Absolute position"
+						title="Absolute position: place freely, ignoring the auto layout flow"
+						pressed={absolute}
+						onclick={toggleAbsolute}
+					/>
+				</span>
+			{/if}
 		</div>
 	</div>
 </div>

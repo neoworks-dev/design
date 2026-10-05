@@ -1,101 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { sequentialIdGenerator, type Matrix2x3, type Node, type RGBA } from '../../document';
+import { sequentialIdGenerator, type Matrix2x3, type Node } from '../../document';
 import { convertSnapshot, spreadStops, type ConvertOptions, type ConvertResult } from './convert';
-import type {
-	ElementSnapshot,
-	FontSnapshot,
-	NodeSnapshot,
-	StyleSnapshot,
-	TextSnapshot
-} from './snapshot';
-
-const BLACK: RGBA = { r: 0, g: 0, b: 0, a: 1 };
-const WHITE: RGBA = { r: 1, g: 1, b: 1, a: 1 };
-
-function font(overrides: Partial<FontSnapshot> = {}): FontSnapshot {
-	return {
-		family: 'Geist',
-		weight: 400,
-		italic: false,
-		size: 16,
-		lineHeight: null,
-		letterSpacing: 0,
-		transform: 'none',
-		decoration: 'none',
-		color: BLACK,
-		...overrides
-	};
-}
-
-const NO_SIDES = { top: 0, right: 0, bottom: 0, left: 0 };
-
-function style(overrides: Partial<StyleSnapshot> = {}): StyleSnapshot {
-	return {
-		display: 'block',
-		position: 'static',
-		visible: true,
-		opacity: 1,
-		blendMode: 'normal',
-		clips: false,
-		flexDirection: 'row',
-		flexWrap: 'nowrap',
-		flexGrow: 0,
-		justifyContent: 'normal',
-		alignItems: 'normal',
-		alignSelf: 'auto',
-		rowGap: 0,
-		columnGap: 0,
-		padding: NO_SIDES,
-		margin: NO_SIDES,
-		borderWidth: NO_SIDES,
-		borderStyle: 'none',
-		borderColor: null,
-		radii: [0, 0, 0, 0],
-		background: null,
-		backgroundLayers: [],
-		shadows: [],
-		blur: 0,
-		backdropBlur: 0,
-		minWidth: null,
-		maxWidth: null,
-		minHeight: null,
-		maxHeight: null,
-		textAlign: 'start',
-		whiteSpace: 'normal',
-		font: font(),
-		...overrides
-	};
-}
-
-function element(
-	box: [number, number, number, number],
-	overrides: Partial<Omit<ElementSnapshot, 'style'>> & { style?: Partial<StyleSnapshot> } = {}
-): ElementSnapshot {
-	const { style: styleOverrides, ...rest } = overrides;
-	return {
-		kind: 'element',
-		tag: 'div',
-		attributes: {},
-		box: { x: box[0], y: box[1], width: box[2], height: box[3] },
-		style: style(styleOverrides),
-		sizing: { width: 'fixed', height: 'fixed' },
-		variables: {},
-		children: [],
-		...rest
-	};
-}
-
-function text(content: string, box: [number, number, number, number], lines = 1): TextSnapshot {
-	return {
-		box: { x: box[0], y: box[1], width: box[2], height: box[3] },
-		lines,
-		paragraphs: [[{ text: content, font: font() }]]
-	};
-}
+import { BLACK, element, font, text, WHITE } from './fixtures';
+import type { ElementSnapshot, NodeSnapshot } from './snapshot';
 
 function convert(roots: ElementSnapshot[], options: Partial<ConvertOptions> = {}): ConvertResult {
 	return convertSnapshot(
-		{ roots, warnings: [] },
+		{ roots, warnings: [], hiddenIds: [] },
 		{ parentId: 'page', origin: { x: 0, y: 0 }, generateId: sequentialIdGenerator('n'), ...options }
 	);
 }

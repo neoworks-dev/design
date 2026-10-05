@@ -190,6 +190,72 @@ describe('ai service', () => {
 		expect(answer).toMatchObject({ ok: false, text: expect.stringContaining('not available') });
 	});
 
+	it('offers a task-only tool only to runs that name it', async () => {
+		const { mounted, main } = await setup();
+		mounted.ctx.ai.registerTool(tool({ id: 'reader' }));
+		mounted.ctx.ai.registerTool(tool({ id: 'task', taskOnly: true }));
+		await mounted.ctx.ai.run('anything').finished;
+		expect(main.started[0].tools.map((definition) => definition.name)).toEqual(['reader']);
+		await mounted.ctx.ai.run('the task', { tools: ['reader', 'task'] }).finished;
+		expect(main.started).toHaveLength(2);
+		expect(main.started[1].tools.map((definition) => definition.name)).toEqual(['reader', 'task']);
+	});
+
+	it('registers skills with string and function bodies; disposing removes them', async () => {
+		const { mounted } = await setup();
+		let count = 1;
+		const disposeLayout = mounted.ctx.ai.registerSkill({
+			id: 'layout',
+			summary: 'how auto layout maps to flexbox',
+			body: '# Layout'
+		});
+		const disposeLive = mounted.ctx.ai.registerSkill({
+			id: 'live',
+			summary: 'reads live state',
+			body: () => `count ${count}`
+		});
+		expect(mounted.ctx.ai.skillText('layout')).toBe('# Layout');
+		expect(mounted.ctx.ai.skillText('live')).toBe('count 1');
+		count = 2;
+		expect(mounted.ctx.ai.skillText('live')).toBe('count 2');
+		expect(mounted.ctx.ai.skillText('missing')).toBeUndefined();
+		disposeLayout();
+		expect(mounted.ctx.ai.skillText('layout')).toBeUndefined();
+		expect(mounted.ctx.ai.skills.has('layout')).toBe(false);
+		disposeLive();
+		expect(mounted.ctx.ai.skills.list()).toEqual([]);
+	});
+
+	it('lists the skills in the system prompt when the skill tool is offered', async () => {
+		const { mounted, main } = await setup();
+		mounted.ctx.ai.registerSkill({ id: 'layout', summary: 'flexbox and auto layout', body: '' });
+		await mounted.ctx.ai.run('without the tool').finished;
+		expect(main.started[0].system).not.toContain('layout: flexbox and auto layout');
+		mounted.ctx.ai.registerTool(tool({ id: 'skill' }));
+		await mounted.ctx.ai.run('with the tool').finished;
+		expect(main.started).toHaveLength(2);
+		expect(main.started[1].system).toContain('Skills (load one with the skill tool');
+		expect(main.started[1].system).toContain('- layout: flexbox and auto layout');
+	});
+
+	it('puts a skill tied to an offered tool into the prompt in full instead of the index', async () => {
+		const { mounted, main } = await setup();
+		mounted.ctx.ai.registerTool(tool({ id: 'skill' }));
+		mounted.ctx.ai.registerSkill({
+			id: 'html',
+			summary: 'writing HTML',
+			body: '# Writing HTML in full',
+			inlineWith: 'write'
+		});
+		await mounted.ctx.ai.run('without write').finished;
+		expect(main.started[0].system).toContain('- html: writing HTML');
+		expect(main.started[0].system).not.toContain('# Writing HTML in full');
+		mounted.ctx.ai.registerTool(tool({ id: 'write' }));
+		await mounted.ctx.ai.run('with write').finished;
+		expect(main.started[1].system).toContain('# Writing HTML in full');
+		expect(main.started[1].system).not.toContain('- html: writing HTML');
+	});
+
 	it('cancels a run: main is told, the run ends cancelled', async () => {
 		const { mounted, main } = await setup(async (turn) => {
 			await vi.waitFor(() => expect(turn.cancelled()).toBe(true));
@@ -255,6 +321,34 @@ describe('ai service', () => {
 		expect(main.started).toHaveLength(2);
 		expect(main.started[1].model).toBe('scripted-1');
 		expect(main.ended).toEqual(['session-1']);
+	});
+
+	it('restarts the session with the chosen effort and sends images with the prompt', async () => {
+		const { mounted, main } = await setup();
+		await mounted.ctx.ai.refreshProviders();
+		mounted.ctx.ai.selectEffort('high');
+		const image = { mimeType: 'image/png', data: 'iVBORw0KGgo=' };
+		await mounted.ctx.ai.run('look', { images: [image] }).finished;
+		expect(main.started[0].effort).toBe('high');
+		expect(main.sent[0].images).toEqual([image]);
+		await mounted.ctx.ai.run('again').finished;
+		expect(main.sent[1].images).toBeUndefined();
+		mounted.ctx.ai.selectEffort('low');
+		await mounted.ctx.ai.run('lower').finished;
+		expect(main.started).toHaveLength(2);
+		expect(main.started[1].effort).toBe('low');
+	});
+
+	it('forgets an effort the newly chosen provider does not offer', async () => {
+		const { mounted, main } = await setup();
+		main.providers = [
+			main.providers[0],
+			{ ...main.providers[0], id: 'other', efforts: ['medium'] }
+		];
+		await mounted.ctx.ai.refreshProviders();
+		mounted.ctx.ai.selectEffort('high');
+		mounted.ctx.ai.selectModel('other', '');
+		expect(mounted.ctx.ai.effortId).toBe('');
 	});
 
 	it('reports edits of a run on the run and as an event', async () => {

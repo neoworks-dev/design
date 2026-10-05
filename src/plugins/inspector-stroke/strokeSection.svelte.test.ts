@@ -1,3 +1,4 @@
+import { tick } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Stroke } from '../../lib/document';
 import { defaultStroke, newPaint } from '../../lib/editing/paints';
@@ -66,7 +67,12 @@ describe('stroke section', () => {
 		panel.select(['a']);
 		panel.enter('Stroke weight', '4');
 		expect(strokesOf(panel, 'a')[0].weight).toBe(4);
-		panel.click('button[aria-label="Outside"]');
+		panel.click('[data-stroke-position] button');
+		await tick();
+		const option = [...document.querySelectorAll('[role="option"]')].find(
+			(button) => button.textContent.trim() === 'Outside'
+		);
+		(option as HTMLElement).click();
 		expect(strokesOf(panel, 'a')[0].align).toBe('OUTSIDE');
 	});
 

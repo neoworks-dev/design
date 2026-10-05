@@ -64,15 +64,7 @@ export const BATCH_OPERATIONS: readonly BatchOperation[] = [
 ];
 
 /** The reads every batch run may use (the screenshot helps with alt text). */
-export const BATCH_READ_TOOLS: readonly string[] = [
-	'get_selection',
-	'get_node',
-	'query',
-	'read_tree',
-	'get_screenshot',
-	'list_variables',
-	'list_styles'
-];
+export const BATCH_READ_TOOLS: readonly string[] = ['read', 'screenshot', 'skill'];
 
 type Shape = Exclude<Node, { type: 'PAGE' }>;
 

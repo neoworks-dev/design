@@ -54,6 +54,8 @@
 	// only resets it when the colour changes from outside.
 	let hsv = $state<Hsv>(untrack(() => rgbToHsv(color)));
 	let hexDraft = $state<string | null>(null);
+	// Set while a typed hex is being previewed, until the gesture is committed.
+	let hexTyping = false;
 
 	function near(first: number, second: number): boolean {
 		return Math.abs(first - second) < 1e-9;
@@ -110,21 +112,51 @@
 	// ---------- hex ----------
 
 	const hexText = $derived(rgbToHex(color));
+	// Left half shows the opaque colour, right half the colour over a checkerboard.
+	const previewBackground = $derived.by(() => {
+		const opaque = rgbaCss(color, 1);
+		const translucent = rgbaCss(color, color.a);
+		return `linear-gradient(${opaque}, ${opaque}) no-repeat left / 50% 100%, linear-gradient(${translucent}, ${translucent}), ${CHECKER}`;
+	});
+
+	function parseHexDraft(draft: string): RGBA | undefined {
+		const text = draft.replace('#', '');
+		const parsed = parseHex(text);
+		if (parsed === undefined) return undefined;
+		if (text.length === 8) return parsed;
+		return { r: parsed.r, g: parsed.g, b: parsed.b, a: color.a };
+	}
+
+	// Typing a valid hex previews live as a scrub; Enter or blur ends the gesture with a commit.
+	function onHexInput(text: string): void {
+		hexTyping = true;
+		hexDraft = text;
+		const parsed = parseHexDraft(text);
+		if (parsed === undefined) return;
+		emitRgba(parsed, 'scrub');
+	}
 
 	function commitHex(): void {
 		if (hexDraft === null) return;
-		const text = hexDraft.replace('#', '');
-		const parsed = parseHex(text);
+		const parsed = parseHexDraft(hexDraft);
 		hexDraft = null;
-		if (parsed === undefined) return;
-		let alpha = color.a;
-		if (text.length === 8) alpha = parsed.a;
-		emitRgba({ r: parsed.r, g: parsed.g, b: parsed.b, a: alpha }, 'commit');
+		hexTyping = false;
+		if (parsed === undefined) {
+			emitRgba(color, 'commit');
+			return;
+		}
+		emitRgba(parsed, 'commit');
 	}
+
+	// Closing the popover mid-typing must still end the scrub gesture.
+	$effect(() => () => {
+		if (!hexTyping) return;
+		hexTyping = false;
+		onchange(color, 'commit');
+	});
 
 	function onHexKey(event: KeyboardEvent): void {
 		if (event.key === 'Enter') commitHex();
-		if (event.key === 'Escape') hexDraft = null;
 		if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
 		event.preventDefault();
 		let amount = 0.01;
@@ -189,7 +221,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-	class="flex flex-col gap-2 p-3 outline-none"
+	class="flex min-w-0 flex-col gap-2 p-2 outline-none"
 	data-color-picker
 	role="group"
 	aria-label="Colour picker"
@@ -277,7 +309,7 @@
 			</div>
 		</div>
 
-		<div class="grid grid-cols-[4.5rem_1fr] items-center gap-2">
+		<div class="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-1">
 			<DropdownField
 				options={MODES}
 				value={mode}
@@ -286,16 +318,25 @@
 				}}
 			/>
 			{#if mode === 'HEX'}
-				<div class="flex items-center gap-1">
-					<input
-						aria-label="Hex"
-						class="border-line bg-raised text-default h-6 min-w-0 flex-1 rounded border px-1 text-xs uppercase tabular-nums"
-						value={hexDraft === null ? hexText : hexDraft}
-						oninput={(event) => (hexDraft = event.currentTarget.value)}
-						onblur={commitHex}
-						onkeydown={onHexKey}
-					/>
-					<div class="w-14">
+				<div class="flex min-w-0 items-center gap-1">
+					<div
+						class="border-line bg-raised focus-within:border-line-strong flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded border px-1"
+					>
+						<span
+							class="border-line size-3.5 shrink-0 rounded-sm border"
+							style:background={previewBackground}
+							data-color-preview
+						></span>
+						<input
+							aria-label="Hex"
+							class="text-default h-full min-w-0 flex-1 bg-transparent text-xs uppercase tabular-nums outline-none"
+							value={hexDraft === null ? hexText : hexDraft}
+							oninput={(event) => onHexInput(event.currentTarget.value)}
+							onblur={commitHex}
+							onkeydown={onHexKey}
+						/>
+					</div>
+					<div class="w-16 shrink-0">
 						<NumberField
 							label="%"
 							name="Alpha"

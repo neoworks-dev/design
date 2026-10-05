@@ -44,8 +44,10 @@ export interface ShadowSnapshot {
 }
 
 export interface FontSnapshot {
-	/** The first family of the font stack that is available, else the first one named. */
+	/** The family the text was measured for: the first available one of the stack, else the first named. */
 	family: string;
+	/** False when the document cannot draw `family` (it was measured with the default family). */
+	available: boolean;
 	weight: number;
 	italic: boolean;
 	size: number;
@@ -138,4 +140,6 @@ export interface HtmlSnapshot {
 	roots: ElementSnapshot[];
 	/** What the measuring step could not take over, one line each. */
 	warnings: string[];
+	/** `data-id`s of elements hidden with `display: none`: kept as they are, never deleted. */
+	hiddenIds: string[];
 }

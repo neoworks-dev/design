@@ -1,4 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
+import TypographyActions from './TypographyActions.svelte';
 import TypographySection from './TypographySection.svelte';
 
 // Typography for text nodes and the active edit range. Edits go through `ctx.textFormat`, which
@@ -16,7 +17,8 @@ export default {
 					title: 'Typography',
 					order: 35,
 					applies: (selection) => selection.hasText,
-					component: TypographySection
+					component: TypographySection,
+					actions: TypographyActions
 				}),
 			'typography section'
 		);

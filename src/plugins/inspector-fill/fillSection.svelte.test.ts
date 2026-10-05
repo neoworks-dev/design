@@ -78,6 +78,16 @@ describe('fill section', () => {
 		expect(fillsOf(panel, 'a')[0]).toMatchObject({ opacity: 0.4 });
 	});
 
+	it('switches the paint type from the type menu', async () => {
+		const panel = await open();
+		panel.select(['a']);
+		panel.setProps('a', { fills: [newPaint('fill')] });
+		panel.click('button[aria-label="Fill 1 type"]');
+		panel.click('[data-paint-type-option="GRADIENT_LINEAR"]');
+		expect(fillsOf(panel, 'a')[0].type).toBe('GRADIENT_LINEAR');
+		expect(panel.query('[data-paint-kind]')?.textContent).toContain('Linear');
+	});
+
 	it('toggles visibility', async () => {
 		const panel = await open();
 		panel.select(['a']);

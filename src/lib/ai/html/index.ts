@@ -19,3 +19,7 @@ export async function htmlToNodes(
 	const snapshot = await measureHtml(html, layout);
 	return convertSnapshot(snapshot, convert);
 }
+export { applyHtml, cssVariableName, variableCss } from './apply';
+export type { ApplyHtmlResult, HtmlServices, HtmlTarget } from './apply';
+export { serializeHtml } from './serialize';
+export type { HtmlSerializeOptions } from './serialize';

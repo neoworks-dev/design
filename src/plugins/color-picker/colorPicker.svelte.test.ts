@@ -52,7 +52,7 @@ function hexInput(): HTMLInputElement {
 }
 
 describe('colour picker popover', () => {
-	it('shows the colour as hex and commits a typed hex exactly', async () => {
+	it('shows the colour as hex, previews a typed hex live and commits it exactly', async () => {
 		const edits: Array<[RGBA, string]> = [];
 		await open({ r: 1, g: 0, b: 0, a: 0.5 }, (color, gesture) => edits.push([color, gesture]));
 		expect(hexInput().value).toBe('FF0000');
@@ -60,9 +60,9 @@ describe('colour picker popover', () => {
 		hexInput().dispatchEvent(new Event('input', { bubbles: true }));
 		hexInput().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		flushSync();
-		expect(edits).toHaveLength(1);
+		expect(edits.map((edit) => edit[1])).toEqual(['scrub', 'commit']);
 		expect(edits[0][0]).toMatchObject({ r: 0, g: 1, a: 0.5 });
-		expect(edits[0][1]).toBe('commit');
+		expect(edits[1][0]).toMatchObject({ r: 0, g: 1, a: 0.5 });
 	});
 
 	it('lightens with ArrowUp in the hex field', async () => {

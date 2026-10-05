@@ -65,6 +65,7 @@
 		"@neoworks/extension-system": "link:@neoworks/extension-system",
 		"@neoworks/harness": "link:@neoworks/harness",
 		"canvaskit-wasm": "^0.42.0",
+		"marked": "^18.0.14",
 		"nanoid": "^6.0.1",
 		"phosphor-svelte": "^3.1.0",
 		"zod": "^4.6.5"

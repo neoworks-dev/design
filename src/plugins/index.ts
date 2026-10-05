@@ -22,6 +22,7 @@ import desktopBridge from './desktop-bridge';
 import effects from './effects';
 import errorUi from './error-ui';
 import fonts from './fonts';
+import htmlLayout from './html-layout';
 import exportPlugin from './export';
 import exportPdf from './export-pdf';
 import exportUi from './export-ui';
@@ -33,6 +34,7 @@ import documentScene from './document-scene';
 import ai from './ai';
 import aiBatch from './ai-batch';
 import aiChat from './ai-chat';
+import aiSelectionPrompt from './ai-selection-prompt';
 import aiContext from './ai-context';
 import aiGenerate from './ai-generate';
 import aiHistory from './ai-history';
@@ -158,6 +160,7 @@ export const optionalPluginNames: ReadonlySet<string> = new Set([
 	'ai-rename',
 	'ai-review',
 	'ai-search',
+	'ai-selection-prompt',
 	'ai-tools',
 	'comments',
 	'export',
@@ -165,6 +168,7 @@ export const optionalPluginNames: ReadonlySet<string> = new Set([
 	'export-raster',
 	'export-svg',
 	'export-ui',
+	'html-layout',
 	'scene-fixture',
 	'svg-import'
 ]);
@@ -283,6 +287,7 @@ export const builtinPlugins: Plugin[] = [
 	layersPanel,
 	pagesPanel,
 	ai,
+	htmlLayout,
 	aiTools,
 	aiHistory,
 	aiContext,
@@ -293,6 +298,7 @@ export const builtinPlugins: Plugin[] = [
 	aiPalette,
 	aiBatch,
 	aiChat,
+	aiSelectionPrompt,
 	exportPlugin,
 	exportRaster,
 	exportSvg,

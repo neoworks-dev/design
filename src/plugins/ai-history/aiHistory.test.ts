@@ -1,6 +1,7 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
 import { afterEach, describe, expect, it } from 'vitest';
-import { FakeAiMain, type FakeScript, type FakeTurn } from '../../lib/ai/fakeMain';
+import { FakeAiMain, type FakeScript } from '../../lib/ai/fakeMain';
+import { fakeHtmlLayout, rectanglesHtml, writeHtml } from '../../lib/ai/fixtures/aiFixture';
 import type { AiRun } from '../../lib/ai/types';
 import { AiRevertError } from '../../lib/services/aiHistory';
 import type { ApplyMeta, Transaction } from '../../lib/document';
@@ -27,6 +28,7 @@ function providers(): Plugin[] {
 		variablesCore,
 		fakeHeadlessRenderer,
 		fakeOverlay,
+		fakeHtmlLayout,
 		ai,
 		aiTools
 	];
@@ -61,19 +63,6 @@ async function setup(script: FakeScript = () => Promise.resolve()): Promise<Setu
 	return { mounted, ctx: mounted.ctx, main };
 }
 
-function createOps(count: number, prefix = 'Card'): unknown[] {
-	return Array.from({ length: count }, (_, position) => ({
-		op: 'create',
-		type: 'RECTANGLE',
-		props: { name: `${prefix} ${position + 1}`, x: position * 12, width: 10, height: 10 }
-	}));
-}
-
-async function applyChanges(turn: FakeTurn, ops: unknown[]): Promise<void> {
-	const result = await turn.callTool('apply_changes', { ops });
-	if (!result.ok) throw new Error(result.text);
-}
-
 function namedLike(ctx: Context, prefix: string): number {
 	return ctx.document.query((node) => node.name.startsWith(prefix)).length;
 }
@@ -96,7 +85,7 @@ describePlugin('ai-history', aiHistory, {
 
 describe('one run is one undo step', () => {
 	it('undoes a run with 20 changes in one step and redoes it', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(20)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(20)));
 		const before = ctx.history.entries.length;
 		const run = await runToEnd(ctx, 'Add twenty cards');
 		expect(namedLike(ctx, 'Card')).toBe(20);
@@ -114,9 +103,9 @@ describe('one run is one undo step', () => {
 
 	it('folds several tool calls of one run into the same step', async () => {
 		const { ctx } = await setup(async (turn) => {
-			await applyChanges(turn, createOps(2, 'A'));
-			await applyChanges(turn, createOps(2, 'B'));
-			await applyChanges(turn, createOps(2, 'C'));
+			await writeHtml(turn, rectanglesHtml(2, 'A'));
+			await writeHtml(turn, rectanglesHtml(2, 'B'));
+			await writeHtml(turn, rectanglesHtml(2, 'C'));
 		});
 		const before = ctx.history.entries.length;
 		await runToEnd(ctx, 'Three batches');
@@ -132,7 +121,7 @@ describe('one run is one undo step', () => {
 			release = resolve;
 		});
 		const { ctx } = await setup(async (turn) => {
-			await applyChanges(turn, createOps(1));
+			await writeHtml(turn, rectanglesHtml(1));
 			await gate;
 		});
 		const run = ctx.ai.run('Slow');
@@ -149,7 +138,7 @@ describe('one run is one undo step', () => {
 			release = resolve;
 		});
 		const { ctx } = await setup(async (turn) => {
-			await applyChanges(turn, createOps(3));
+			await writeHtml(turn, rectanglesHtml(3));
 			await gate;
 		});
 		const before = ctx.history.entries.length;
@@ -163,7 +152,7 @@ describe('one run is one undo step', () => {
 	});
 
 	it('leaves a run without writes out of history and the audit trail', async () => {
-		const { ctx } = await setup((turn) => turn.callTool('read_tree', {}).then(() => undefined));
+		const { ctx } = await setup((turn) => turn.callTool('read', {}).then(() => undefined));
 		const before = ctx.history.entries.length;
 		await runToEnd(ctx, 'Just look');
 		expect(ctx.history.entries).toHaveLength(before);
@@ -174,8 +163,8 @@ describe('one run is one undo step', () => {
 describe('attribution', () => {
 	it('tags every transaction of a run with origin ai and the run id', async () => {
 		const { ctx } = await setup(async (turn) => {
-			await applyChanges(turn, createOps(1, 'A'));
-			await applyChanges(turn, createOps(1, 'B'));
+			await writeHtml(turn, rectanglesHtml(1, 'A'));
+			await writeHtml(turn, rectanglesHtml(1, 'B'));
 		});
 		const transactions: Transaction[] = [];
 		const metas: ApplyMeta[] = [];
@@ -193,7 +182,7 @@ describe('attribution', () => {
 	});
 
 	it('does not tag a user edit made after the run', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(1)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(1)));
 		await runToEnd(ctx, 'Add one');
 		const edit = ctx.document.apply(ctx.document.setProps('loose', { name: 'Mine' }), {
 			origin: 'user',
@@ -205,8 +194,10 @@ describe('attribution', () => {
 
 	it('attributes the changes of a command the agent runs to the run, in the same step', async () => {
 		const { ctx } = await setup(async (turn) => {
-			await applyChanges(turn, createOps(1));
-			const result = await turn.callTool('run_command', { id: 'test.rename-loose' });
+			await writeHtml(turn, rectanglesHtml(1));
+			const result = await turn.callTool('edit', {
+				ops: [{ command: 'test.rename-loose' }]
+			});
 			if (!result.ok) throw new Error(result.text);
 		});
 		const owner = ctx.commands;
@@ -236,8 +227,9 @@ describe('attribution', () => {
 describe('audit trail', () => {
 	it('lists what a run changed and where its step is', async () => {
 		const { ctx } = await setup(async (turn) => {
-			await applyChanges(turn, createOps(2));
-			await turn.callTool('set_props', { ids: ['loose'], props: { name: 'Edited by AI' } });
+			await writeHtml(turn, rectanglesHtml(2));
+			const result = await turn.callTool('edit', { ops: [{ id: 'loose', name: 'Edited by AI' }] });
+			if (!result.ok) throw new Error(result.text);
 		});
 		const run = await runToEnd(ctx, 'Add and rename');
 		const audit = ctx.aiHistory.auditOf(run.id);
@@ -258,7 +250,7 @@ describe('audit trail', () => {
 	});
 
 	it('is dropped when the document is replaced', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(1)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(1)));
 		await runToEnd(ctx, 'One');
 		ctx.document.replaceDocument(ctx.document.snapshot);
 		expect(ctx.aiHistory.audits()).toEqual([]);
@@ -267,7 +259,7 @@ describe('audit trail', () => {
 
 describe('revert', () => {
 	it('undoes the newest run through the undo stack', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(4)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(4)));
 		const run = await runToEnd(ctx, 'Four cards');
 		expect(ctx.aiHistory.canRevert(run.id)).toBe(true);
 		ctx.aiHistory.revertRun(run.id);
@@ -277,7 +269,7 @@ describe('revert', () => {
 	});
 
 	it('reverts an older run by applying its inverse, after later user edits', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(2)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(2)));
 		const run = await runToEnd(ctx, 'Two cards');
 		ctx.document.apply(ctx.document.setProps('loose', { name: 'User edit' }), {
 			origin: 'user',
@@ -293,7 +285,7 @@ describe('revert', () => {
 	});
 
 	it('fails without changing anything when later edits no longer match', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(1)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(1)));
 		const run = await runToEnd(ctx, 'One card');
 		const created = ctx.aiHistory.auditOf(run.id)?.nodeIds[0];
 		if (created === undefined) throw new Error('no node');
@@ -308,7 +300,7 @@ describe('revert', () => {
 	});
 
 	it('revertLastRun picks the newest applied run, and says when there is none', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(1)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(1)));
 		expect(ctx.aiHistory.revertLastRun()).toBe(false);
 		await runToEnd(ctx, 'First');
 		await runToEnd(ctx, 'Second');
@@ -322,7 +314,7 @@ describe('revert', () => {
 
 describe('highlight', () => {
 	it('marks the nodes of the last run and clears on a user edit', async () => {
-		const { ctx } = await setup((turn) => applyChanges(turn, createOps(2)));
+		const { ctx } = await setup((turn) => writeHtml(turn, rectanglesHtml(2)));
 		const run = await runToEnd(ctx, 'Two');
 		expect(ctx.aiHistory.highlightedIds).toEqual(ctx.aiHistory.auditOf(run.id)?.nodeIds);
 		await ctx.commands.run('ai.toggle-run-highlight');
@@ -333,6 +325,21 @@ describe('highlight', () => {
 			origin: 'user',
 			label: 'Rename'
 		});
+		expect(ctx.aiHistory.highlightedIds).toEqual([]);
+	});
+
+	it('outlines only the outermost layers of a write, until something is selected', async () => {
+		const html =
+			'<div data-name="Card" style="width:200px;height:100px;display:flex;gap:8px">' +
+			'<div style="width:40px;height:40px;background:#f00"></div>' +
+			'<div style="width:40px;height:40px;background:#00f"></div></div>';
+		const { ctx } = await setup((turn) => writeHtml(turn, html));
+		const run = await runToEnd(ctx, 'Nested');
+		expect(ctx.aiHistory.auditOf(run.id)?.nodeIds.length).toBeGreaterThan(1);
+		const [outline] = ctx.aiHistory.highlightedIds;
+		expect(ctx.aiHistory.highlightedIds).toHaveLength(1);
+		expect(ctx.document.require(outline).name).toBe('Card');
+		ctx.selection.select([outline], 'replace', { source: 'canvas' });
 		expect(ctx.aiHistory.highlightedIds).toEqual([]);
 	});
 

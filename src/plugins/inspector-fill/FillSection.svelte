@@ -43,7 +43,6 @@
 			{stored}
 			nodeId={nodes[0].id}
 			mixed={fills.mixed}
-			{nodes}
 			onedit={edit}
 		/>
 	</div>

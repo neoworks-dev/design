@@ -1,5 +1,6 @@
 <script lang="ts">
 	import GearSixIcon from 'phosphor-svelte/lib/GearSixIcon';
+	import TextAlignJustifyIcon from 'phosphor-svelte/lib/TextAlignJustifyIcon';
 	import SquareHalfIcon from 'phosphor-svelte/lib/SquareHalfIcon';
 	import {
 		geometryKind,
@@ -21,11 +22,10 @@
 	import { editSelection, selectedNodes } from '../../lib/inspector-inputs/selectionEdit';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
+	import DropdownField from '../../lib/ui/DropdownField.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 	import NumberField from '../../lib/ui/NumberField.svelte';
 	import type { NumberGesture } from '../../lib/ui/numberField';
-	import SliderField from '../../lib/ui/SliderField.svelte';
-	import ToggleGroup from '../../lib/ui/ToggleGroup.svelte';
 	import StrokeAdvanced from './StrokeAdvanced.svelte';
 
 	const NO_PAINTS: Paint[] = [];
@@ -143,54 +143,40 @@
 			stored={storedPaints}
 			nodeId={nodes[0].id}
 			mixed={paints.mixed}
-			{nodes}
 			onedit={editPaints}
 		/>
 		{#if hasStroke}
-			<div class="flex flex-col gap-2 px-3 pb-3">
-				<ToggleGroup
-					name="Stroke position"
-					options={POSITIONS}
-					value={align.value === undefined ? null : align.value}
-					mixed={align.mixed}
-					onchange={(value) =>
-						editFirst('Change stroke position', 'commit', (stroke) => ({
-							...stroke,
-							align: value as Stroke['align']
-						}))}
-				/>
-				{#if perSide}
-					<div class="grid grid-cols-2 gap-2" data-stroke-sides>
-						{#each SIDES as entry (entry.side)}
+			<div class="flex flex-col gap-1.5 px-3 pb-3" data-stroke-settings>
+				<div class="flex items-center gap-1">
+					<div class="min-w-0 flex-1" data-stroke-position>
+						<DropdownField
+							options={POSITIONS}
+							value={align.value === undefined ? null : align.value}
+							mixed={align.mixed}
+							onchange={(value) =>
+								editFirst('Change stroke position', 'commit', (stroke) => ({
+									...stroke,
+									align: value as Stroke['align']
+								}))}
+						/>
+					</div>
+					{#if !perSide}
+						<div class="w-16 shrink-0">
 							<NumberField
-								label={entry.label}
-								name={entry.name}
+								label="W"
+								icon={TextAlignJustifyIcon}
+								name="Stroke weight"
 								min={0}
-								value={sideValue(entry.side)}
+								value={uniformValue}
+								mixed={weight.mixed}
 								onchange={(value, gesture) =>
 									editFirst('Change stroke weight', gesture, (stroke) => ({
 										...stroke,
-										weight: withSideWeight(stroke.weight, entry.side, value)
+										weight: value
 									}))}
 							/>
-						{/each}
-					</div>
-				{:else}
-					<SliderField
-						label="W"
-						name="Stroke weight"
-						min={0}
-						max={50}
-						value={uniformValue}
-						mixed={weight.mixed}
-						onchange={(value, gesture) =>
-							editFirst('Change stroke weight', gesture, (stroke) => ({
-								...stroke,
-								weight: value
-							}))}
-					/>
-				{/if}
-				<div class="flex items-center gap-1">
+						</div>
+					{/if}
 					{#if canSplitSides}
 						<IconToggleButton
 							icon={SquareHalfIcon}
@@ -205,6 +191,23 @@
 						onclick={openAdvanced}
 					/>
 				</div>
+				{#if perSide}
+					<div class="grid grid-cols-2 gap-1" data-stroke-sides>
+						{#each SIDES as entry (entry.side)}
+							<NumberField
+								label={entry.label}
+								name={entry.name}
+								min={0}
+								value={sideValue(entry.side)}
+								onchange={(value, gesture) =>
+									editFirst('Change stroke weight', gesture, (stroke) => ({
+										...stroke,
+										weight: withSideWeight(stroke.weight, entry.side, value)
+									}))}
+							/>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/if}
 		{#if advancedAnchor !== null}

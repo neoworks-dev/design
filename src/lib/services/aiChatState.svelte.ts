@@ -1,7 +1,11 @@
 // Reactive holder behind the `aiChat` service (a Service may not hold runes).
 
+import type { AiImage } from '../../../electron/bridge';
+
 export class AiChatState {
 	draft = $state.raw('');
+	/** Pictures pasted into the input, sent with the next prompt. */
+	images = $state.raw<readonly AiImage[]>([]);
 	/** Send the current selection along with the next prompt. */
 	attachSelection = $state.raw(false);
 	/** Row keys the user opened (Reasoning, tool calls). */

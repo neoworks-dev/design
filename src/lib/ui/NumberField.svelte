@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import type { Component, Snippet } from 'svelte';
 	import {
 		clampValue,
 		formatNumber,
@@ -11,6 +11,7 @@
 
 	let {
 		label,
+		icon = undefined,
 		name,
 		value,
 		mixed = false,
@@ -30,6 +31,9 @@
 	}: {
 		/** Short glyph in front of the input (`X`, `W`, an angle sign). Dragging it scrubs. */
 		label: string;
+		/** Icon shown instead of the glyph; the field name becomes its tooltip. */
+		// oxlint-disable-next-line typescript/no-explicit-any
+		icon?: Component<any>;
 		/** The accessible name of the input. */
 		name: string;
 		/** Current value; `null` shows an empty field. */
@@ -159,7 +163,7 @@
 >
 	<span
 		class={[
-			'text-faint flex h-full min-w-6 shrink-0 items-center justify-center px-1 select-none',
+			'text-faint flex h-full min-w-5 shrink-0 items-center justify-center px-1 select-none',
 			scrub && !disabled && 'cursor-ew-resize'
 		]}
 		data-number-label
@@ -168,8 +172,14 @@
 		onpointermove={onlabelpointermove}
 		onpointerup={onlabelpointerup}
 		onpointercancel={onlabelpointerup}
+		title={icon === undefined ? undefined : name}
 	>
-		{label}
+		{#if icon !== undefined}
+			{@const Icon = icon}
+			<Icon size={14} />
+		{:else}
+			{label}
+		{/if}
 	</span>
 	<input
 		bind:this={input}
@@ -178,7 +188,7 @@
 		aria-label={name}
 		placeholder={mixed ? 'Mixed' : placeholder}
 		{disabled}
-		class="text-default placeholder:text-muted h-full min-w-0 flex-1 bg-transparent pr-1 tabular-nums outline-none"
+		class="text-default placeholder:text-muted h-full min-w-0 flex-1 bg-transparent pr-0 tabular-nums outline-none"
 		onfocus={() => input?.select()}
 		oninput={(event) => (draft = event.currentTarget.value)}
 		onblur={commit}
@@ -188,6 +198,6 @@
 		<span class="text-faint pr-2 select-none">{unit}</span>
 	{/if}
 	{#if trailing !== undefined}
-		<span class="flex shrink-0 items-center pr-1" data-number-trailing>{@render trailing()}</span>
+		<span class="flex shrink-0 items-center pr-0.5" data-number-trailing>{@render trailing()}</span>
 	{/if}
 </div>

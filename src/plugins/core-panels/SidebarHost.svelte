@@ -21,7 +21,7 @@
 	<div
 		role="tablist"
 		aria-label="{side} sidebar"
-		class="border-line-faint flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b px-3"
+		class="border-line-faint flex h-10 shrink-0 [scrollbar-width:none] items-center gap-1 overflow-x-auto border-b px-3"
 	>
 		{#each tabs as tab (tab.id)}
 			<button

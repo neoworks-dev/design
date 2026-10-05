@@ -3,7 +3,7 @@
 // driven and screenshotted without credentials or network. A script is an async generator: it
 // yields what the model would stream and calls document tools through `tools.call`.
 
-import type { AiProviderInfo, AiStreamEvent } from '../bridge';
+import type { AiImage, AiProviderInfo, AiStreamEvent } from '../bridge';
 import { taskOf, TASK_SCRIPTS } from './qaTasks';
 import type { AgentHost, AgentSession, AgentStartInit, AgentToolResult } from '../kernel/agentHost';
 
@@ -21,7 +21,9 @@ export const SCRIPTED_PROVIDER: AiProviderInfo = {
 	label: 'Scripted agent',
 	available: true,
 	detail: 'No model: follows a fixed script',
-	models: [{ id: 'scripted-1', name: 'Scripted 1' }]
+	models: [{ id: 'scripted-1', name: 'Scripted 1' }],
+	images: true,
+	efforts: ['low', 'high']
 };
 
 /** Resolves with `undefined` once `signal` aborts; used to stop waiting on a script. */
@@ -36,6 +38,8 @@ export class ScriptedAgentSession implements AgentSession {
 	cancelCount = 0;
 	disposed = false;
 	readonly prompts: string[] = [];
+	/** The images sent with each prompt, in the same order as `prompts`. */
+	readonly images: AiImage[][] = [];
 	private running: AbortController | null = null;
 
 	constructor(
@@ -43,8 +47,9 @@ export class ScriptedAgentSession implements AgentSession {
 		private readonly script: () => AgentScript
 	) {}
 
-	async *prompt(text: string): AsyncGenerator<AiStreamEvent> {
+	async *prompt(text: string, images: AiImage[] = []): AsyncGenerator<AiStreamEvent> {
 		this.prompts.push(text);
+		this.images.push(images);
 		const controller = new AbortController();
 		this.running = controller;
 		const signal = controller.signal;
@@ -121,7 +126,7 @@ function textOf(result: AgentToolResult): string {
 
 /**
  * Looks at the selection and the page, then draws N rectangles in a row (N is the first number in
- * the prompt, default 3) in one `apply_changes` call, so a run is easy to undo and to check.
+ * the prompt, default 3) in one `write` call, so a run is easy to undo and to check.
  */
 export async function* qaScript(prompt: string, tools: ScriptTools): AsyncGenerator<AiStreamEvent> {
 	const task = taskOf(prompt);
@@ -130,9 +135,9 @@ export async function* qaScript(prompt: string, tools: ScriptTools): AsyncGenera
 		return;
 	}
 	yield { type: 'thought', text: 'Checking the selection and what is on the page first.' };
-	yield { type: 'tool_call', callId: 'qa-1', name: 'get_selection', status: 'running' };
-	const selection = await tools.call('get_selection', {});
-	yield { type: 'tool_call', callId: 'qa-1', name: 'get_selection', status: 'done' };
+	yield { type: 'tool_call', callId: 'qa-1', name: 'read', status: 'running' };
+	const selection = await tools.call('read', {});
+	yield { type: 'tool_call', callId: 'qa-1', name: 'read', status: 'done' };
 	yield { type: 'text', text: `Selection: ${textOf(selection).slice(0, 120)}\n\n` };
 
 	const attached = /\[Selection \((\d+)\)\]\n/.exec(prompt);
@@ -140,41 +145,31 @@ export async function* qaScript(prompt: string, tools: ScriptTools): AsyncGenera
 		yield { type: 'text', text: `Context attached: ${attached[1]} selected layers.\n\n` };
 	}
 	if (/screenshot/i.test(prompt)) {
-		yield { type: 'tool_call', callId: 'qa-shot', name: 'get_screenshot', status: 'running' };
-		const shot = await tools.call('get_screenshot', {});
+		yield { type: 'tool_call', callId: 'qa-shot', name: 'screenshot', status: 'running' };
+		const shot = await tools.call('screenshot', {});
 		yield {
 			type: 'tool_call',
 			callId: 'qa-shot',
-			name: 'get_screenshot',
+			name: 'screenshot',
 			status: shot.ok ? 'done' : 'failed'
 		};
 		yield { type: 'text', text: `Screenshot: ${shot.ok ? 'received' : textOf(shot)}\n\n` };
 	}
 
 	const count = countIn(prompt.split('\n')[0]);
-	const operations = [];
+	const cards: string[] = [];
 	for (let position = 0; position < count; position += 1) {
-		operations.push({
-			op: 'create',
-			type: 'RECTANGLE',
-			props: {
-				name: `AI card ${position + 1}`,
-				x: position * 140,
-				y: 0,
-				width: 120,
-				height: 80,
-				cornerRadius: 8,
-				fill: '#6d5bd0'
-			}
-		});
+		cards.push(
+			`<div data-name="AI card ${position + 1}" style="position:absolute;left:${position * 140}px;top:0;width:120px;height:80px;border-radius:8px;background:#6d5bd0"></div>`
+		);
 	}
-	const input = { label: `Draw ${count} cards`, ops: operations };
-	yield { type: 'tool_call', callId: 'qa-2', name: 'apply_changes', input, status: 'running' };
-	const result = await tools.call('apply_changes', input);
+	const input = { label: `Draw ${count} cards`, html: cards.join('') };
+	yield { type: 'tool_call', callId: 'qa-2', name: 'write', input, status: 'running' };
+	const result = await tools.call('write', input);
 	yield {
 		type: 'tool_call',
 		callId: 'qa-2',
-		name: 'apply_changes',
+		name: 'write',
 		status: result.ok ? 'done' : 'failed'
 	};
 	if (!result.ok) {

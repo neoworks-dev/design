@@ -1,6 +1,6 @@
 // The `aiPalette` service (#152): the palette's natural-language mode. Free text becomes an AI run
 // that may only look (selection, layer tree) and run app commands: the run's tool list is limited
-// to `list_commands` and `run_command` plus the reads, so "align these to left" ends up as the
+// to `read`, the `commands` skill and `run_command`, so "align these to left" ends up as the
 // align command, run through the same command registry as the keyboard. The run is one undo step
 // (ai-history groups what the command changed under it).
 
@@ -15,14 +15,7 @@ declare module '@neoworks/extension-system' {
 }
 
 /** The only tools a palette run gets. */
-export const PALETTE_TOOLS: readonly string[] = [
-	'list_commands',
-	'run_command',
-	'get_selection',
-	'get_node',
-	'query',
-	'read_tree'
-];
+export const PALETTE_TOOLS: readonly string[] = ['read', 'skill', 'run_command'];
 
 export interface PaletteAi {
 	readonly available: boolean;
@@ -43,9 +36,9 @@ export function paletteTaskPrompt(request: string, context: string): string {
 		'Task: palette-command',
 		`Request: ${request}`,
 		'',
-		'Do what the request asks by running app commands: find the command with list_commands',
-		'(search by a word of the request), look at get_selection if the request is about the',
-		'selection, then call run_command with its id (and args when it needs them). Do not edit',
+		'Do what the request asks by running app commands: find the command in the commands skill,',
+		'look at the selection with read if the request is about it, then call run_command with',
+		'its id (and args when it needs them). Do not edit',
 		'layers in any other way. If no command does what is asked, say so in one sentence and',
 		'run nothing. Answer in one short sentence.',
 		'',

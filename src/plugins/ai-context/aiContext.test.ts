@@ -4,7 +4,6 @@ import { buildDocument, frame, node, page, rectangle, text } from '../../lib/doc
 import type { DesignDocument } from '../../lib/document';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import { documentWith } from '../../lib/services/fixtures/documentFixture';
-import ai from '../ai';
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
 import desktopBridge from '../desktop-bridge';
@@ -76,8 +75,7 @@ function providers(document: DesignDocument): Plugin[] {
 		documentWith(document),
 		selectionPlugin,
 		variablesCore,
-		fakeHeadlessRenderer,
-		ai
+		fakeHeadlessRenderer
 	];
 }
 
@@ -98,7 +96,6 @@ describePlugin('ai-context', aiContext, {
 	providers: providers(smallDocument()),
 	desktop: true,
 	contributes: ({ ctx }) => {
-		expect(ctx.ai.tools.has('get_screenshot')).toBe(true);
 		expect(ctx.aiContext.build().selectedCount).toBe(0);
 	}
 });
@@ -124,7 +121,7 @@ describe('selection context', () => {
 		expect(result.text).toContain('"name":"Background"');
 		const attachment = ctx.aiContext.selectionAttachment();
 		expect(attachment).toMatchObject({ kind: 'selection', label: 'Selection (1)' });
-		expect(attachment?.text).toContain('get_screenshot');
+		expect(attachment?.text).toContain('The screenshot tool shows the selection');
 	});
 
 	it('stays under the character budget on a large selection', async () => {
@@ -148,13 +145,13 @@ describe('selection context', () => {
 	});
 });
 
-describe('get_screenshot', () => {
+describe('screenshot', () => {
 	it('renders the selection scaled to fit, with overlapping layers drawn', async () => {
 		const ctx = await mountContext(smallDocument());
 		ctx.selection.select(['card']);
-		const handler = ctx.ai.tools.get('get_screenshot');
-		const answer = JSON.parse(String(await handler?.run({}, runInfo())));
-		expect(answer).toMatchObject({ width: 10, mimeType: 'image/png', base64: 'iVBORw==' });
+		const image = await ctx.aiContext.screenshot();
+		expect(image).toMatchObject({ width: 10, height: 10, mimeType: 'image/png' });
+		expect(image.bytes).toEqual(new Uint8Array([137, 80, 78, 71]));
 		expect(exportCalls).toEqual([
 			{ id: 'card', options: { scale: 1, contentsOnly: false, format: 'PNG' } }
 		]);
@@ -166,17 +163,3 @@ describe('get_screenshot', () => {
 		expect(() => ctx.aiContext.screenshotTarget('missing')).toThrow('does not exist');
 	});
 });
-
-function runInfo(): Parameters<NonNullable<ReturnType<Context['ai']['tools']['get']>>['run']>[1] {
-	return {
-		id: 'run-1',
-		label: 'x',
-		prompt: 'x',
-		origin: 'ai',
-		scope: 'write',
-		provider: 'fake',
-		model: null,
-		documentId: 'fixture-document',
-		startedAt: 0
-	};
-}

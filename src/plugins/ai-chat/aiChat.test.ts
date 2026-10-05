@@ -1,9 +1,11 @@
 import { Context, type Plugin } from '@neoworks/extension-system';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AiProviderInfo } from '../../../electron/bridge';
-import { chatRowsOf } from '../../lib/ai/chatRows';
-import { FakeAiMain, type FakeScript, type FakeTurn } from '../../lib/ai/fakeMain';
+import type { AiImage, AiProviderInfo } from '../../../electron/bridge';
+import { chatRowsOf, formatToolText, toolInputView } from '../../lib/ai/chatRows';
+import { renderMarkdown } from '../../lib/ai/markdown';
+import { FakeAiMain, type FakeScript } from '../../lib/ai/fakeMain';
+import { fakeHtmlLayout, rectanglesHtml, writeHtml } from '../../lib/ai/fixtures/aiFixture';
 import {
 	AiConsentRequiredError,
 	appendAiEvent,
@@ -40,6 +42,7 @@ function providers(): Plugin[] {
 		variablesCore,
 		fakeHeadlessRenderer,
 		fakeOverlay,
+		fakeHtmlLayout,
 		ai,
 		aiTools,
 		aiContext,
@@ -65,10 +68,11 @@ class FakeAi implements AiChatAi {
 	providers: readonly AiProviderInfo[] = [];
 	providerId = 'fake';
 	modelId = '';
+	effortId = '';
 	consent = true;
 	records: AiRunRecord[] = [];
 	cancelled: string[] = [];
-	prompts: { prompt: string; attachments: number }[] = [];
+	prompts: { prompt: string; attachments: number; images: number }[] = [];
 
 	get activeRun(): AiRunRecord | undefined {
 		return this.records.find((record) => record.status === 'running');
@@ -82,10 +86,18 @@ class FakeAi implements AiChatAi {
 	grantConsent(): void {
 		this.consent = true;
 	}
-	run(prompt: string, options: { attachments?: { text: string }[] } = {}): { id: string } {
+	run(
+		prompt: string,
+		options: { attachments?: { text: string }[]; images?: AiImage[] } = {}
+	): { id: string } {
 		if (!this.consent) throw new AiConsentRequiredError('doc');
 		const id = `r${this.records.length + 1}`;
-		this.prompts.push({ prompt, attachments: options.attachments?.length ?? 0 });
+		const images = options.images ?? [];
+		this.prompts.push({
+			prompt,
+			attachments: options.attachments?.length ?? 0,
+			images: images.length
+		});
 		this.records.push({
 			id,
 			label: prompt,
@@ -94,10 +106,13 @@ class FakeAi implements AiChatAi {
 			scope: 'write',
 			provider: 'fake',
 			model: null,
+			effort: null,
+			images,
 			documentId: 'doc',
 			startedAt: 0,
 			status: 'running',
 			events: [],
+			toolResults: [],
 			endedAt: null,
 			error: null
 		});
@@ -114,9 +129,24 @@ class FakeAi implements AiChatAi {
 		this.providerId = providerId;
 		this.modelId = modelId;
 	}
+	selectEffort(effort: string): void {
+		this.effortId = effort;
+	}
 	refreshProviders(): Promise<readonly AiProviderInfo[]> {
 		return Promise.resolve(this.providers);
 	}
+}
+
+function provider(overrides: Partial<AiProviderInfo>): AiProviderInfo {
+	return {
+		id: 'fake',
+		label: 'Scripted',
+		available: true,
+		models: [{ id: 'm1', name: 'Model one', description: 'Fast' }],
+		images: true,
+		efforts: ['low', 'xhigh'],
+		...overrides
+	};
 }
 
 function chatWith(fake: FakeAi, selected: string[] = []): AiChatService {
@@ -152,7 +182,7 @@ describe('chat service with a fake ai service', () => {
 		chat.setDraft('  Make it round  ');
 		expect(chat.canSend).toBe(true);
 		expect(chat.send()).toBe(true);
-		expect(fake.prompts).toEqual([{ prompt: 'Make it round', attachments: 0 }]);
+		expect(fake.prompts).toEqual([{ prompt: 'Make it round', attachments: 0, images: 0 }]);
 		expect(chat.draft).toBe('');
 		expect(chat.running).toBe(true);
 		chat.setDraft('Another');
@@ -209,6 +239,58 @@ describe('chat service with a fake ai service', () => {
 		expect(fake.prompts[1].attachments).toBe(1);
 	});
 
+	it('sends pasted images with the prompt, or alone, and retries with them', async () => {
+		const fake = new FakeAi();
+		const chat = chatWith(fake);
+		const image = { mimeType: 'image/png', data: 'iVBORw0KGgo=' };
+		chat.addImage(image);
+		chat.setDraft('What is this?');
+		chat.send();
+		expect(fake.prompts[0]).toMatchObject({ prompt: 'What is this?', images: 1 });
+		expect(chat.images).toEqual([]);
+		await chat.stop();
+		chat.addImage(image);
+		chat.addImage(image);
+		chat.removeImage(0);
+		expect(chat.canSend).toBe(true);
+		chat.send();
+		expect(fake.prompts[1]).toMatchObject({ prompt: 'Look at the attached image.', images: 1 });
+		await chat.stop();
+		chat.retry('r1');
+		expect(fake.prompts[2].images).toBe(1);
+	});
+
+	it('drops pasted images for a provider without image input', () => {
+		const fake = new FakeAi();
+		fake.providers = [provider({ images: false })];
+		const chat = chatWith(fake);
+		chat.addImage({ mimeType: 'image/png', data: 'iVBORw0KGgo=' });
+		chat.setDraft('Hi');
+		chat.send();
+		expect(chat.acceptsImages).toBe(false);
+		expect(fake.prompts[0].images).toBe(0);
+	});
+
+	it('offers available harnesses, their models and efforts', () => {
+		const fake = new FakeAi();
+		fake.providers = [
+			provider({}),
+			provider({ id: 'codex', label: 'Codex', available: false, efforts: [] })
+		];
+		const chat = chatWith(fake);
+		expect(chat.providerOptions()).toEqual([{ value: 'fake', label: 'Scripted' }]);
+		expect(chat.modelOptions()).toEqual([{ value: 'm1', label: 'Model one', description: 'Fast' }]);
+		expect(chat.effortOptions()).toEqual([
+			{ value: 'low', label: 'Low' },
+			{ value: 'xhigh', label: 'Extra high' }
+		]);
+		chat.setEffort('xhigh');
+		expect(chat.effortId).toBe('xhigh');
+		chat.setProvider('codex');
+		expect(chat.providerId).toBe('codex');
+		expect(chat.effortOptions()).toEqual([]);
+	});
+
 	it('does not send in a plain browser', () => {
 		const fake = new FakeAi();
 		fake.available = false;
@@ -236,11 +318,11 @@ describe('chat rows', () => {
 		add({
 			type: 'tool_call',
 			callId: 'c1',
-			name: 'apply_changes',
+			name: 'edit',
 			input: { ops: [1, 2] },
 			status: 'running'
 		});
-		add({ type: 'tool_call', callId: 'c1', name: 'apply_changes', status: 'done' });
+		add({ type: 'tool_call', callId: 'c1', name: 'edit', status: 'done' });
 		add({ type: 'edit', edit: { label: 'Cards', nodeIds: ['a', 'b'], changeCount: 2 } });
 		add({ type: 'text', text: 'Done' });
 		add({ type: 'error', message: 'oops' });
@@ -253,19 +335,89 @@ describe('chat rows', () => {
 			scope: 'write',
 			provider: '',
 			model: null,
+			effort: null,
+			images: [],
 			documentId: '',
 			startedAt: 0,
 			status: 'done',
+			toolResults: [],
 			endedAt: null,
 			error: null
 		});
 		expect(rows.map((row) => row.kind)).toEqual(['thought', 'tool', 'edit', 'text', 'error']);
 		expect(rows[1]).toMatchObject({
-			name: 'apply_changes',
+			name: 'edit',
 			status: 'done',
-			detail: '2 operations'
+			summary: '2 operations',
+			output: null
 		});
 		expect(rows[2]).toMatchObject({ nodeCount: 2, changeCount: 2 });
+	});
+
+	it('pairs each call with the answer of the same tool, in order, and shows pictures', () => {
+		let events: AiEvent[] = [];
+		const add = (event: AiEvent): void => {
+			events = appendAiEvent(events, event);
+		};
+		add({ type: 'tool_call', callId: 'h1', name: 'read', status: 'done' });
+		add({ type: 'tool_call', callId: 'h2', name: 'screenshot', status: 'done' });
+		add({ type: 'tool_call', callId: 'h3', name: 'read', status: 'failed' });
+		const picture = JSON.stringify({ width: 2, height: 1, mimeType: 'image/png', base64: 'AA==' });
+		const rows = chatRowsOf({
+			id: 'r',
+			events,
+			label: '',
+			prompt: '',
+			origin: 'ai',
+			scope: 'write',
+			provider: '',
+			model: null,
+			effort: null,
+			images: [],
+			documentId: '',
+			startedAt: 0,
+			status: 'done',
+			toolResults: [
+				{ tool: 'read', input: { ids: ['card'] }, ok: true, text: '<div data-id="card"></div>' },
+				{ tool: 'screenshot', input: {}, ok: true, text: picture },
+				{ tool: 'read', input: { find: 'Buy' }, ok: false, text: 'no layer' }
+			],
+			endedAt: null,
+			error: null
+		});
+		expect(rows[0]).toMatchObject({ summary: 'card', output: { ok: true, image: null } });
+		expect(rows[1]).toMatchObject({
+			summary: 'selection',
+			output: { text: '2 × 1 image', image: { src: 'data:image/png;base64,AA==' } }
+		});
+		expect(rows[2]).toMatchObject({
+			summary: 'find "Buy"',
+			output: { ok: false, text: 'no layer' }
+		});
+	});
+
+	it('splits long input strings from the other fields', () => {
+		const view = toolInputView({ html: `<div>${'x'.repeat(100)}</div>`, replace: 'card' });
+		expect(view.blocks.map((block) => block.key)).toEqual(['html']);
+		expect(view.rest).toContain('"replace": "card"');
+		expect(formatToolText('{"a":1}')).toBe('{\n  "a": 1\n}');
+		expect(formatToolText('<p>plain</p>')).toBe('<p>plain</p>');
+	});
+});
+
+describe('markdown', () => {
+	it('renders formatting and drops scripts, handlers and unsafe links', () => {
+		const html = renderMarkdown(
+			'**Bold** and `code`\n\n- one\n- two\n\n<img src=x onerror="alert(1)"><script>alert(1)</script>[bad](javascript:alert(1)) [ok](https://example.com)'
+		);
+		expect(html).toContain('<strong>Bold</strong>');
+		expect(html).toContain('<code>code</code>');
+		expect(html).toContain('<li>one</li>');
+		expect(html).not.toMatch(/<(script|img)/);
+		expect(html).toContain('&lt;script&gt;');
+		expect(html).not.toContain('href="javascript:');
+		expect(html).toContain('href="https://example.com"');
+		expect(html).toContain('target="_blank"');
 	});
 });
 
@@ -295,21 +447,11 @@ async function setup(script: FakeScript): Promise<{ ctx: Context; main: FakeAiMa
 	return { ctx: mounted.ctx, main };
 }
 
-async function createCards(turn: FakeTurn, count: number): Promise<void> {
-	const ops = Array.from({ length: count }, (_, position) => ({
-		op: 'create',
-		type: 'RECTANGLE',
-		props: { name: `Card ${position + 1}`, x: position * 20 }
-	}));
-	const result = await turn.callTool('apply_changes', { ops });
-	if (!result.ok) throw new Error(result.text);
-}
-
 describe('chat against the real ai stack', () => {
 	it('asks for consent, then streams a run, shows its edit and undoes it', async () => {
 		const { ctx } = await setup(async (turn) => {
 			turn.send({ type: 'thought', text: 'Planning' });
-			await createCards(turn, 3);
+			await writeHtml(turn, rectanglesHtml(3));
 			turn.send({ type: 'text', text: 'Added three cards.' });
 		});
 		const chat = ctx.aiChat;

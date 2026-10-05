@@ -2,6 +2,7 @@ import type { Context } from '@neoworks/extension-system';
 import { ExportDialogService } from '../../lib/services/exportDialog';
 import { ExportDialogState } from '../../lib/services/exportDialogState.svelte';
 import ExportDialog from './ExportDialog.svelte';
+import ExportActions from './ExportActions.svelte';
 import ExportSection from './ExportSection.svelte';
 
 // The Export section of the Design tab and the export dialog (#129). Settings are edited through
@@ -30,7 +31,8 @@ export default {
 					title: 'Export',
 					order: 90,
 					applies: (selection) => selection.count > 0,
-					component: ExportSection
+					component: ExportSection,
+					actions: ExportActions
 				}),
 			'export section'
 		);

@@ -19,6 +19,9 @@ import { AiConsentRequiredError, type AiEditSummary, type AiRunInfo } from '../a
 import type { Change } from '../document';
 import type { AiRenameState } from './aiRenameState.svelte';
 
+/** A rename run reads and answers through its own tool, nothing else. */
+const RENAME_TOOLS: readonly string[] = ['read', 'screenshot', 'rename_layers'];
+
 declare module '@neoworks/extension-system' {
 	interface Context {
 		aiRename: AiRenameService;
@@ -30,7 +33,7 @@ export interface RenameAi {
 	readonly available: boolean;
 	run(
 		prompt: string,
-		options?: { scope?: 'write' | 'read'; display?: string }
+		options?: { scope?: 'write' | 'read'; display?: string; tools?: readonly string[] }
 	): { id: string; finished: Promise<unknown> };
 	reportEdit(runId: string, edit: AiEditSummary): void;
 }
@@ -129,6 +132,7 @@ export class AiRenameService extends Service {
 		try {
 			run = this.ai.run(renamePrompt(candidates), {
 				scope: 'write',
+				tools: RENAME_TOOLS,
 				display: 'Rename layers'
 			});
 		} catch (error) {

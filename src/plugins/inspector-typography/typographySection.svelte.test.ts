@@ -117,6 +117,7 @@ describe('typography section', () => {
 
 	it('toggles decoration and sets automatic line height', async () => {
 		const panel = await openWithText();
+		panel.click('button[aria-label="Type settings"]');
 		panel.click('button[aria-label="Underline"]');
 		expect(textNode(panel).defaultStyle.textDecoration).toBe('UNDERLINE');
 		panel.click('button[aria-label="Underline"]');

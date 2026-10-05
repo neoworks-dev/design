@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Slider } from '@neoworks-dev/ui';
 	import NumberField from './NumberField.svelte';
 	import type { NumberGesture } from './numberField';
 
@@ -36,17 +37,18 @@
 
 <!-- A range slider next to a number field; dragging the slider is a scrub gesture. -->
 <div class="flex items-center gap-2" data-slider-field={name}>
-	<input
-		type="range"
-		aria-label="{name} slider"
-		{min}
-		{max}
-		{step}
-		{disabled}
-		value={sliderValue}
-		class="accent-action h-1 min-w-0 flex-1 cursor-pointer"
-		oninput={(event) => onchange(Number(event.currentTarget.value), 'scrub')}
-	/>
+	<div class="min-w-0 flex-1">
+		<Slider
+			label="{name} slider"
+			{min}
+			{max}
+			{step}
+			{disabled}
+			value={sliderValue}
+			oninput={(next) => onchange(next, 'scrub')}
+			onchange={(next) => onchange(next, 'commit')}
+		/>
+	</div>
 	<div class="w-20 shrink-0">
 		<NumberField
 			{label}

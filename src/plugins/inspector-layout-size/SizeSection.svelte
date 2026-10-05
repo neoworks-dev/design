@@ -1,5 +1,16 @@
 <script lang="ts">
 	import { Checkbox } from '@neoworks-dev/ui';
+	import ArrowLineDownIcon from 'phosphor-svelte/lib/ArrowLineDownIcon';
+	import ArrowLineLeftIcon from 'phosphor-svelte/lib/ArrowLineLeftIcon';
+	import ArrowLineRightIcon from 'phosphor-svelte/lib/ArrowLineRightIcon';
+	import ArrowLineUpIcon from 'phosphor-svelte/lib/ArrowLineUpIcon';
+	import ArrowsInLineHorizontalIcon from 'phosphor-svelte/lib/ArrowsInLineHorizontalIcon';
+	import ArrowsInLineVerticalIcon from 'phosphor-svelte/lib/ArrowsInLineVerticalIcon';
+	import ArrowsOutLineHorizontalIcon from 'phosphor-svelte/lib/ArrowsOutLineHorizontalIcon';
+	import ArrowsOutLineVerticalIcon from 'phosphor-svelte/lib/ArrowsOutLineVerticalIcon';
+	import DotsThreeIcon from 'phosphor-svelte/lib/DotsThreeIcon';
+	import RulerIcon from 'phosphor-svelte/lib/RulerIcon';
+	import type { Component } from 'svelte';
 	import LinkSimpleHorizontalBreakIcon from 'phosphor-svelte/lib/LinkSimpleHorizontalBreakIcon';
 	import LinkSimpleHorizontalIcon from 'phosphor-svelte/lib/LinkSimpleHorizontalIcon';
 	import type { Node } from '../../lib/document';
@@ -83,27 +94,32 @@
 			nodes.some((node) => currentSizing(node, 'horizontal') !== 'FIXED')
 	);
 
-	function sizingOptions(): Array<{
+	interface SizingOption {
 		value: string;
 		label: string;
-		disabled?: boolean;
-		title?: string;
-	}> {
-		return [
-			{ value: 'FIXED', label: 'Fixed' },
-			{
+		// oxlint-disable-next-line typescript/no-explicit-any
+		icon: Component<any>;
+	}
+
+	// Modes that cannot apply to the selection are left out instead of shown disabled.
+	function sizingOptions(axis: Axis): SizingOption[] {
+		const horizontal = axis === 'horizontal';
+		const options: SizingOption[] = [{ value: 'FIXED', label: 'Fixed size', icon: RulerIcon }];
+		if (canHug) {
+			options.push({
 				value: 'HUG',
-				label: 'Hug',
-				disabled: !canHug,
-				title: canHug ? 'Hug contents' : 'Hug needs an auto layout frame or text'
-			},
-			{
+				label: 'Hug contents',
+				icon: horizontal ? ArrowsInLineHorizontalIcon : ArrowsInLineVerticalIcon
+			});
+		}
+		if (canFill) {
+			options.push({
 				value: 'FILL',
-				label: 'Fill',
-				disabled: !canFill,
-				title: canFill ? 'Fill container' : 'Fill needs an auto layout parent'
-			}
-		];
+				label: 'Fill container',
+				icon: horizontal ? ArrowsOutLineHorizontalIcon : ArrowsOutLineVerticalIcon
+			});
+		}
+		return options;
 	}
 
 	function setSizing(axis: Axis, value: string): void {
@@ -120,12 +136,37 @@
 		nodes.some((node) => isAutoLayoutFrame(node) || isLayoutChild(ctx.document.reader, node))
 	);
 
-	const LIMITS: Array<{ property: LimitProperty; label: string; name: string }> = [
-		{ property: 'minWidth', label: 'Min W', name: 'Minimum width' },
-		{ property: 'maxWidth', label: 'Max W', name: 'Maximum width' },
-		{ property: 'minHeight', label: 'Min H', name: 'Minimum height' },
-		{ property: 'maxHeight', label: 'Max H', name: 'Maximum height' }
+	interface LimitDefinition {
+		property: LimitProperty;
+		label: string;
+		name: string;
+		// oxlint-disable-next-line typescript/no-explicit-any
+		icon: Component<any>;
+	}
+
+	const LIMITS: LimitDefinition[] = [
+		{ property: 'minWidth', label: 'W', name: 'Minimum width', icon: ArrowLineLeftIcon },
+		{ property: 'maxWidth', label: 'W', name: 'Maximum width', icon: ArrowLineRightIcon },
+		{ property: 'minHeight', label: 'H', name: 'Minimum height', icon: ArrowLineUpIcon },
+		{ property: 'maxHeight', label: 'H', name: 'Maximum height', icon: ArrowLineDownIcon }
 	];
+
+	// Limits are hidden until set; "Add" reveals an empty field for the user to fill in.
+	let revealed = $state<LimitProperty[]>([]);
+	let limitMenuOpen = $state(false);
+
+	function isLimitVisible(limit: LimitDefinition): boolean {
+		if (revealed.includes(limit.property)) return true;
+		return nodes.some((node) => limitOf(node, limit.property) !== null);
+	}
+
+	const visibleLimits = $derived(LIMITS.filter((limit) => isLimitVisible(limit)));
+	const hiddenLimits = $derived(LIMITS.filter((limit) => !isLimitVisible(limit)));
+
+	function revealLimit(limit: LimitDefinition): void {
+		revealed = [...revealed, limit.property];
+		limitMenuOpen = false;
+	}
 
 	function limitOf(node: Node, property: LimitProperty): number | null {
 		if (!('minWidth' in node)) return null;
@@ -226,27 +267,60 @@
 		</NumberField>
 	</div>
 
-	{#if showSizing}
-		<div class="grid grid-cols-2 gap-2" data-resizing-row>
+	{#if showSizing || (showLimits && hiddenLimits.length > 0)}
+		<div class="flex items-center gap-2" data-resizing-row>
 			{#each ['horizontal', 'vertical'] as const as axis (axis)}
 				{@const shared = sharedValue(nodes, (node) => currentSizing(node, axis))}
-				<ToggleGroup
-					name={axis === 'horizontal' ? 'Horizontal resizing' : 'Vertical resizing'}
-					options={sizingOptions()}
-					value={shared.value}
-					mixed={shared.mixed}
-					onchange={(value) => setSizing(axis, value)}
-				/>
+				{#if showSizing}
+					<ToggleGroup
+						name={axis === 'horizontal' ? 'Horizontal resizing' : 'Vertical resizing'}
+						options={sizingOptions(axis)}
+						value={shared.value}
+						mixed={shared.mixed}
+						onchange={(value) => setSizing(axis, value)}
+					/>
+				{/if}
+			{/each}
+			{#if showLimits && hiddenLimits.length > 0}
+				<div class="ml-auto">
+					<IconToggleButton
+						icon={DotsThreeIcon}
+						label="Add min or max size"
+						pressed={limitMenuOpen}
+						onclick={() => (limitMenuOpen = !limitMenuOpen)}
+					/>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
+	{#if limitMenuOpen && hiddenLimits.length > 0}
+		<div
+			class="bg-raised border-line flex flex-col rounded-md border p-1 text-xs"
+			role="menu"
+			aria-label="Add min or max size"
+			data-limit-menu
+		>
+			{#each hiddenLimits as limit (limit.property)}
+				<button
+					type="button"
+					role="menuitem"
+					class="text-default hover:bg-hover rounded px-2 py-1 text-left"
+					onclick={() => revealLimit(limit)}
+				>
+					Add {limit.name.toLowerCase()}
+				</button>
 			{/each}
 		</div>
 	{/if}
 
-	{#if showLimits}
+	{#if showLimits && visibleLimits.length > 0}
 		<div class="grid grid-cols-2 gap-2" data-limits>
-			{#each LIMITS as limit (limit.property)}
+			{#each visibleLimits as limit (limit.property)}
 				{@const shared = sharedValue(nodes, (node) => limitOf(node, limit.property))}
 				<NumberField
 					label={limit.label}
+					icon={limit.icon}
 					name={limit.name}
 					min={0}
 					value={shared.value}

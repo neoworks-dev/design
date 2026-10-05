@@ -70,19 +70,23 @@
 
 <div class="flex flex-col gap-1 px-3 pb-3" data-selection-colors>
 	{#each rows as row, index (index)}
-		<div class="flex items-center gap-2" data-color-row={row.key}>
+		<div
+			class="border-line bg-raised flex h-7 items-center gap-1.5 rounded-md border px-1.5"
+			data-color-row={row.key}
+		>
 			<button
 				type="button"
 				aria-label={`Replace ${label(row)}`}
-				class="border-line size-6 shrink-0 cursor-pointer rounded border"
+				class="border-line size-4 shrink-0 cursor-pointer rounded-sm border"
 				style:background={colorToHex(row.color)}
 				data-color-swatch={row.key}
 				onclick={(event) => openPicker(event, index)}
 			></button>
-			<span class="text-default min-w-0 flex-1 truncate text-xs tabular-nums">
+			<span class="text-default min-w-0 flex-1 truncate text-xs uppercase tabular-nums">
 				{label(row)}
 			</span>
-			<span class="text-faint text-xs tabular-nums" title="Usages">{row.count}</span>
+			<span class="bg-line h-3.5 w-px shrink-0"></span>
+			<span class="text-faint w-5 text-right text-xs tabular-nums" title="Usages">{row.count}</span>
 		</div>
 	{:else}
 		<p class="text-faint text-xs">No solid colors in the selection</p>

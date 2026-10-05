@@ -67,6 +67,7 @@ export default {
 					description:
 						'Report which candidates of a search task match the query, by id, best first.',
 					write: false,
+					taskOnly: true,
 					inputSchema,
 					run: (input, run) => {
 						const parsed = reportMatchesInput.parse(input);

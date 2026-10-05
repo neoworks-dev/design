@@ -189,7 +189,7 @@ function documentSource(html: string, options: LayoutOptions): string {
 		`<meta http-equiv="Content-Security-Policy" content="${policy}">`,
 		'<style>',
 		`:root { ${variables} }`,
-		'*, *::before, *::after { box-sizing: border-box; }',
+		'*, *::before, *::after { box-sizing: border-box; margin: 0; }',
 		`html, body { margin: 0; padding: 0; }`,
 		`body { width: ${options.viewportWidth}px; font-family: "${options.defaultFamily}"; font-size: 16px; color: #000; }`,
 		'</style></head><body>',
@@ -230,7 +230,9 @@ function unquote(family: string): string {
 
 class FontResolver {
 	private readonly available: Map<string, string>;
+	/** Available families in use: their own faces are loaded. */
 	readonly used = new Set<string>();
+	/** Families the document does not have, measured with the default family's faces. */
 	readonly missing = new Set<string>();
 
 	constructor(private readonly options: LayoutOptions) {
@@ -238,17 +240,29 @@ class FontResolver {
 		this.available = new Map(families.map((family) => [family.toLowerCase(), family]));
 	}
 
-	/** The family the canvas will draw for a CSS font stack. */
+	isAvailable(family: string): boolean {
+		return this.available.has(family.toLowerCase());
+	}
+
+	/**
+	 * The family the canvas will draw for a CSS font stack: the first available one. A missing
+	 * named family that only generic families follow keeps its name (the converter decides what
+	 * becomes of it) and is measured with the default family.
+	 */
 	resolve(stack: string): string {
+		let firstMissing: string | null = null;
 		for (const entry of splitTopLevel(stack, ',')) {
 			const family = unquote(entry);
 			const lower = family.toLowerCase();
 			const known = this.available.get(lower);
 			if (known !== undefined) return this.use(known);
+			const generic = GENERIC_FAMILIES.has(lower) || MONOSPACE_FAMILIES.has(lower);
+			if (generic && firstMissing !== null) return this.alias(firstMissing);
 			if (MONOSPACE_FAMILIES.has(lower)) return this.use(this.monospace());
 			if (GENERIC_FAMILIES.has(lower)) return this.use(this.options.defaultFamily);
-			this.missing.add(family);
+			if (firstMissing === null) firstMissing = family;
 		}
+		if (firstMissing !== null) return this.alias(firstMissing);
 		return this.use(this.options.defaultFamily);
 	}
 
@@ -260,6 +274,12 @@ class FontResolver {
 
 	private use(family: string): string {
 		this.used.add(family);
+		return family;
+	}
+
+	private alias(family: string): string {
+		this.missing.add(family);
+		this.used.add(this.options.defaultFamily);
 		return family;
 	}
 }
@@ -287,8 +307,12 @@ async function loadFonts(
 	const urls: string[] = [];
 	const rules: string[] = [];
 	const loads: string[] = [];
-	for (const family of resolver.used) {
-		const faces = await source.faces(family).catch(() => []);
+	const families: [string, string][] = [
+		...Array.from(resolver.used, (family): [string, string] => [family, family]),
+		...Array.from(resolver.missing, (family): [string, string] => [family, options.defaultFamily])
+	];
+	for (const [family, facesOf] of families) {
+		const faces = await source.faces(facesOf).catch(() => []);
 		for (const face of faces) {
 			const url = URL.createObjectURL(new Blob([face.bytes]));
 			urls.push(url);
@@ -311,13 +335,16 @@ async function loadFonts(
 
 class Measurer {
 	readonly warnings: string[] = [];
+	/** `data-id`s of elements hidden with `display: none`, descendants included. */
+	readonly hiddenIds: string[] = [];
 	private readonly rules: CSSStyleRule[];
 	private readonly origin: { x: number; y: number };
 
 	constructor(
 		private readonly view: Window,
 		private readonly frameDocument: Document,
-		private readonly parseColor: ColorParser
+		private readonly parseColor: ColorParser,
+		private readonly fonts: FontResolver
 	) {
 		this.rules = this.collectRules();
 		this.origin = { x: 0, y: 0 };
@@ -378,7 +405,10 @@ class Measurer {
 			return null;
 		}
 		const computed = this.view.getComputedStyle(element);
-		if (computed.display === 'none') return null;
+		if (computed.display === 'none') {
+			this.collectHidden(element);
+			return null;
+		}
 		const box = this.rect(element);
 		const snapshot: ElementSnapshot = {
 			kind: 'element',
@@ -407,6 +437,13 @@ class Measurer {
 		}
 		snapshot.children = this.children(element, computed);
 		return snapshot;
+	}
+
+	private collectHidden(element: Element): void {
+		for (const hidden of [element, ...Array.from(element.querySelectorAll('[data-id]'))]) {
+			const id = hidden.getAttribute('data-id');
+			if (id !== null) this.hiddenIds.push(id);
+		}
 	}
 
 	private children(element: Element, computed: CSSStyleDeclaration): NodeSnapshot[] {
@@ -528,8 +565,10 @@ class Measurer {
 		}
 		let lineHeight: number | null = null;
 		if (computed.lineHeight !== 'normal') lineHeight = pixelsOrZero(computed.lineHeight);
+		const family = unquote(splitTopLevel(computed.fontFamily, ',')[0] ?? '');
 		return {
-			family: unquote(splitTopLevel(computed.fontFamily, ',')[0] ?? ''),
+			family,
+			available: this.fonts.isAvailable(family),
 			weight: Number(computed.fontWeight),
 			italic: computed.fontStyle === 'italic' || computed.fontStyle.startsWith('oblique'),
 			size: pixelsOrZero(computed.fontSize),
@@ -800,13 +839,10 @@ export async function measureHtml(html: string, options: LayoutOptions): Promise
 		const resolver = new FontResolver(options);
 		pinFonts(frameDocument.body, view, resolver);
 		releaseFonts = await loadFonts(frame, resolver, options);
-		const measurer = new Measurer(view, frameDocument, canvasColorParser());
+		const measurer = new Measurer(view, frameDocument, canvasColorParser(), resolver);
 		const wholeDocument = /<(html|body)[\s>]/i.test(html);
 		const roots = measurer.roots(frameDocument.body, wholeDocument);
-		for (const family of resolver.missing) {
-			measurer.warn(`font "${family}" is not available; used ${options.defaultFamily} instead`);
-		}
-		return { roots, warnings: measurer.warnings };
+		return { roots, warnings: measurer.warnings, hiddenIds: measurer.hiddenIds };
 	} finally {
 		releaseFonts();
 		frame.remove();

@@ -1,34 +1,20 @@
 // The `aiGenerate` service (#148): first-draft designs from a prompt.
 //
 // `generate` starts an AI run with the template, the request and the document's context. The model
-// answers with one `generate_design` call (the tool this service runs): a nested tree that is
-// built in one transaction and placed beside the existing frames. Components of the file become
-// instances, fills and numeric properties can be bound to the file's variables. The run is one
-// undo step; a run that is cancelled is taken back, so a cancelled generation leaves no trace.
+// writes the design as HTML with the general `write` tool, which builds it in one transaction
+// beside the existing frames; this service notes the first layer the run wrote (`recordEdit`, fed
+// from `ai/edit`) as the generated design. The run is one undo step; a run that is cancelled is
+// taken back, so a cancelled generation leaves no trace.
 
 import { Service, type Context } from '@neoworks/extension-system';
-import {
-	createNode,
-	generateNodeId,
-	indexAtPosition,
-	planCreateInstance,
-	type Change,
-	type DocumentReader,
-	type Node,
-	type NodeId,
-	type Rect
-} from '../document';
+import type { Node, NodeId } from '../document';
+import { cssVariableName } from '../ai/html/apply';
 import {
 	generatePrompt,
-	measureSpec,
-	placeBeside,
-	specProblem,
 	templateById,
 	type GenerateTemplate,
-	type NodeSpec,
 	type TemplateId
 } from '../ai/generate';
-import { translateProps } from '../ai/tools/translateProps';
 import {
 	AiConsentRequiredError,
 	type AiEditSummary,
@@ -43,8 +29,6 @@ declare module '@neoworks/extension-system' {
 	}
 }
 
-type Meta = { origin: 'ai'; label: string; runId: string };
-
 /** The parts of the `ai` service the generation uses. */
 export interface GenerateAi {
 	readonly available: boolean;
@@ -52,7 +36,6 @@ export interface GenerateAi {
 		prompt: string,
 		options?: { display?: string }
 	): { id: string; finished: Promise<AiRunStatus>; cancel(): Promise<void> };
-	reportEdit(runId: string, edit: AiEditSummary): void;
 }
 
 export interface GenerateHistory {
@@ -65,28 +48,12 @@ export interface GenerateContext {
 }
 
 export interface GenerateDocument {
-	readonly currentPageId: NodeId;
-	readonly reader: DocumentReader;
 	get(id: NodeId): Node | undefined;
-	children(id: NodeId | null): readonly NodeId[];
-	absoluteBounds(id: NodeId): Rect;
 	query(predicate: (node: Node) => boolean): Node[];
-	insertNode(node: Node): Change[];
-	setProps(id: NodeId, props: Record<string, unknown>): Change[];
-	transaction<T>(meta: Meta, run: () => T): T;
-	apply(changes: Change[], meta: Meta): { changes: readonly Change[] };
 }
 
 export interface GenerateVariables {
 	variables(): { id: string; name: string }[];
-	bindVariable(nodeId: NodeId, property: string, variableId: string, meta: Meta): void;
-	bindPaintColor(
-		nodeId: NodeId,
-		property: 'fills',
-		index: number,
-		variableId: string,
-		meta: Meta
-	): void;
 }
 
 export interface GenerateActions {
@@ -179,36 +146,20 @@ export class AiGenerateService extends Service {
 		return this.settle(run.id, status);
 	}
 
-	/** The `generate_design` tool: build `root` beside the existing frames, in one transaction. */
-	applyDesign(run: AiRunInfo, root: NodeSpec): GenerateOutcome {
-		if (!this.generating.has(run.id)) throw new Error('this run was not started to generate');
-		if (this.built.has(run.id)) throw new Error('the design was already built; do not call again');
-		const problem = specProblem(root);
-		if (problem !== undefined) throw new Error(problem);
-		const position = this.placement();
-		const meta: Meta = { origin: 'ai', label: run.label, runId: run.id };
-		let rootId = '';
-		this.document.transaction(meta, () => {
-			rootId = this.buildNode(root, this.document.currentPageId, meta, position);
-		});
-		const created = measureSpec(root).nodes;
-		let name = root.name ?? 'Frame';
-		const built = this.document.get(rootId);
-		if (built !== undefined) name = built.name;
-		const outcome: GenerateOutcome = {
+	/** A write of a generate run: its first layer is the generated design. */
+	recordEdit(run: AiRunInfo, edit: AiEditSummary): void {
+		if (!this.generating.has(run.id) || this.built.has(run.id)) return;
+		const rootId = edit.nodeIds[0];
+		if (rootId === undefined) return;
+		const root = this.document.get(rootId);
+		if (root === undefined || root.type === 'PAGE') return;
+		this.built.set(run.id, {
 			rootId,
-			name,
-			x: position.x,
-			y: position.y,
-			created
-		};
-		this.built.set(run.id, outcome);
-		this.ai.reportEdit(run.id, {
-			label: 'Generate design',
-			nodeIds: [rootId],
-			changeCount: created
+			name: root.name,
+			x: root.transform[0][2],
+			y: root.transform[1][2],
+			created: edit.changeCount
 		});
-		return outcome;
 	}
 
 	snapshotState(): Record<string, unknown> {
@@ -228,7 +179,7 @@ export class AiGenerateService extends Service {
 			componentNames: this.document
 				.query((node) => node.type === 'COMPONENT')
 				.map((node) => node.name),
-			variableNames: this.variables.variables().map((variable) => variable.name)
+			variableNames: this.variables.variables().map((variable) => cssVariableName(variable.name))
 		});
 		try {
 			return this.ai.run(prompt, { display: `Generate: ${text}` });
@@ -261,102 +212,5 @@ export class AiGenerateService extends Service {
 		if (status === 'cancelled') return 'Generation stopped: nothing was added.';
 		if (status === 'error') return 'The AI could not generate a design.';
 		return 'The AI did not build a design.';
-	}
-
-	/** Beside everything on the current page. */
-	private placement(): { x: number; y: number } {
-		const bounds = this.document
-			.children(this.document.currentPageId)
-			.map((id) => this.document.absoluteBounds(id));
-		return placeBeside(bounds);
-	}
-
-	private buildNode(
-		spec: NodeSpec,
-		parentId: NodeId,
-		meta: Meta,
-		position: { x: number; y: number } | undefined
-	): NodeId {
-		let id: NodeId;
-		try {
-			id = this.createOne(spec, parentId, meta, position);
-			this.bindVariables(id, spec, meta);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			throw new Error(`${spec.type} "${spec.name ?? ''}": ${message}`, { cause: error });
-		}
-		for (const child of spec.children ?? []) this.buildNode(child, id, meta, undefined);
-		return id;
-	}
-
-	private propsOf(
-		spec: NodeSpec,
-		position: { x: number; y: number } | undefined
-	): Record<string, unknown> {
-		const props: Record<string, unknown> = { ...spec.props };
-		if (spec.name !== undefined) props.name = spec.name;
-		if (position !== undefined) {
-			props.x = position.x;
-			props.y = position.y;
-		}
-		return props;
-	}
-
-	private createOne(
-		spec: NodeSpec,
-		parentId: NodeId,
-		meta: Meta,
-		position: { x: number; y: number } | undefined
-	): NodeId {
-		const slot = this.document.children(parentId).length;
-		const index = indexAtPosition(this.document.reader, parentId, slot);
-		if (spec.component !== undefined) return this.createInstance(spec, parentId, index, meta);
-		const id = generateNodeId();
-		const blank = createNode(spec.type, { id, parentId, index });
-		const node = { ...blank, ...translateProps(this.propsOf(spec, position), blank) } as Node;
-		this.document.apply(this.document.insertNode(node), meta);
-		return id;
-	}
-
-	private createInstance(spec: NodeSpec, parentId: NodeId, index: string, meta: Meta): NodeId {
-		const main = this.findComponent(spec.component ?? '');
-		const plan = planCreateInstance(this.document.reader, main.id, { parentId, index });
-		this.document.apply(plan.changes, meta);
-		const instance = this.document.get(plan.rootId);
-		if (instance === undefined) throw new Error('the instance was not created');
-		const props = this.propsOf(spec, undefined);
-		const changes = this.document.setProps(plan.rootId, translateProps(props, instance));
-		if (changes.length > 0) this.document.apply(changes, meta);
-		return plan.rootId;
-	}
-
-	private findComponent(reference: string): Node {
-		const components = this.document.query((node) => node.type === 'COMPONENT');
-		const wanted = reference.trim().toLowerCase();
-		const found = components.find(
-			(node) => node.id === reference || node.name.toLowerCase() === wanted
-		);
-		if (found !== undefined) return found;
-		const names = components.map((node) => node.name).join(', ');
-		throw new Error(`no component "${reference}"; the file has: ${names === '' ? 'none' : names}`);
-	}
-
-	private bindVariables(id: NodeId, spec: NodeSpec, meta: Meta): void {
-		if (spec.fillVariable !== undefined) {
-			const variable = this.findVariable(spec.fillVariable);
-			this.variables.bindPaintColor(id, 'fills', 0, variable.id, meta);
-		}
-		for (const [property, name] of Object.entries(spec.bind ?? {})) {
-			this.variables.bindVariable(id, property, this.findVariable(name).id, meta);
-		}
-	}
-
-	private findVariable(name: string): { id: string; name: string } {
-		const all = this.variables.variables();
-		const wanted = name.trim().toLowerCase();
-		const found = all.find((variable) => variable.name.toLowerCase() === wanted);
-		if (found !== undefined) return found;
-		const names = all.map((variable) => variable.name).join(', ');
-		throw new Error(`no variable "${name}"; the file has: ${names === '' ? 'none' : names}`);
 	}
 }

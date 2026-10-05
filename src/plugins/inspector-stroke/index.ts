@@ -2,6 +2,7 @@ import type { Context } from '@neoworks/extension-system';
 import { planSetProps, type Change } from '../../lib/document';
 import { applyEdit, contributeCommand } from '../../lib/editing/contribute';
 import StrokeSection from './StrokeSection.svelte';
+import StrokeActions from './StrokeActions.svelte';
 
 const NO_STROKE_KINDS = ['GROUP', 'TEXT', 'SLICE', 'PAGE'];
 
@@ -40,7 +41,8 @@ export default {
 					order: 50,
 					applies: (selection) =>
 						selection.count > 0 && selection.kinds.every((kind) => !NO_STROKE_KINDS.includes(kind)),
-					component: StrokeSection
+					component: StrokeSection,
+					actions: StrokeActions
 				}),
 			'stroke section'
 		);

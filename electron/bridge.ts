@@ -269,6 +269,7 @@ export interface AiToolDefinition {
 export interface AiModelInfo {
 	id: string;
 	name: string;
+	description?: string;
 }
 /** A harness the user can pick. Credentials never appear here: they stay in main. */
 export interface AiProviderInfo {
@@ -277,18 +278,31 @@ export interface AiProviderInfo {
 	available: boolean;
 	detail?: string;
 	models: AiModelInfo[];
+	/** Whether prompts may carry images. */
+	images: boolean;
+	/** Reasoning effort levels worth offering, lowest first; empty when the harness has none. */
+	efforts: string[];
 }
 export interface AiStartRequest {
 	provider: string;
 	model?: string;
+	/** One of the provider's `efforts`; the harness default when absent. */
+	effort?: string;
 	system: string;
 	tools: AiToolDefinition[];
+}
+/** A picture sent along with a prompt, e.g. pasted into the chat. */
+export interface AiImage {
+	mimeType: string;
+	/** Base64, without a `data:` prefix. */
+	data: string;
 }
 export interface AiSendRequest {
 	sessionId: string;
 	/** The renderer's id for this turn; events and tool calls carry it back. */
 	runId: string;
 	prompt: string;
+	images?: AiImage[];
 }
 export type AiToolStatus = 'running' | 'done' | 'failed';
 /** What an agent turn streams: text, reasoning, tool calls, then exactly one `done` or `error`. */

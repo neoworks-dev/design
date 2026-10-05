@@ -3,6 +3,7 @@
 // no IPC. Used by the ai, ai-tools, ai-history and ai-chat tests.
 
 import type {
+	AiSendRequest,
 	AiProviderInfo,
 	AiStartRequest,
 	AiStreamEvent,
@@ -27,14 +28,16 @@ export const FAKE_PROVIDER: AiProviderInfo = {
 	id: 'fake',
 	label: 'Scripted agent',
 	available: true,
-	models: [{ id: 'scripted-1', name: 'Scripted 1' }]
+	models: [{ id: 'scripted-1', name: 'Scripted 1' }],
+	images: true,
+	efforts: ['low', 'high']
 };
 
 export class FakeAiMain {
 	script: FakeScript = () => Promise.resolve();
 	providers: AiProviderInfo[] = [FAKE_PROVIDER];
 	readonly started: AiStartRequest[] = [];
-	readonly sent: { sessionId: string; runId: string; prompt: string }[] = [];
+	readonly sent: AiSendRequest[] = [];
 	readonly ended: string[] = [];
 	cancels = 0;
 	/** Observes every answer the renderer sends for a tool call. */

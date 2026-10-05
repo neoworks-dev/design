@@ -2,6 +2,7 @@ import type { Context } from '@neoworks/extension-system';
 import { planSetProps, type Change, type Node } from '../../lib/document';
 import { applyEdit, contributeCommand } from '../../lib/editing/contribute';
 import FillSection from './FillSection.svelte';
+import FillActions from './FillActions.svelte';
 
 // Node types whose `fills` the canvas paints from the node itself (text paints from its style).
 const NO_FILL_KINDS = ['GROUP', 'TEXT', 'SLICE', 'PAGE'];
@@ -41,7 +42,8 @@ export default {
 					order: 40,
 					applies: (selection) =>
 						selection.count > 0 && selection.kinds.every((kind) => !NO_FILL_KINDS.includes(kind)),
-					component: FillSection
+					component: FillSection,
+					actions: FillActions
 				}),
 			'fill section'
 		);

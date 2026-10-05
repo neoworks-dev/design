@@ -1,11 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
-import { z } from 'zod';
-import {
-	generateDesignInput,
-	templateById,
-	TEMPLATES,
-	type TemplateId
-} from '../../lib/ai/generate';
+import { templateById, TEMPLATES, type TemplateId } from '../../lib/ai/generate';
 import { objectArguments } from '../../lib/editing/contribute';
 import { AiGenerateService } from '../../lib/services/aiGenerate';
 import { AiGenerateState } from '../../lib/services/aiGenerateState.svelte';
@@ -24,9 +18,10 @@ function parseSlashArgument(argument: string): { description: string; template: 
 
 // Generate designs from a prompt (#148): the palette tab "Generate" (one row per template), the
 // command `ai-generate.open`, `ai-generate.run` ({ prompt, template }) and `/generate` in the AI
-// chat. The model builds the design with the `generate_design` tool: one nested spec, auto layout
-// frames, instances of the file's components, fills bound to its variables, placed beside the
-// existing frames. One AI run, one undo step; stopping a run takes back what it built.
+// chat. The model writes the design as HTML with the general `write` tool: flexbox becomes auto
+// layout, data-component places instances of the file's components, var() binds its variables;
+// it lands beside the existing frames. One AI run, one undo step; stopping a run takes back what
+// it built.
 export default {
 	name: 'ai-generate',
 	inject: [
@@ -61,23 +56,7 @@ export default {
 			new AiGenerateState()
 		);
 
-		const inputSchema: Record<string, unknown> = { ...z.toJSONSchema(generateDesignInput) };
-		delete inputSchema.$schema;
-		ctx.effect(
-			() =>
-				ctx.ai.registerTool({
-					id: 'generate_design',
-					description:
-						'Build a whole design from a nested spec in one call: a FRAME root with auto layout and nested frames, text, shapes, component instances. Placed beside the existing frames. Only for generate tasks.',
-					write: true,
-					inputSchema,
-					run: (input, run) => {
-						const parsed = generateDesignInput.parse(input);
-						return JSON.stringify(generate.applyDesign(run, parsed.root));
-					}
-				}),
-			'ai tool generate_design'
-		);
+		ctx.on('ai/edit', (run, edit) => generate.recordEdit(run, edit));
 
 		ctx.effect(
 			() =>

@@ -67,8 +67,20 @@ export interface ConvertOptions {
 	generateId?: () => NodeId;
 	/** CSS variable name (`--surface`) to document variable id; used ones become bindings. */
 	variables?: Readonly<Record<string, string>>;
-	/** Font families the document can draw; others are kept but reported. */
-	availableFamilies?: ReadonlySet<string>;
+	/** `data-id`s that name existing layers: those elements keep the id instead of a new one. */
+	reuseIds?: ReadonlySet<string>;
+	/** Unavailable families kept as they are (fonts the replaced layers already use). */
+	keepFamilies?: ReadonlySet<string>;
+	/** What text in an unavailable family gets instead. */
+	defaultFamily?: string;
+}
+
+/** An element with `data-component`: its layer stands in for an instance of that component. */
+export interface InstanceRequest {
+	nodeId: NodeId;
+	component: string;
+	/** The element's `data-name`; the instance keeps the component's name without one. */
+	name?: string;
 }
 
 export interface ConvertResult {
@@ -77,6 +89,7 @@ export interface ConvertResult {
 	rootIds: NodeId[];
 	/** `data-id` attributes to the ids of the nodes made from those elements. */
 	idsByDataId: Record<string, NodeId>;
+	instances: InstanceRequest[];
 	warnings: string[];
 }
 
@@ -270,7 +283,8 @@ class Converter {
 	readonly nodes: Node[] = [];
 	readonly warnings: string[] = [];
 	readonly idsByDataId: Record<string, NodeId> = {};
-	private readonly reportedFamilies = new Set<string>();
+	readonly instances: InstanceRequest[] = [];
+	private readonly usedIds = new Set<NodeId>();
 	private readonly generateId: () => NodeId;
 
 	constructor(private readonly options: ConvertOptions) {
@@ -289,14 +303,24 @@ class Converter {
 			this.svg(element, element.svg, parent, index, transform);
 			return;
 		}
-		if (element.attributes['data-component'] !== undefined) {
-			this.warn(
-				`data-component="${element.attributes['data-component']}": instances are not supported yet, drawn as plain layers`
-			);
-		}
 		if (element.tag === 'img') {
 			this.warn('images are not imported yet: <img> became a grey placeholder');
 		}
+		const component = element.attributes['data-component'];
+		const before = this.nodes.length;
+		this.layer(element, parent, index, transform);
+		const made = this.nodes[before];
+		if (component !== undefined && made !== undefined) {
+			this.instances.push({ nodeId: made.id, component, name: element.attributes['data-name'] });
+		}
+	}
+
+	private layer(
+		element: ElementSnapshot,
+		parent: ParentInfo,
+		index: string,
+		transform: Matrix2x3
+	): void {
 		const hasChildren = element.children.length > 0;
 		if (element.text !== undefined && !hasChildren && !isDecorated(element)) {
 			this.textElement(element, element.text, parent, index, transform);
@@ -310,9 +334,13 @@ class Converter {
 	}
 
 	private idFor(element: ElementSnapshot): NodeId {
-		const id = this.generateId();
 		const dataId = element.attributes['data-id'];
-		if (dataId !== undefined) this.idsByDataId[dataId] = id;
+		if (dataId === undefined) return this.generateId();
+		let id = dataId;
+		const reusable = this.options.reuseIds?.has(dataId) === true;
+		if (!reusable || this.usedIds.has(dataId)) id = this.generateId();
+		this.usedIds.add(id);
+		this.idsByDataId[dataId] = id;
 		return id;
 	}
 
@@ -842,7 +870,7 @@ class Converter {
 
 	private textStyle(run: RunSnapshot): TextStyle {
 		const font: FontSnapshot = run.font;
-		this.checkFamily(font.family);
+		const family = this.familyOf(font);
 		const fill = solid(font.color);
 		if (run.colorVariable !== undefined) {
 			const variableId = this.variableId(run.colorVariable);
@@ -853,7 +881,7 @@ class Converter {
 		if (font.lineHeight !== null) lineHeight = { value: round(font.lineHeight), unit: 'PIXELS' };
 		return {
 			...defaultTextStyle(),
-			fontName: { family: font.family, style: styleName(font.weight, font.italic) },
+			fontName: { family, style: styleName(font.weight, font.italic) },
 			fontWeight: font.weight,
 			fontSize: round(font.size),
 			letterSpacing: { value: round(font.letterSpacing), unit: 'PIXELS' },
@@ -864,12 +892,15 @@ class Converter {
 		};
 	}
 
-	private checkFamily(family: string): void {
-		const available = this.options.availableFamilies;
-		if (available === undefined || available.has(family)) return;
-		if (this.reportedFamilies.has(family)) return;
-		this.reportedFamilies.add(family);
-		this.warn(`font "${family}" is not available; it is drawn with a fallback`);
+	private familyOf(font: FontSnapshot): string {
+		if (font.available || this.options.keepFamilies?.has(font.family) === true) return font.family;
+		const fallback = this.options.defaultFamily;
+		if (fallback === undefined) {
+			this.warn(`font "${font.family}" is not available; it is drawn with a fallback`);
+			return font.family;
+		}
+		this.warn(`font "${font.family}" is not available; used ${fallback} instead`);
+		return fallback;
 	}
 
 	// ---------- paints, strokes, effects ----------
@@ -1131,6 +1162,7 @@ export function convertSnapshot(snapshot: HtmlSnapshot, options: ConvertOptions)
 		nodes: converter.nodes,
 		rootIds,
 		idsByDataId: converter.idsByDataId,
+		instances: converter.instances,
 		warnings: converter.warnings
 	};
 }

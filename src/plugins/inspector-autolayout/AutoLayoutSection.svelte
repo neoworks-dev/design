@@ -5,7 +5,6 @@
 	import ArrowRightIcon from 'phosphor-svelte/lib/ArrowRightIcon';
 	import ArrowsHorizontalIcon from 'phosphor-svelte/lib/ArrowsHorizontalIcon';
 	import ArrowsOutCardinalIcon from 'phosphor-svelte/lib/ArrowsOutCardinalIcon';
-	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
 	import SidebarSimpleIcon from 'phosphor-svelte/lib/SidebarSimpleIcon';
 	import type { Node } from '../../lib/document';
 	import {
@@ -40,13 +39,6 @@
 	const nodes = $derived(selectedNodes(ctx));
 	const canHaveLayout = $derived(nodes.length > 0 && nodes.every((node) => 'layoutMode' in node));
 	const hasLayout = $derived(canHaveLayout && nodes.every((node) => isStackContainer(node)));
-	const inStack = $derived(
-		nodes.length > 0 &&
-			nodes.every((node) => {
-				if (node.parentId === null) return false;
-				return isStackContainer(ctx.document.require(node.parentId));
-			})
-	);
 
 	// ---------- flow ----------
 
@@ -199,7 +191,7 @@
 		{ side: 'Left', label: 'L' }
 	];
 
-	// ---------- strokes, absolute position ----------
+	// ---------- strokes ----------
 
 	const strokesIncluded = $derived(
 		sharedValue(nodes, (node) => layoutOf(node)?.strokesIncludedInLayout === true)
@@ -210,23 +202,6 @@
 			ctx,
 			{ label: 'Strokes in layout', mergeKey: 'inspector:strokes-in-layout', gesture: 'commit' },
 			() => ({ strokesIncludedInLayout: checked })
-		);
-	}
-
-	const absolute = $derived(
-		nodes.length > 0 &&
-			nodes.every((node) => 'layoutPositioning' in node && node.layoutPositioning === 'ABSOLUTE')
-	);
-
-	function toggleAbsolute(): void {
-		const next = absolute ? 'AUTO' : 'ABSOLUTE';
-		setSelectionProps(
-			ctx,
-			{ label: 'Absolute position', mergeKey: 'inspector:absolute', gesture: 'commit' },
-			(node) => {
-				if (!('layoutPositioning' in node)) return {};
-				return { layoutPositioning: next };
-			}
 		);
 	}
 </script>
@@ -360,18 +335,5 @@
 			Include strokes in layout
 			{#if strokesIncluded.mixed}<span class="text-muted">(Mixed)</span>{/if}
 		</label>
-	{/if}
-
-	{#if inStack}
-		<div class="flex items-center gap-2 text-xs" data-absolute-position>
-			<IconToggleButton
-				icon={PushPinIcon}
-				label="Absolute position"
-				title="Absolute position: ignore the auto layout parent"
-				pressed={absolute}
-				onclick={toggleAbsolute}
-			/>
-			<span class="text-muted">Ignore auto layout</span>
-		</div>
 	{/if}
 </div>

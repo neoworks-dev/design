@@ -14,6 +14,7 @@ import desktopBridge from '../../../plugins/desktop-bridge';
 import variablesCore from '../../../plugins/variables-core';
 import { taskOf, TASK_SCRIPTS } from '../../../../electron/ai/qaTasks';
 import { text, type NodeSpec } from '../../document/fixtures';
+import { staticLayout } from '../html/fixtures';
 import { FakeAiMain, type FakeScript, type FakeTurn } from '../fakeMain';
 
 export const fakeHeadlessRenderer: Plugin = {
@@ -32,6 +33,13 @@ export const fakeHeadlessRenderer: Plugin = {
 	}
 };
 
+export const fakeHtmlLayout: Plugin = {
+	name: 'html-layout',
+	apply(ctx: Context): void {
+		ctx.provide('htmlLayout', staticLayout);
+	}
+};
+
 /** Everything below the AI feature plugins: document, selection, commands, ai and its tools. */
 export function aiProviders(extra: Plugin[] = [], document?: DesignDocument): Plugin[] {
 	return [
@@ -40,6 +48,7 @@ export function aiProviders(extra: Plugin[] = [], document?: DesignDocument): Pl
 		variablesCore,
 		fakeHeadlessRenderer,
 		fakeOverlay,
+		fakeHtmlLayout,
 		ai,
 		aiTools,
 		aiHistory,
@@ -76,17 +85,17 @@ export async function setupAi(
 	return { mounted, ctx: mounted.ctx, main };
 }
 
-/** One `apply_changes` call that creates `count` rectangles named `<prefix> <n>`. */
-export function createOps(count: number, prefix = 'Card'): unknown[] {
-	return Array.from({ length: count }, (_, position) => ({
-		op: 'create',
-		type: 'RECTANGLE',
-		props: { name: `${prefix} ${position + 1}`, x: position * 12, width: 10, height: 10 }
-	}));
+/** HTML for `count` rectangles named `<prefix> <n>`, for one `write` call. */
+export function rectanglesHtml(count: number, prefix = 'Card'): string {
+	return Array.from(
+		{ length: count },
+		(_, position) =>
+			`<div data-name="${prefix} ${position + 1}" style="left:${position * 12}px;width:10px;height:10px;background:#3366ff"></div>`
+	).join('');
 }
 
-export async function applyChanges(turn: FakeTurn, ops: unknown[]): Promise<void> {
-	const result = await turn.callTool('apply_changes', { ops });
+export async function writeHtml(turn: FakeTurn, html: string): Promise<void> {
+	const result = await turn.callTool('write', { html });
 	if (!result.ok) throw new Error(result.text);
 }
 

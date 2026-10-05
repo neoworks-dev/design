@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { applyChanges, aiProviders, createOps, setupAi } from '../../lib/ai/fixtures/aiFixture';
+import type { FakeTurn } from '../../lib/ai/fakeMain';
+import { aiProviders, rectanglesHtml, setupAi, writeHtml } from '../../lib/ai/fixtures/aiFixture';
 import { describePlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import aiReview from './index';
 
@@ -30,16 +31,21 @@ async function setupReview(
 	return setup;
 }
 
+async function editLayers(turn: FakeTurn, ops: unknown[]): Promise<void> {
+	const result = await turn.callTool('edit', { ops });
+	if (!result.ok) throw new Error(result.text);
+}
+
 describe('review mode', () => {
 	it('keeps edits without asking by default', async () => {
-		const { ctx } = await setupReview((turn) => applyChanges(turn, createOps(2)), {});
+		const { ctx } = await setupReview((turn) => writeHtml(turn, rectanglesHtml(2)), {});
 		await ctx.ai.run('Two cards').finished;
 		expect(ctx.aiReview.enabled).toBe(false);
 		expect(ctx.aiReview.pending()).toEqual([]);
 	});
 
 	it('holds a finished run, and accept keeps it', async () => {
-		const { ctx } = await setupReview((turn) => applyChanges(turn, createOps(2)));
+		const { ctx } = await setupReview((turn) => writeHtml(turn, rectanglesHtml(2)));
 		await ctx.ai.run('Two cards').finished;
 		expect(ctx.aiReview.pending()).toHaveLength(1);
 		expect(ctx.aiReview.pendingNodeIds()).toHaveLength(2);
@@ -50,9 +56,9 @@ describe('review mode', () => {
 
 	it('reject restores the exact previous document', async () => {
 		const { ctx } = await setupReview(async (turn) => {
-			await applyChanges(turn, createOps(3));
-			await applyChanges(turn, [{ op: 'set', id: 'a', props: { name: 'Renamed' } }]);
-			await applyChanges(turn, [{ op: 'delete', id: 'b' }]);
+			await writeHtml(turn, rectanglesHtml(3));
+			await editLayers(turn, [{ id: 'a', name: 'Renamed' }]);
+			await editLayers(turn, [{ delete: 'b' }]);
 		});
 		const before = structuredClone(ctx.document.snapshot);
 		await ctx.ai.run('Mess about').finished;
@@ -66,7 +72,7 @@ describe('review mode', () => {
 		let round = 0;
 		const { ctx } = await setupReview(async (turn) => {
 			round += 1;
-			await applyChanges(turn, createOps(1, `Round${round}`));
+			await writeHtml(turn, rectanglesHtml(1, `Round${round}`));
 		});
 		await ctx.ai.run('First').finished;
 		await ctx.ai.run('Second').finished;
@@ -79,7 +85,7 @@ describe('review mode', () => {
 	});
 
 	it('drops a run the user undid and the toggle command flips the mode', async () => {
-		const { ctx } = await setupReview((turn) => applyChanges(turn, createOps(1)));
+		const { ctx } = await setupReview((turn) => writeHtml(turn, rectanglesHtml(1)));
 		await ctx.ai.run('One').finished;
 		ctx.history.undo();
 		expect(ctx.aiReview.pending()).toEqual([]);

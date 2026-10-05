@@ -10,7 +10,7 @@
 // and removes the handlers.
 
 import type { Plugin } from '@neoworks/extension-system';
-import type { AiStreamEvent } from '../bridge';
+import type { AiImage, AiStreamEvent } from '../bridge';
 import { McpServer, MCP_SERVER_NAME } from '../ai/mcpServer';
 import { ToolBroker } from '../ai/toolBroker';
 import type { AgentSession, AgentToolResult } from '../kernel/agentHost';
@@ -87,9 +87,14 @@ export const mainAiPlugin: Plugin.Object = {
 			emitTo(record.window, 'ai:event', { sessionId: record.id, runId, event });
 		}
 
-		async function runTurn(record: SessionRecord, runId: string, prompt: string): Promise<void> {
+		async function runTurn(
+			record: SessionRecord,
+			runId: string,
+			prompt: string,
+			images: AiImage[]
+		): Promise<void> {
 			try {
-				for await (const event of record.agent.prompt(prompt)) {
+				for await (const event of record.agent.prompt(prompt, images)) {
 					if (record.cancelled) break;
 					emitEvent(record, runId, event);
 				}
@@ -124,6 +129,7 @@ export const mainAiPlugin: Plugin.Object = {
 				const agent = await ctx.electron.agents.start({
 					provider: request.provider,
 					model: request.model,
+					effort: request.effort,
 					system: request.system,
 					tools: request.tools,
 					mcp:
@@ -174,7 +180,7 @@ export const mainAiPlugin: Plugin.Object = {
 			}
 			record.runId = request.runId;
 			record.cancelled = false;
-			void runTurn(record, request.runId, request.prompt);
+			void runTurn(record, request.runId, request.prompt, request.images ?? []);
 		});
 
 		route(ctx, 'ai:cancel', async (request, event) => {

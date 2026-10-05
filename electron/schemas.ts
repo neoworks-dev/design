@@ -178,13 +178,23 @@ export const payloadSchemas: PayloadSchemas = {
 	'ai:start': z.strictObject({
 		provider: z.string().min(1),
 		model: z.string().min(1).optional(),
+		effort: z.string().min(1).optional(),
 		system: z.string().max(100_000),
 		tools: z.array(aiToolDefinition).max(64)
 	}),
 	'ai:send': z.strictObject({
 		sessionId,
 		runId: z.string().min(1),
-		prompt: z.string().min(1).max(200_000)
+		prompt: z.string().min(1).max(200_000),
+		images: z
+			.array(
+				z.strictObject({
+					mimeType: z.enum(['image/png', 'image/jpeg', 'image/gif', 'image/webp']),
+					data: z.string().min(1).max(16_000_000)
+				})
+			)
+			.max(8)
+			.optional()
 	}),
 	'ai:cancel': z.strictObject({ sessionId }),
 	'ai:end': z.strictObject({ sessionId }),

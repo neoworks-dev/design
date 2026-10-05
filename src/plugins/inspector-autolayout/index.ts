@@ -5,7 +5,7 @@ const FRAME_KINDS = ['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE'];
 
 // The Auto layout section of the Design tab, right below Layout (size): Flow buttons (freeform,
 // vertical, horizontal, wrap), the 3 x 3 alignment grid, spacing with "auto", padding (uniform or
-// per side), strokes in layout, and absolute positioning for children of an auto layout frame.
+// per side), strokes in layout. Absolute positioning of auto layout children lives in the Position section.
 // Every control writes ordinary properties; the `autolayout` plugin reflows in the same
 // transaction, so each edit is one undo step.
 export default {
@@ -21,10 +21,7 @@ export default {
 					order: 25,
 					applies: (selection) => {
 						if (selection.count === 0) return false;
-						if (selection.kinds.every((kind) => FRAME_KINDS.includes(kind))) return true;
-						if (selection.parentId === null || !ctx.document.has(selection.parentId)) return false;
-						const parent = ctx.document.require(selection.parentId);
-						return 'layoutMode' in parent && parent.layoutMode !== 'NONE';
+						return selection.kinds.every((kind) => FRAME_KINDS.includes(kind));
 					},
 					component: AutoLayoutSection
 				}),

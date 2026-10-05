@@ -47,7 +47,7 @@ describe('size section', () => {
 		expect(panel.ctx.document.require('b')).toMatchObject({ width: 12 });
 	});
 
-	it('shows resizing only where hug or fill can apply and disables the invalid options', async () => {
+	it('offers only the resizing modes that apply, as icons with tooltips', async () => {
 		const panel = await open();
 		panel.select(['a']);
 		expect(panel.query('[data-resizing-row]')).toBeNull();
@@ -58,17 +58,34 @@ describe('size section', () => {
 				?.querySelectorAll<HTMLButtonElement>('[data-toggle-group="Horizontal resizing"] button') ??
 				[])
 		];
-		expect(buttons.map((button) => button.disabled)).toEqual([false, true, false]);
-		expect(buttons[1].title).toContain('Hug needs');
-		buttons[2].click();
+		expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+			'Fixed size',
+			'Fill container'
+		]);
+		expect(buttons.every((button) => button.title !== '' && button.querySelector('svg'))).toBe(
+			true
+		);
+		buttons[1].click();
 		flushSync();
 		expect(panel.ctx.document.require('a')).toMatchObject({ layoutSizingHorizontal: 'FILL' });
 	});
 
-	it('edits min and max, clearing them with empty text', async () => {
+	it('adds min and max through a menu and shows them only once set', async () => {
 		const panel = await open();
 		panel.setProps('f', { layoutMode: 'VERTICAL' });
 		panel.select(['a']);
+		expect(panel.query('[data-limits]')).toBeNull();
+		panel.click('button[aria-label="Add min or max size"]');
+		const items = [...(panel.query('[data-limit-menu]')?.querySelectorAll('button') ?? [])];
+		expect(items.map((item) => item.textContent?.trim())).toEqual([
+			'Add minimum width',
+			'Add maximum width',
+			'Add minimum height',
+			'Add maximum height'
+		]);
+		items[0].click();
+		flushSync();
+		expect(panel.query('[data-limit-menu]')).toBeNull();
 		panel.enter('Minimum width', '5');
 		expect(panel.ctx.document.require('a')).toMatchObject({ minWidth: 5 });
 		panel.enter('Minimum width', '');
