@@ -133,9 +133,7 @@ export default {
 			id: 'boolean.flatten',
 			title: 'Flatten',
 			when: 'hasSelection',
-			run: () => flattenSelection(ctx),
-			keys: ['Mod+E'],
-			menus: menus(10)
+			run: () => flattenSelection(ctx)
 		});
 	}
 };

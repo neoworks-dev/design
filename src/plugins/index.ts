@@ -29,6 +29,7 @@ import spatial from './spatial';
 import hitTest from './hit-test';
 import snapping from './snapping';
 import fileSession from './file-session';
+import flatten from './flatten';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
@@ -76,6 +77,7 @@ export const builtinPlugins: Plugin[] = [
 	overlay,
 	pixelGrid,
 	rulersGuides,
+	flatten,
 	debug,
 	desktopBridge,
 	fonts,
