@@ -5,6 +5,7 @@ import {
 	dragFromTo,
 	pointerEvent,
 	pressAt,
+	releaseAt,
 	selectionProviders
 } from '../../lib/selecting/fixtures/selectionFixture';
 import { mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
@@ -37,6 +38,24 @@ describe('marquee selection', () => {
 		const ctx = await mountMove();
 		dragFromTo(ctx, [350, 350], [190, 190]);
 		expect(selected(ctx)).toEqual(['NF']);
+	});
+
+	it('keeps the page scope while the live selection lands inside a frame', async () => {
+		const ctx = await mountMove();
+		pressAt(ctx, 100, -30);
+		ctx.tools.pointerMove(pointerEvent(160, 40));
+		expect(selected(ctx)).toEqual(['G']);
+		ctx.tools.pointerMove(pointerEvent(560, 40));
+		releaseAt(ctx, 560, 40);
+		expect(selected(ctx)).toEqual(['G', 'kid']);
+	});
+
+	it('a marquee started outside the entered frame selects across the page', async () => {
+		const ctx = await mountMove();
+		ctx.selection.select(['r1'], 'replace');
+		expect(ctx.selection.scopeId).toBe('G');
+		dragFromTo(ctx, [100, -30], [560, 40]);
+		expect(selected(ctx)).toEqual(['G', 'kid']);
 	});
 
 	it('selects groups as units at the page scope', async () => {

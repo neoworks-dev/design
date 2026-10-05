@@ -145,8 +145,25 @@ export class HandleInteraction implements PointerClaimant {
 	draw(frame: OverlayFrame): void {
 		const box = this.currentBox();
 		if (box === undefined) return;
-		if (this.visible) this.drawHandles(frame.ctx, box);
+		if (this.visible) {
+			this.drawBoxOutline(frame.ctx, box);
+			this.drawHandles(frame.ctx, box);
+		}
 		this.drawPill(frame.ctx, box);
+	}
+
+	/** The selection box itself: for a multi selection nothing else outlines it. */
+	private drawBoxOutline(canvas: CanvasRenderingContext2D, box: HandleBox): void {
+		const corners = CORNERS.map((id) => this.ctx.viewport.worldToScreen(handleWorldPoint(box, id)));
+		canvas.lineWidth = 1;
+		canvas.strokeStyle = BLUE;
+		canvas.beginPath();
+		corners.forEach((corner, index) => {
+			if (index === 0) canvas.moveTo(corner.x, corner.y);
+			else canvas.lineTo(corner.x, corner.y);
+		});
+		canvas.closePath();
+		canvas.stroke();
 	}
 
 	private drawHandles(canvas: CanvasRenderingContext2D, box: HandleBox): void {

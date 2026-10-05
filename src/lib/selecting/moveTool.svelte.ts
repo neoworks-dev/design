@@ -18,7 +18,7 @@ import {
 	type ToolKeyEvent,
 	type ToolPointerEvent
 } from '../tools/protocol';
-import { marqueeSelect, rectBetween, toggleInto } from './marquee';
+import { marqueeSelect, rectBetween, rectContains, toggleInto } from './marquee';
 import type { MoveDrag } from './moveDrag';
 import { MoveSession } from './moveSession';
 import { enterAt, isDeepSelect, pickAt } from './pick';
@@ -49,7 +49,14 @@ const DOUBLE_CLICK = 2;
 type Press =
 	| { kind: 'none' }
 	| { kind: 'object'; targetId: NodeId; onClick: () => void }
-	| { kind: 'empty'; shift: boolean; before: SelectionSnapshot; startWorld: Point };
+	| {
+			kind: 'empty';
+			shift: boolean;
+			before: SelectionSnapshot;
+			startWorld: Point;
+			/** Fixed at press: the live selection would otherwise move the scope under the marquee. */
+			scopeId: NodeId;
+	  };
 
 export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers {
 	const gesture = new PointerGesture();
@@ -158,15 +165,30 @@ function marqueeTo(
 	event: ToolPointerEvent
 ): void {
 	state.marquee = rectBetween(press.startWorld, event.world);
-	const scopeId = ctx.selection.scopeId;
 	const found = marqueeSelect(ctx.document.reader, {
 		pageId: ctx.document.currentPageId,
-		scopeId: scopeId === null ? ctx.document.currentPageId : scopeId,
+		scopeId: press.scopeId,
 		rect: state.marquee,
 		deep: isDeepSelect(event)
 	});
 	const ids = press.shift ? toggleInto(press.before.ids, found) : found;
 	ctx.selection.select(ids, 'replace', { source: 'canvas' });
+}
+
+/**
+ * The entered container when the marquee starts inside it, the page otherwise: a marquee started
+ * on the canvas outside an entered frame selects across the page, as in Figma and Penpot.
+ */
+function marqueeScope(ctx: Context, world: Point): NodeId {
+	const pageId = ctx.document.currentPageId;
+	const scopeId = ctx.selection.scopeId;
+	if (scopeId === null || scopeId === pageId) return pageId;
+	const reader = ctx.document.reader;
+	if (!reader.hasNode(scopeId)) return pageId;
+	const bounds = reader.cache.absoluteBounds(scopeId);
+	const point = { x: world.x, y: world.y, width: 0, height: 0 };
+	if (!rectContains(bounds, point)) return pageId;
+	return scopeId;
 }
 
 function enter(ctx: Context, event: ToolPointerEvent): void {
@@ -185,7 +207,8 @@ function pressAt(ctx: Context, event: ToolPointerEvent): Press {
 			kind: 'empty',
 			shift: event.shiftKey,
 			before: ctx.selection.snapshot(),
-			startWorld: event.world
+			startWorld: event.world,
+			scopeId: marqueeScope(ctx, event.world)
 		};
 	}
 	const selected = ctx.selection.has(targetId);
