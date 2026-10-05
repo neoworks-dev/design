@@ -12,6 +12,8 @@ import aiHistory from '../../../plugins/ai-history';
 import aiTools from '../../../plugins/ai-tools';
 import desktopBridge from '../../../plugins/desktop-bridge';
 import variablesCore from '../../../plugins/variables-core';
+import { taskOf, TASK_SCRIPTS } from '../../../../electron/ai/qaTasks';
+import { text, type NodeSpec } from '../../document/fixtures';
 import { FakeAiMain, type FakeScript, type FakeTurn } from '../fakeMain';
 
 export const fakeHeadlessRenderer: Plugin = {
@@ -86,4 +88,25 @@ export function createOps(count: number, prefix = 'Card'): unknown[] {
 export async function applyChanges(turn: FakeTurn, ops: unknown[]): Promise<void> {
 	const result = await turn.callTool('apply_changes', { ops });
 	if (!result.ok) throw new Error(result.text);
+}
+
+/** The scripted QA agent's answer to the task named on the first line of the prompt. */
+export function taskScript(): FakeScript {
+	return async (turn) => {
+		const task = taskOf(turn.prompt);
+		if (task === undefined || TASK_SCRIPTS[task] === undefined) return;
+		const events = TASK_SCRIPTS[task](turn.prompt, {
+			call: (name, input) => turn.callTool(name, input)
+		});
+		for await (const event of events) turn.send(event);
+	};
+}
+
+/** A text layer with these characters. */
+export function textNode(id: string, name: string, characters: string): NodeSpec {
+	return text({
+		id,
+		name,
+		paragraphs: [{ runs: [{ text: characters, style: {} }], style: {} }]
+	} as never);
 }

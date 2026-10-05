@@ -1,7 +1,16 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolCallMessage } from '../bridge';
-import { designFor, matchesFor, renamesFor, taskOf } from './qaTasks';
+import {
+	altTextFor,
+	commandFor,
+	contentFor,
+	designFor,
+	directionFor,
+	matchesFor,
+	renamesFor,
+	taskOf
+} from './qaTasks';
 import { contentOf, McpServer } from './mcpServer';
 import { qaScript, ScriptedAgentHost } from './scriptedAgents';
 import { ToolBroker } from './toolBroker';
@@ -227,5 +236,16 @@ describe('QA task scripts', () => {
 			'Button',
 			'Made with pricing page for a startup'
 		]);
+	});
+
+	it('maps phrases to commands and picks batch answers predictably', () => {
+		expect(commandFor('align these to left')).toBe('align.left');
+		expect(commandFor('Align everything to the right')).toBe('align.right');
+		expect(commandFor('make me a sandwich')).toBeUndefined();
+		expect(altTextFor('hero-image_2')).toBe('A picture of hero image 2.');
+		expect(contentFor('Page title')).toBe('Plan your week');
+		expect(contentFor('Card body')).toBe('Fresh ingredients, delivered to your door.');
+		expect(directionFor('A 10x10 at 0,0; B 10x10 at 50,2')).toBe('HORIZONTAL');
+		expect(directionFor('A 10x10 at 0,0; B 10x10 at 3,50')).toBe('VERTICAL');
 	});
 });

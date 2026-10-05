@@ -10,7 +10,10 @@ import type { AgentToolResult } from '../kernel/agentHost';
 export interface TaskTools {
 	call(name: string, input: unknown): Promise<AgentToolResult>;
 }
-export type TaskScript = (prompt: string, tools: TaskTools) => AsyncGenerator<AiStreamEvent>;
+export type TaskScript = (
+	prompt: string,
+	tools: TaskTools
+) => AsyncGenerator<AiStreamEvent> | Generator<AiStreamEvent>;
 
 /** The `Task: name` of a prompt, or `undefined` for a free-form prompt. */
 export function taskOf(prompt: string): string | undefined {
@@ -247,8 +250,141 @@ async function* generateDesign(prompt: string, tools: TaskTools): AsyncGenerator
 	yield { type: 'text', text: 'Done: the design is beside your other frames.' };
 }
 
+// ---------- palette-command ----------
+
+const COMMAND_PHRASES: [RegExp, string][] = [
+	[/align.*left|left.*align/i, 'align.left'],
+	[/align.*right|right.*align/i, 'align.right'],
+	[/align.*top|top.*align/i, 'align.top'],
+	[/align.*bottom|bottom.*align/i, 'align.bottom'],
+	[/center|centre/i, 'align.horizontal-center'],
+	[/tidy/i, 'align.tidy-up'],
+	[/distribut|space.*even|even.*space/i, 'align.distribute-horizontal']
+];
+
+/** The command a request is about, when the QA agent knows the phrase. */
+export function commandFor(request: string): string | undefined {
+	for (const [pattern, id] of COMMAND_PHRASES) {
+		if (pattern.test(request)) return id;
+	}
+	return undefined;
+}
+
+async function* paletteCommand(prompt: string, tools: TaskTools): AsyncGenerator<AiStreamEvent> {
+	const request = /^Request: (.*)$/m.exec(prompt)?.[1] ?? '';
+	const wanted = commandFor(request);
+	if (wanted === undefined) {
+		yield { type: 'text', text: 'I could not find a command for that.' };
+		return;
+	}
+	const listing: { value: AgentToolResult | undefined } = { value: undefined };
+	yield* callTool(tools, 'qa-list', 'list_commands', { search: wanted }, listing);
+	const known = listing.value?.ok === true && listing.value.text.includes(`"${wanted}"`);
+	if (!known) {
+		yield { type: 'text', text: `The command ${wanted} is not available here.` };
+		return;
+	}
+	const ran: { value: AgentToolResult | undefined } = { value: undefined };
+	yield* callTool(tools, 'qa-run', 'run_command', { id: wanted }, ran);
+	if (ran.value === undefined || !ran.value.ok) {
+		yield { type: 'text', text: `That did not work: ${ran.value?.text ?? 'no answer'}` };
+		return;
+	}
+	yield { type: 'text', text: `Ran ${wanted}.` };
+}
+
+// ---------- batch operations ----------
+
+/** The lines of a prompt that start with `- `, split into their ` | ` columns. */
+export function columnsOf(prompt: string): string[][] {
+	return prompt
+		.split('\n')
+		.filter((line) => line.startsWith('- '))
+		.map((line) => line.slice(2).split(' | '));
+}
+
+export function altTextFor(name: string): string {
+	const words = name.replace(/[-_]+/g, ' ').trim().toLowerCase();
+	return `A picture of ${words || 'the subject'}.`;
+}
+
+export function contentFor(name: string): string {
+	if (/title|heading|headline/i.test(name)) return 'Plan your week';
+	if (/button|label|cta/i.test(name)) return 'Get started';
+	return 'Fresh ingredients, delivered to your door.';
+}
+
+/** Children read as a row when they spread more along x than along y. */
+export function directionFor(childrenColumn: string): 'HORIZONTAL' | 'VERTICAL' {
+	const points = [...childrenColumn.matchAll(/at (-?\d+),(-?\d+)/g)].map((match) => ({
+		x: Number(match[1]),
+		y: Number(match[2])
+	}));
+	if (points.length < 2) return 'VERTICAL';
+	const spread = (values: number[]): number => Math.max(...values) - Math.min(...values);
+	if (spread(points.map((point) => point.x)) > spread(points.map((point) => point.y))) {
+		return 'HORIZONTAL';
+	}
+	return 'VERTICAL';
+}
+
+async function* writeItems(
+	tools: TaskTools,
+	tool: string,
+	items: unknown[],
+	done: string
+): AsyncGenerator<AiStreamEvent> {
+	const result: { value: AgentToolResult | undefined } = { value: undefined };
+	yield* callTool(tools, `qa-${tool}`, tool, { items }, result);
+	if (result.value === undefined || !result.value.ok) {
+		yield { type: 'text', text: `That did not work: ${result.value?.text ?? 'no answer'}` };
+		return;
+	}
+	yield { type: 'text', text: `${done} (${items.length}).` };
+}
+
+async function* batchAltText(prompt: string, tools: TaskTools): AsyncGenerator<AiStreamEvent> {
+	const items = columnsOf(prompt).map(([id, , name]) => ({ id, text: altTextFor(name) }));
+	yield* writeItems(tools, 'set_alt_text', items, 'Alt text written');
+}
+
+async function* batchContentFill(prompt: string, tools: TaskTools): AsyncGenerator<AiStreamEvent> {
+	const items = columnsOf(prompt).map(([id, name]) => ({ id, text: contentFor(name) }));
+	yield* writeItems(tools, 'fill_content', items, 'Copy written');
+}
+
+async function* batchAutoLayout(prompt: string, tools: TaskTools): AsyncGenerator<AiStreamEvent> {
+	const items = columnsOf(prompt).map((columns) => ({
+		id: columns[0],
+		direction: directionFor(columns[3] ?? '')
+	}));
+	yield* writeItems(tools, 'convert_to_auto_layout', items, 'Frames converted');
+}
+
+function* batchAudit(prompt: string): Generator<AiStreamEvent> {
+	const facts = prompt
+		.split('\n')
+		.filter((line) =>
+			/^(Layers examined|Unbound solid colors|Spacing values|Off the 4px grid):/.test(line)
+		);
+	yield { type: 'text', text: ['Audit report', ...facts.map((fact) => `- ${fact}`)].join('\n') };
+}
+
+function* batchBindings(prompt: string): Generator<AiStreamEvent> {
+	const lines = columnsOf(prompt).map(
+		([, name, property, value, variable]) => `- ${name}: bind ${property} (${value}) to ${variable}`
+	);
+	yield { type: 'text', text: ['Suggested bindings', ...lines].join('\n') };
+}
+
 export const TASK_SCRIPTS: Record<string, TaskScript> = {
 	'rename-layers': renameLayers,
 	'search-layers': searchLayers,
-	'generate-design': generateDesign
+	'generate-design': generateDesign,
+	'palette-command': paletteCommand,
+	'batch-alt-text': batchAltText,
+	'batch-content-fill': batchContentFill,
+	'batch-auto-layout': batchAutoLayout,
+	'batch-audit': batchAudit,
+	'batch-bindings': batchBindings
 };

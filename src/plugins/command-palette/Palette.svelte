@@ -77,18 +77,21 @@
 		<div
 			role="dialog"
 			aria-label="Command palette"
-			class="bg-elevated border-line text-default flex max-h-[60vh] w-[34rem] flex-col overflow-hidden rounded-xl border shadow-lg"
+			class="bg-elevated border-line text-default flex max-h-[60vh] w-[40rem] max-w-[94vw] flex-col overflow-hidden rounded-xl border shadow-lg"
 			data-palette
 		>
 			{#if sources.length > 1}
-				<div class="border-line-faint flex gap-1 border-b px-2 pt-2 pb-1" role="tablist">
+				<div
+					class="border-line-faint flex gap-1 overflow-x-auto border-b px-2 pt-2 pb-1"
+					role="tablist"
+				>
 					{#each sources as source (source.id)}
 						<button
 							type="button"
 							role="tab"
 							aria-selected={source.id === palette.sourceId}
 							class={[
-								'rounded-md px-2 py-0.5 text-xs',
+								'shrink-0 rounded-md px-2 py-0.5 text-xs whitespace-nowrap',
 								source.id === palette.sourceId
 									? 'bg-hover text-default'
 									: 'text-muted hover:text-default'

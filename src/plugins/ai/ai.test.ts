@@ -178,6 +178,18 @@ describe('ai service', () => {
 		expect(main.started[0].tools.map((definition) => definition.name)).toEqual(['reader']);
 	});
 
+	it('offers and accepts only the tools a run is limited to', async () => {
+		let answer = { ok: true, text: '' };
+		const { mounted, main } = await setup(async (turn) => {
+			answer = await turn.callTool('writer', {});
+		});
+		mounted.ctx.ai.registerTool(tool({ id: 'reader' }));
+		mounted.ctx.ai.registerTool(tool({ id: 'writer', write: true }));
+		await mounted.ctx.ai.run('only reading', { tools: ['reader'] }).finished;
+		expect(main.started[0].tools.map((definition) => definition.name)).toEqual(['reader']);
+		expect(answer).toMatchObject({ ok: false, text: expect.stringContaining('not available') });
+	});
+
 	it('cancels a run: main is told, the run ends cancelled', async () => {
 		const { mounted, main } = await setup(async (turn) => {
 			await vi.waitFor(() => expect(turn.cancelled()).toBe(true));

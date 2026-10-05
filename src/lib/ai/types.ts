@@ -39,6 +39,8 @@ export interface AiRunOptions {
 	display?: string;
 	/** Defaults to `write`. */
 	scope?: AiScope;
+	/** Only these tools are offered to (and accepted from) the run; all by default. */
+	tools?: readonly string[];
 	attachments?: AiAttachment[];
 	provider?: string;
 	model?: string;
@@ -52,6 +54,8 @@ export interface AiRunInfo {
 	prompt: string;
 	/** The prompt as the user should read it, when it differs from the text sent to the model. */
 	display?: string;
+	/** The tools the run may use, when it is limited to some. */
+	tools?: readonly string[];
 	origin: 'ai';
 	scope: AiScope;
 	provider: string;
