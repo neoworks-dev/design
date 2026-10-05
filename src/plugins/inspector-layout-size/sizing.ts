@@ -1,5 +1,5 @@
-// Which resizing options make sense for a node. Hug and Fill are stored properties only until the
-// auto layout engine exists; these rules decide what the panel lets the user pick.
+// Which resizing options make sense for a node: these rules decide what the panel lets the user
+// pick; the `autolayout` plugin does the layout.
 
 import type { DocumentReader, Node } from '../../lib/document';
 

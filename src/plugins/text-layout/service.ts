@@ -60,6 +60,25 @@ export class TextLayoutService extends Service {
 		return { width: layout.width, height: layout.height, lineCount: layout.lineCount };
 	}
 
+	/**
+	 * Size of the text as if it were laid out at `width` (`null`: unbounded, one line per
+	 * paragraph). Auto layout asks this to size text it stretches or hugs. The node's own layout
+	 * cache is left alone.
+	 */
+	measureAt(nodeId: NodeId, width: number | null): TextMeasure {
+		const node = this.requireNode(nodeId);
+		const probe: TextNode =
+			width === null
+				? { ...node, id: probeId(nodeId), textAutoResize: 'WIDTH_AND_HEIGHT' }
+				: { ...node, id: probeId(nodeId), textAutoResize: 'HEIGHT', width };
+		try {
+			const measure = this.engine.measure(probe);
+			return { width: measure.width, height: measure.height, lineCount: measure.lineCount };
+		} finally {
+			this.engine.forget(probe.id);
+		}
+	}
+
 	caretRect(nodeId: NodeId, position: TextPosition): Rect {
 		return this.engine.caretRect(this.requireLaidOut(nodeId), position);
 	}
@@ -155,6 +174,10 @@ export class TextLayoutService extends Service {
 				.finally(() => this.loading.delete(key));
 		}
 	}
+}
+
+function probeId(nodeId: NodeId): NodeId {
+	return `measure-probe:${nodeId}`;
 }
 
 function differs(left: number, right: number): boolean {
