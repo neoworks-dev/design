@@ -32,6 +32,7 @@ export default {
 					icon: PencilSimpleIcon,
 					shortcut: 'Shift+P',
 					group: 'create',
+					toolbarGroup: 'pen',
 					order: 12.1,
 					cursor: 'crosshair',
 					...createPencilTool(ctx, state, { tolerance })

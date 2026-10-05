@@ -51,6 +51,7 @@ import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
+import toolbar from './toolbar';
 import toolMove from './tool-move';
 import toolImage from './tool-image';
 import toolScale from './tool-scale';
@@ -113,6 +114,7 @@ export const builtinPlugins: Plugin[] = [
 	inspectorLayoutSize,
 	inspectorAppearance,
 	coreTools,
+	toolbar,
 	canvasInput,
 	viewTools,
 	toolMove,

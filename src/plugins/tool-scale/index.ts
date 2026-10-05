@@ -42,6 +42,7 @@ export default {
 					icon: ArrowsOutSimpleIcon,
 					shortcut: 'K',
 					group: 'move',
+					toolbarGroup: 'move',
 					order: 0.1,
 					cursor: 'default',
 					onPointerDown(event: ToolPointerEvent): void {

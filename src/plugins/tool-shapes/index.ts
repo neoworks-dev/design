@@ -38,6 +38,7 @@ export default {
 						icon: ICONS[definition.id],
 						shortcut: definition.shortcut,
 						group: 'create',
+						toolbarGroup: 'shapes',
 						order: definition.order,
 						cursor: 'crosshair',
 						toolbar: definition.toolbar,

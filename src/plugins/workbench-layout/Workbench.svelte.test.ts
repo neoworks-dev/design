@@ -10,6 +10,7 @@ import coreInspectors from '../core-inspectors';
 import corePanels from '../core-panels';
 import coreRegions from '../core-regions';
 import coreTools from '../core-tools';
+import toolbar from '../toolbar';
 import placeholderShell from '../placeholder-shell';
 import workbenchLayout from './index';
 import { LAYOUT_STORAGE_KEY } from './layoutState.svelte';
@@ -23,7 +24,8 @@ const providers = [
 	coreMenus,
 	corePanels,
 	coreInspectors,
-	coreTools
+	coreTools,
+	toolbar
 ];
 
 type ObserverCallback = (entries: { contentRect: { width: number; height: number } }[]) => void;

@@ -6,7 +6,6 @@ import coreKeymap from '../../plugins/core-keymap';
 import coreRegions from '../../plugins/core-regions';
 import coreTools from '../../plugins/core-tools';
 import PlaceholderText from '../../plugins/placeholder-shell/PlaceholderText.svelte';
-import CursorIcon from 'phosphor-svelte/lib/CursorIcon';
 import SquareIcon from 'phosphor-svelte/lib/SquareIcon';
 import HostRoot from '../kernel/fixtures/HostRoot.svelte';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../kernel/testing';
@@ -368,52 +367,6 @@ describe('tool overlay', () => {
 		ctx.tools.activate('move');
 		flushSync();
 		expect(target.textContent).not.toContain('rectangle guides');
-	});
-});
-
-describe('toolbar', () => {
-	it('renders one labelled button per tool, marks the active one and activates on click', async () => {
-		const { ctx } = await mountTools();
-		ctx.tools.register({ id: 'move', title: 'Move', icon: CursorIcon, shortcut: 'V', group: 'a' });
-		ctx.tools.register({ id: 'rectangle', title: 'Rectangle', icon: SquareIcon, group: 'b' });
-		target = document.createElement('div');
-		document.body.append(target);
-		host = mount(HostRoot, { target, props: { ctx, region: 'toolbar' } });
-		flushSync();
-
-		const buttons = [...target.querySelectorAll<HTMLButtonElement>('[role="toolbar"] button')];
-		expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
-			'Move',
-			'Rectangle'
-		]);
-		expect(buttons.map((button) => button.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
-		expect(target.querySelectorAll('[role="separator"]')).toHaveLength(1);
-
-		buttons[1].click();
-		await new Promise((resolve) => setTimeout(resolve, 0));
-		flushSync();
-		expect(ctx.tools.activeId()).toBe('rectangle');
-		expect(buttons[1].getAttribute('aria-pressed')).toBe('true');
-
-		buttons[0].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-		flushSync();
-		expect(ctx.tools.activeId()).toBe('move');
-		buttons[1].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-		flushSync();
-		expect(ctx.tools.locked).toBe(true);
-		expect(buttons[1].hasAttribute('data-locked')).toBe(true);
-	});
-
-	it('removes the toolbar when no tool is registered', async () => {
-		const { ctx } = await mountTools();
-		target = document.createElement('div');
-		document.body.append(target);
-		host = mount(HostRoot, { target, props: { ctx, region: 'toolbar' } });
-		flushSync();
-		expect(target.querySelector('[role="toolbar"]')).toBeNull();
-		ctx.tools.register({ id: 'move', title: 'Move', icon: CursorIcon });
-		flushSync();
-		expect(target.querySelector('[role="toolbar"]')).not.toBeNull();
 	});
 });
 
