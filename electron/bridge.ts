@@ -44,10 +44,8 @@ export interface StoreInfo {
 	modifiedAt: number;
 	/** The previous session left the file without closing it cleanly (crash or kill). */
 	recovered: boolean;
-	/** Edits were committed since the last Save (checkpoint), possibly in an earlier session. */
-	unsaved: boolean;
-	/** The file lives in the app's `untitled` directory: it has never been saved by the user. */
-	untitled: boolean;
+	/** The file lives in the Draftboard library (root or one of its folders), not elsewhere. */
+	inLibrary: boolean;
 }
 export interface LoadedDocument {
 	info: StoreInfo;
@@ -113,23 +111,76 @@ export interface Thumbnail {
 	height: number;
 	bytes: Uint8Array;
 }
-/** A document the user opened or saved before, newest first in `files:recent`. */
-export interface RecentFile {
+// ---------- the library ----------
+//
+// The library is a directory Draftboard owns: `$XDG_DATA_HOME/draftboard/` on Linux
+// (`~/.local/share/draftboard/`), `Documents/Draftboard/` elsewhere, overridable with
+// `DRAFTBOARD_LIBRARY_DIR` (QA and tests). Files directly in it are the "Drafts"; its
+// subdirectories are folders (one level). Linked folders are directories elsewhere on disk (a git
+// repo shared with a team, ...) whose `.ndesign` files are listed the same way. Every directory
+// the routes below accept is the library root, a library folder, a linked folder or a direct
+// subdirectory of a linked folder; main rejects anything else.
+
+/** Where a listed file lives. */
+export type FileLocation =
+	| { kind: 'library'; /** Folder name, `''` for the library root (Drafts). */ folder: string }
+	| { kind: 'linked'; linkedId: string; /** Path relative to the linked folder, `''` at its top. */ folder: string }
+	/** Neither: a file opened from somewhere else, known only through the recent list. */
+	| { kind: 'external' };
+
+/** A design file as the home screen lists it. */
+export interface LibraryFile {
 	path: string;
+	/** File name without `.ndesign`; renaming a file renames it on disk. */
 	name: string;
-	/** Milliseconds since the epoch. */
-	openedAt: number;
+	/** File modification time, milliseconds since the epoch ("Edited 3 days ago"). */
+	modifiedAt: number;
+	/** When it was last opened in Draftboard; `null` when never (or forgotten). */
+	openedAt: number | null;
+	location: FileLocation;
 	/** The file's `file` thumbnail; `null` until the renderer wrote one. */
 	thumbnail: Thumbnail | null;
 }
 
-/** An untitled document with edits, in the app's `untitled` directory (a draft). */
-export interface DraftFile {
+/** A directory that holds design files: a library folder or a subdirectory of a linked folder. */
+export interface LibraryFolder {
 	path: string;
 	name: string;
-	/** Milliseconds since the epoch. */
+	fileCount: number;
 	modifiedAt: number;
-	thumbnail: Thumbnail | null;
+}
+
+/** A directory outside the library the user added to the sidebar. */
+export interface LinkedFolder {
+	id: string;
+	/** The directory's base name unless the user renamed the entry. */
+	name: string;
+	path: string;
+	/** `false` while the directory is missing (unplugged drive, deleted repo). */
+	available: boolean;
+}
+
+/** Everything the home screen's sidebar needs. */
+export interface LibraryOverview {
+	/** Absolute path of the library root. */
+	root: string;
+	/** Library folders, by name. */
+	folders: LibraryFolder[];
+	linked: LinkedFolder[];
+}
+
+/** One directory's contents: its subfolders and the design files directly in it. */
+export interface DirectoryListing {
+	directory: string;
+	folders: LibraryFolder[];
+	files: LibraryFile[];
+}
+
+/** Pushed when a file the app knows was renamed, moved or trashed (by this or another window). */
+export interface FileMovedMessage {
+	from: string;
+	/** `null` when it went to the trash. */
+	to: string | null;
 }
 
 /** An image file the user picked in the native dialog, read by main. */
@@ -446,40 +497,24 @@ export interface IpcContract {
 	/** The changes that undo everything logged after `seq` (see `RestorePlan`). */
 	'versions:restorePlan': { payload: { seq: number }; result: RestorePlan };
 	/**
-	 * A new empty document in a temporary file in the app's `untitled` directory. `null` when the
-	 * user cancelled leaving an untitled document with edits.
+	 * A new empty document, created on disk right away as `Untitled.ndesign` (`Untitled 2`, ... when
+	 * taken) in `directory` (default: the library root), and made the window's document. Nothing
+	 * ever asks to save: every change is autosaved. Flushes the renderer's queue for the previous
+	 * document first; that one is left alone (it may stay a background tab).
 	 */
-	'files:newUntitled': { payload: void; result: LoadedDocument | null };
-	/**
-	 * Tabs: make `path` the window's document without asking about or discarding the document it
-	 * had (that one stays a tab). Flushes the renderer first. Replaces `files:open` for tabs.
-	 */
-	'files:openInTab': { payload: { path: string }; result: LoadedDocument };
-	/** Tabs: a new untitled document as the window's document; the previous one is left as is. */
-	'files:newInTab': { payload: void; result: LoadedDocument };
-	/**
-	 * Tabs: may the window's document be closed? Flushes the renderer, and for an untitled
-	 * document with edits asks Save / Don't Save / Cancel. `false` when cancelled.
-	 */
-	'files:confirmClose': { payload: void; result: boolean };
-	/** Tabs: delete a closed untitled document's temporary file (a saved file is never touched). */
-	'files:discard': { payload: { path: string }; result: void };
-	/** Open a design file as this window's document and load it; `null` when cancelled as above. */
-	'files:open': { payload: { path: string }; result: LoadedDocument | null };
+	'files:new': { payload: { directory?: string }; result: LoadedDocument };
+	/** Open a design file as the window's document (flushing the previous one first, as above). */
+	'files:open': { payload: { path: string }; result: LoadedDocument };
 	/** The native open dialog filtered to design files; `null` when cancelled. */
 	'files:openDialog': { payload: void; result: string | null };
 	/** The native save dialog for design files; `null` when cancelled. */
 	'files:saveDialog': { payload: { suggestedName: string }; result: string | null };
-	/** Copy the open file to `path` (replacing it) and continue editing the copy. */
+	/** "Save a copy as": copy the open file to `path` (replacing it) and continue editing the copy. */
 	'files:saveAs': { payload: { path: string }; result: StoreInfo };
-	/** Offer to restore an untitled document a crash left behind; `null` when none or declined. */
-	'files:offerRecovery': { payload: void; result: LoadedDocument | null };
 	/** The file this launch was asked to open (command line, OS), once; `null` otherwise. */
 	'files:launchRequest': { payload: void; result: string | null };
-	/** Recently opened or saved documents, newest first; files that vanished are pruned here. */
-	'files:recent': { payload: void; result: RecentFile[] };
-	/** Untitled documents with edits, newest first (open ones included): the home screen's drafts. */
-	'files:drafts': { payload: void; result: DraftFile[] };
+	/** Recently opened documents, newest first; files that vanished are pruned here. */
+	'files:recent': { payload: void; result: LibraryFile[] };
 	/** Drop one file from the recent list; the file itself stays. */
 	'files:removeRecent': { payload: { path: string }; result: void };
 	/** Show a file in the OS file manager. */
@@ -488,6 +523,30 @@ export interface IpcContract {
 	'files:clearRecent': { payload: void; result: void };
 	/** Store the open file's thumbnail (key `file`) so the recent list can show it. */
 	'files:setThumbnail': { payload: Thumbnail; result: void };
+	/** The library root, its folders and the linked folders. */
+	'library:overview': { payload: void; result: LibraryOverview };
+	/** Subfolders and design files directly in `directory` (see the library section above). */
+	'library:list': { payload: { directory: string }; result: DirectoryListing };
+	/** Design files whose name contains `query` (case-insensitive) in the library and linked folders. */
+	'library:search': { payload: { query: string }; result: LibraryFile[] };
+	/** Make a folder in `parent` (library root or a linked folder); a taken name gets ` 2`, ... */
+	'library:createFolder': { payload: { parent: string; name: string }; result: LibraryFolder };
+	/** Rename a folder on disk; open documents inside follow (`files:moved` is pushed per file). */
+	'library:renameFolder': { payload: { path: string; name: string }; result: LibraryFolder };
+	/** Move a folder and everything in it to the OS trash. */
+	'library:trashFolder': { payload: { path: string }; result: void };
+	/** Rename a design file on disk (and its document name). Works on the open document too. */
+	'library:renameFile': { payload: { path: string; name: string }; result: LibraryFile };
+	/** Move a design file into `directory`; a taken name gets ` 2`, ... Works on the open document. */
+	'library:moveFile': { payload: { path: string; directory: string }; result: LibraryFile };
+	/** Copy a design file next to itself as `<name> copy`. */
+	'library:duplicateFile': { payload: { path: string }; result: LibraryFile };
+	/** Move a design file to the OS trash (closed first when a window has it open). */
+	'library:trashFile': { payload: { path: string }; result: void };
+	/** Pick a directory in the native dialog and add it as a linked folder; `null` when cancelled. */
+	'library:linkFolder': { payload: void; result: LinkedFolder | null };
+	/** Remove a linked folder from the sidebar; the directory itself stays. */
+	'library:unlinkFolder': { payload: { id: string }; result: void };
 	/** The stored preferences; an empty object pair when none were saved yet. */
 	'settings:load': { payload: void; result: SettingsData };
 	/** Replace the stored preferences; written to disk atomically. */
@@ -571,6 +630,8 @@ export interface IpcEvents {
 	'files:flush-request': { requestId: string };
 	/** The OS asked this running instance to open a file (second launch, macOS open-file). */
 	'files:open-request': { path: string };
+	/** A known file was renamed, moved or trashed; open tabs and the home screen follow. */
+	'files:moved': FileMovedMessage;
 	/** A native menu item was clicked: run this command. */
 	'menu:command': { command: string; args?: unknown };
 	'ai:event': AiEventMessage;
@@ -589,6 +650,7 @@ export const EVENT_CHANNELS = [
 	'window:maximized',
 	'files:flush-request',
 	'files:open-request',
+	'files:moved',
 	'menu:command',
 	'ai:event',
 	'ai:tool-call',
@@ -679,19 +741,13 @@ export interface DesktopBridge {
 		embeddedFonts(): Promise<FontRef[]>;
 	};
 	files: {
-		openInTab(path: string): Promise<LoadedDocument>;
-		newInTab(): Promise<LoadedDocument>;
-		confirmClose(): Promise<boolean>;
-		discard(path: string): Promise<void>;
-		newUntitled(): Promise<LoadedDocument | null>;
-		open(path: string): Promise<LoadedDocument | null>;
+		new(directory?: string): Promise<LoadedDocument>;
+		open(path: string): Promise<LoadedDocument>;
 		openDialog(): Promise<string | null>;
 		saveDialog(suggestedName: string): Promise<string | null>;
 		saveAs(path: string): Promise<StoreInfo>;
-		offerRecovery(): Promise<LoadedDocument | null>;
 		launchRequest(): Promise<string | null>;
-		recent(): Promise<RecentFile[]>;
-		drafts(): Promise<DraftFile[]>;
+		recent(): Promise<LibraryFile[]>;
 		removeRecent(path: string): Promise<void>;
 		reveal(path: string): Promise<void>;
 		clearRecent(): Promise<void>;
@@ -699,6 +755,20 @@ export interface DesktopBridge {
 		flushed(requestId: string): Promise<void>;
 		/** The path of a file dropped on the window (Electron no longer exposes `File.path`). */
 		pathForFile(file: File): string;
+	};
+	library: {
+		overview(): Promise<LibraryOverview>;
+		list(directory: string): Promise<DirectoryListing>;
+		search(query: string): Promise<LibraryFile[]>;
+		createFolder(parent: string, name: string): Promise<LibraryFolder>;
+		renameFolder(path: string, name: string): Promise<LibraryFolder>;
+		trashFolder(path: string): Promise<void>;
+		renameFile(path: string, name: string): Promise<LibraryFile>;
+		moveFile(path: string, directory: string): Promise<LibraryFile>;
+		duplicateFile(path: string): Promise<LibraryFile>;
+		trashFile(path: string): Promise<void>;
+		linkFolder(): Promise<LinkedFolder | null>;
+		unlinkFolder(id: string): Promise<void>;
 	};
 	events: {
 		/** Subscribe to a main-to-renderer push; the returned function unsubscribes. */
