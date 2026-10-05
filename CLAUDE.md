@@ -30,7 +30,7 @@ pull a second svelte runtime.
 
 ```sh
 bun run dev            # vite dev server (renderer only, works in a browser)
-bun run electron:dev   # compile electron/ and open it against the dev server
+bun run electron:dev   # compile electron/, start vite and open electron against it
 bun run build          # vite build + electron compile
 bun run check          # svelte-check + tsc on electron/
 bun run lint           # prettier + oxlint + eslint

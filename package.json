@@ -13,7 +13,7 @@
 		"build": "vite build && bun run electron:compile",
 		"preview": "vite preview",
 		"electron:compile": "bun build electron/main.ts --outdir electron/dist --target node --format esm --packages external --sourcemap=linked && bun build electron/preload.ts --outfile electron/dist/preload.cjs --target node --format cjs --packages external",
-		"electron:dev": "bun run electron:compile && DEV_SERVER_URL=http://localhost:5173 electron .",
+		"electron:dev": "bun run electron:compile && bun scripts/electron-dev.ts",
 		"electron:build": "bun run build && electron-builder",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p electron/tsconfig.json && tsc --noEmit -p scripts/tsconfig.json",
