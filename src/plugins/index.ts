@@ -6,6 +6,7 @@ import assetsStore from './assets-store';
 import canvasInput from './canvas-input';
 import canvaskit from './canvaskit';
 import componentSync from './component-sync';
+import componentProperties from './component-properties';
 import components from './components';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
@@ -120,6 +121,7 @@ export const builtinPlugins: Plugin[] = [
 	componentSync,
 	components,
 	variants,
+	componentProperties,
 	documentScene,
 	selection,
 	spatial,
