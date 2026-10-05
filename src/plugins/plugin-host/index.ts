@@ -1,0 +1,125 @@
+import type { Context } from '@neoworks/extension-system';
+import { z } from 'zod';
+import type { WorkerFactory } from '../../lib/plugins/connection';
+import { PluginHostService } from '../../lib/services/pluginHost';
+
+const pluginHostConfigSchema = z
+	.object({
+		requestTimeoutMs: z
+			.number()
+			.int()
+			.positive()
+			.default(30_000)
+			.describe('Longest a request between the app and a plugin may wait for its answer.'),
+		startupTimeoutMs: z
+			.number()
+			.int()
+			.positive()
+			.default(10_000)
+			.describe('Longest a plugin may take to load before it counts as failed.'),
+		runTimeoutMs: z
+			.number()
+			.int()
+			.positive()
+			.default(30_000)
+			.describe('Longest one plugin command or UI event may run before the plugin counts as hung.'),
+		maxMessageBytes: z
+			.number()
+			.int()
+			.positive()
+			.default(8 * 1024 * 1024)
+			.describe('Largest message accepted from or sent to a plugin.'),
+		maxPendingRequests: z
+			.number()
+			.int()
+			.positive()
+			.default(64)
+			.describe('Requests a plugin may have in flight at once.'),
+		/** Tests replace the worker with an in-process double. Not a setting. */
+		createWorker: z.unknown().optional()
+	})
+	.prefault({});
+type PluginHostConfig = z.infer<typeof pluginHostConfigSchema>;
+
+function isWorkerFactory(value: unknown): value is WorkerFactory {
+	return typeof value === 'function';
+}
+
+function moduleWorker(pluginId: string): ReturnType<WorkerFactory> {
+	return new Worker(new URL('../../lib/plugins/worker/bootstrap.ts', import.meta.url), {
+		type: 'module',
+		name: `plugin:${pluginId}`
+	});
+}
+
+// Third-party plugins, part three (#155): provides `pluginHost`, which runs each plugin in its own
+// Web Worker behind one fiber. The stubs of `plugin-manifests` activate it on first use; a worker
+// that crashes, hangs or fails to load marks only its own plugin failed. The API a worker can call
+// is registered on the host (`pluginHost.registerApi`), the core namespaces `events` and `log` here.
+export default {
+	name: 'plugin-host',
+	inject: ['pluginRegistry', 'desktop'],
+	Config: pluginHostConfigSchema,
+	apply(ctx: Context, config: PluginHostConfig): void {
+		const createWorker = isWorkerFactory(config.createWorker) ? config.createWorker : moduleWorker;
+		const host = new PluginHostService(ctx, ctx.pluginRegistry, {
+			createWorker,
+			limits: {
+				requestTimeoutMs: config.requestTimeoutMs,
+				startupTimeoutMs: config.startupTimeoutMs,
+				runTimeoutMs: config.runTimeoutMs,
+				maxMessageBytes: config.maxMessageBytes,
+				maxPendingRequests: config.maxPendingRequests
+			}
+		});
+
+		ctx.effect(() => ctx.pluginRegistry.setRuntime(host.runtime), 'plugin-host runtime');
+		ctx.effect(() => () => host.shutdown(), 'plugin-host stop workers');
+
+		ctx.effect(
+			() =>
+				host.registerApi('events', {
+					subscribe: (call, params) => {
+						call.connection.subscriptions.add(readName(params));
+					},
+					unsubscribe: (call, params) => {
+						call.connection.subscriptions.delete(readName(params));
+					}
+				}),
+			'plugin api events'
+		);
+		ctx.effect(
+			() =>
+				host.registerApi('log', {
+					write: (call, params) => {
+						call.connection.addLog(readLevel(params), readMessage(params));
+					}
+				}),
+			'plugin api log'
+		);
+	}
+};
+
+function readName(params: unknown): string {
+	if (typeof params === 'object' && params !== null) {
+		const name: unknown = Reflect.get(params, 'name');
+		if (typeof name === 'string' && name.length > 0) return name;
+	}
+	throw new Error('an event name is required');
+}
+
+function readMessage(params: unknown): string {
+	if (typeof params === 'object' && params !== null) {
+		const message: unknown = Reflect.get(params, 'message');
+		if (typeof message === 'string') return message;
+	}
+	return '';
+}
+
+function readLevel(params: unknown): 'info' | 'warn' | 'error' {
+	if (typeof params === 'object' && params !== null) {
+		const level: unknown = Reflect.get(params, 'level');
+		if (level === 'warn' || level === 'error') return level;
+	}
+	return 'info';
+}
