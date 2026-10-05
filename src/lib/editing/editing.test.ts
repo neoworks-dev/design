@@ -32,6 +32,18 @@ describe('planNudge', () => {
 		expect(planNudge(store, ['a'], 0, 0).changes).toEqual([]);
 	});
 
+	it('lands on whole pixels when asked, from a fractional start inside a fractional parent', () => {
+		const parent = frame({ id: 'f', name: 'F', transform: at(10.25, 0), width: 100, height: 100 }, [
+			box('a', 5.5, 5.5)
+		]);
+		const store = storeOf([page('P', [parent], { id: 'p' })]);
+		applyTo(store, planNudge(store, ['a'], 1, 1, true).changes);
+		const bounds = store.cache.absoluteBounds('a');
+		expect(Number.isInteger(bounds.x)).toBe(true);
+		expect(Number.isInteger(bounds.y)).toBe(true);
+		expect(bounds).toMatchObject({ x: 17, y: 7 });
+	});
+
 	it('moves in screen axes even when an ancestor is rotated by 90 degrees', () => {
 		const rotated = frame(
 			{

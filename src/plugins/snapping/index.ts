@@ -3,6 +3,9 @@ import { contributeCommand } from '../../lib/editing/contribute';
 import { DEFAULT_SNAP_THRESHOLD_PIXELS, SnappingService } from '../../lib/services/snapping';
 import { SnappingState } from '../../lib/services/snappingState.svelte';
 import { drawSnapOverlay } from '../../lib/snapping/overlayDraw';
+import { readStoredFlag, writeStoredFlag } from '../../lib/snapping/storedFlag';
+
+const PIXEL_SNAP_KEY = 'design.snapping.pixel';
 
 export interface SnappingConfig {
 	/** Start with snapping on (default) or off. */
@@ -24,7 +27,7 @@ function thresholdOf(value: number | undefined): number {
 // changes. A tool calls `snap` / `measure` / `release`.
 export default {
 	name: 'snapping',
-	inject: ['document', 'spatial', 'viewport', 'commands', 'menus', 'overlay'],
+	inject: ['document', 'spatial', 'viewport', 'commands', 'keymap', 'menus', 'overlay'],
 	apply(ctx: Context, config?: SnappingConfig): void {
 		const state = new SnappingState();
 		if (config && config.enabled === false) state.enabled = false;
@@ -49,6 +52,23 @@ export default {
 			title: 'Snap to objects',
 			run: () => snapping.setEnabled(!snapping.enabled),
 			menus: [{ menu: 'app/view', group: '4_snapping' }]
+		});
+		// Snap to pixel grid (#71): off by default, remembered across sessions. Applies to move,
+		// resize and draw through `snap`, and to nudges through this waterfall.
+		ctx.effect(() => {
+			snapping.setPixelSnap(readStoredFlag(PIXEL_SNAP_KEY, false));
+			return () => snapping.setPixelSnap(false);
+		}, 'snapping/restore pixel snap');
+		ctx.on('nudge/pixel-snap', (enabled, next) => enabled || next() || snapping.pixelSnapEnabled);
+		contributeCommand(ctx, {
+			id: 'snapping.toggle-pixel',
+			title: 'Snap to pixel grid',
+			keys: ["Mod+Shift+'"],
+			run: () => {
+				snapping.setPixelSnap(!snapping.pixelSnapEnabled);
+				writeStoredFlag(PIXEL_SNAP_KEY, snapping.pixelSnapEnabled);
+			},
+			menus: [{ menu: 'app/view', group: '4_snapping', order: 1 }]
 		});
 		ctx.effect(
 			() =>

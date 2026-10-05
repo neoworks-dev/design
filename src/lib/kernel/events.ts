@@ -54,6 +54,13 @@ declare module '@neoworks/extension-system' {
 		'tools/snap-point'(point: Point, next: () => Point): Point;
 
 		/**
+		 * Dispatch mode: waterfall. Whether a nudge should land on whole pixels. The snapping
+		 * service answers true while "Snap to pixel grid" is on. Call as
+		 * `ctx.waterfall('nudge/pixel-snap', false, () => false)`.
+		 */
+		'nudge/pixel-snap'(enabled: boolean, next: () => boolean): boolean;
+
+		/**
 		 * Dispatch mode: emit. Double click (or Enter) on a text or vector node, or Alt+double click
 		 * on an image: whoever owns that editor starts it (`tool-image` owns `crop`).
 		 */
