@@ -10,7 +10,7 @@ declare module '@neoworks/extension-system' {
 
 // recent-files: the "Open Recent" submenu of the File menu, generated from the list main keeps.
 // The list is read at mount and again whenever a file is attached (open, new, Save As).
-// Thumbnails come with the list (`RecentFile.thumbnail`); writing them needs the renderer, which
+// Thumbnails come with the list (`LibraryFile.thumbnail`); writing them needs the renderer, which
 // calls `ctx.desktop.filesSetThumbnail` when it can draw a preview (not wired yet).
 export default {
 	name: 'recent-files',

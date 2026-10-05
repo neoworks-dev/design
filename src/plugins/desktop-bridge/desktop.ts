@@ -22,7 +22,7 @@ import type {
 	CreateFromArchiveRequest,
 	CreateStoreRequest,
 	DiagnosticsReport,
-	DraftFile,
+	DirectoryListing,
 	ExportFileData,
 	DesktopBridge,
 	FontRef,
@@ -38,7 +38,10 @@ import type {
 	PluginSourceKind,
 	OpenFileOptions,
 	PickedImage,
-	RecentFile,
+	LibraryFile,
+	LibraryFolder,
+	LibraryOverview,
+	LinkedFolder,
 	RestorePlan,
 	SaveFileOptions,
 	SettingsData,
@@ -408,33 +411,16 @@ export class DesktopService extends Service {
 
 	// ---------- files ----------
 
-	/** Tabs: open `path` as the window's document, keeping the previous one as a tab. */
-	filesOpenInTab(path: string): Promise<LoadedDocument> {
-		return typed(() => this.bridge.files.openInTab(path));
+	/**
+	 * A new empty document, created on disk right away as `Untitled.ndesign` in `directory` (the
+	 * library root by default); it becomes the window's document and the previous one is left alone.
+	 */
+	filesNew(directory?: string): Promise<LoadedDocument> {
+		return typed(() => this.bridge.files.new(directory));
 	}
 
-	/** Tabs: a new untitled document, keeping the previous one as a tab. */
-	filesNewInTab(): Promise<LoadedDocument> {
-		return typed(() => this.bridge.files.newInTab());
-	}
-
-	/** Tabs: may the current document be closed? Asks about untitled edits; false when cancelled. */
-	filesConfirmClose(): Promise<boolean> {
-		return typed(() => this.bridge.files.confirmClose());
-	}
-
-	/** Tabs: delete a closed untitled document's temporary file. */
-	filesDiscard(path: string): Promise<void> {
-		return typed(() => this.bridge.files.discard(path));
-	}
-
-	/** A new empty document in a temporary file; becomes this window's document. */
-	filesNewUntitled(): Promise<LoadedDocument | null> {
-		return typed(() => this.bridge.files.newUntitled());
-	}
-
-	/** Open a design file as this window's document and load it. */
-	filesOpen(path: string): Promise<LoadedDocument | null> {
+	/** Open a design file as the window's document; the previous one is left alone. */
+	filesOpen(path: string): Promise<LoadedDocument> {
 		return typed(() => this.bridge.files.open(path));
 	}
 
@@ -448,14 +434,9 @@ export class DesktopService extends Service {
 		return typed(() => this.bridge.files.saveDialog(suggestedName));
 	}
 
-	/** Copy the open file to `path` and continue editing the copy. */
+	/** Save a copy: copy the open file to `path` and continue editing the copy. */
 	filesSaveAs(path: string): Promise<StoreInfo> {
 		return typed(() => this.bridge.files.saveAs(path));
-	}
-
-	/** Offer to restore an untitled document a crash left behind. */
-	filesOfferRecovery(): Promise<LoadedDocument | null> {
-		return typed(() => this.bridge.files.offerRecovery());
 	}
 
 	/** The file this launch was asked to open, once. */
@@ -463,14 +444,9 @@ export class DesktopService extends Service {
 		return typed(() => this.bridge.files.launchRequest());
 	}
 
-	/** Recently opened or saved documents, newest first. */
-	filesRecent(): Promise<RecentFile[]> {
+	/** Recently opened documents, newest first. */
+	filesRecent(): Promise<LibraryFile[]> {
 		return typed(() => this.bridge.files.recent());
-	}
-
-	/** Untitled documents with edits (including open ones), newest first. */
-	filesDrafts(): Promise<DraftFile[]> {
-		return typed(() => this.bridge.files.drafts());
 	}
 
 	/** Drop one file from the recent list (the file stays on disk). */
@@ -495,6 +471,59 @@ export class DesktopService extends Service {
 	/** Tell main the queued transactions are persisted (answer to `files:flush-request`). */
 	filesFlushed(requestId: string): Promise<void> {
 		return typed(() => this.bridge.files.flushed(requestId));
+	}
+
+	// ---------- the library ----------
+
+	libraryOverview(): Promise<LibraryOverview> {
+		return typed(() => this.bridge.library.overview());
+	}
+
+	/** Subfolders and design files directly in `directory`. */
+	libraryList(directory: string): Promise<DirectoryListing> {
+		return typed(() => this.bridge.library.list(directory));
+	}
+
+	/** Design files whose name contains `query`, in the library and linked folders. */
+	librarySearch(query: string): Promise<LibraryFile[]> {
+		return typed(() => this.bridge.library.search(query));
+	}
+
+	libraryCreateFolder(parent: string, name: string): Promise<LibraryFolder> {
+		return typed(() => this.bridge.library.createFolder(parent, name));
+	}
+
+	libraryRenameFolder(path: string, name: string): Promise<LibraryFolder> {
+		return typed(() => this.bridge.library.renameFolder(path, name));
+	}
+
+	libraryTrashFolder(path: string): Promise<void> {
+		return typed(() => this.bridge.library.trashFolder(path));
+	}
+
+	libraryRenameFile(path: string, name: string): Promise<LibraryFile> {
+		return typed(() => this.bridge.library.renameFile(path, name));
+	}
+
+	libraryMoveFile(path: string, directory: string): Promise<LibraryFile> {
+		return typed(() => this.bridge.library.moveFile(path, directory));
+	}
+
+	libraryDuplicateFile(path: string): Promise<LibraryFile> {
+		return typed(() => this.bridge.library.duplicateFile(path));
+	}
+
+	libraryTrashFile(path: string): Promise<void> {
+		return typed(() => this.bridge.library.trashFile(path));
+	}
+
+	/** Pick a directory in the native dialog and link it; `null` when cancelled. */
+	libraryLinkFolder(): Promise<LinkedFolder | null> {
+		return typed(() => this.bridge.library.linkFolder());
+	}
+
+	libraryUnlinkFolder(id: string): Promise<void> {
+		return typed(() => this.bridge.library.unlinkFolder(id));
 	}
 
 	/** The path of a dropped file; empty when the platform does not know it. */

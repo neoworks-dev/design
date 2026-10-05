@@ -86,6 +86,16 @@ export class AutosaveQueue {
 		}
 	}
 
+	/** Forget everything queued, failed or not (its file is gone); the queue stays usable. */
+	discard(): void {
+		this.disarm();
+		this.queue = [];
+		this.inFlight = [];
+		this.error = null;
+		this.failures = 0;
+		this.publish();
+	}
+
 	/** Stop timers. Unsent transactions are discarded: call `flush()` first if they matter. */
 	dispose(): void {
 		this.disposed = true;

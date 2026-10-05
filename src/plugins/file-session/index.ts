@@ -5,8 +5,10 @@ import { registerFileCommands } from './fileCommands';
 
 // The link between the document and its file: autosave of every committed transaction, flushed
 // when the window loses focus, hides or closes, when main asks (window close, quit) and when the
-// plugin unmounts; new, open, save and save as; the title and dirty context keys the title bar
-// reads; dropping a design file on the window opens it.
+// plugin unmounts; new, open, save (a flush), rename and save a copy; the title and saving
+// context keys the title bar reads; files renamed, moved or trashed elsewhere (`files:moved`);
+// dropping a design file on the window opens it. Without a launch file it opens nothing: the
+// home screen is the start page.
 export default {
 	name: 'file-session',
 	inject: ['desktop', 'document', 'commands', 'keymap', 'contextKeys'],
@@ -42,6 +44,7 @@ export default {
 		ctx.desktop.on('files:flush-request', ({ requestId }) => {
 			session.answerFlushRequest(requestId).catch((error: unknown) => ctx.logger.error(error));
 		});
+		ctx.desktop.on('files:moved', (message) => session.handleMoved(message));
 		ctx.desktop.on('files:open-request', ({ path }) => {
 			session.openDocument(path).catch((error: unknown) => ctx.logger.error(error));
 		});

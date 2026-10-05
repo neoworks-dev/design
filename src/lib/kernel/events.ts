@@ -26,10 +26,15 @@ import type { Camera } from '../viewport/camera';
 import type { CanvasWheelEvent } from '../viewport/wheel';
 import type { Point } from '../tools/protocol';
 import type { Size } from './types';
-import type { StoreInfo } from '../../../electron/bridge';
+import type { FileMovedMessage, StoreInfo } from '../../../electron/bridge';
 
 /** What File > New / Open asks for: a blank document, or the design file at `path`. */
-export type FileOpenRequest = { kind: 'new' } | { kind: 'open'; path: string };
+export type FileOpenRequest =
+	| {
+			kind: 'new';
+			/** Folder to create the file in; the library root when omitted. */ directory?: string;
+	  }
+	| { kind: 'open'; path: string };
 
 declare module '@neoworks/extension-system' {
 	interface Events {
@@ -121,10 +126,16 @@ declare module '@neoworks/extension-system' {
 		'file/attached'(info: StoreInfo): void;
 
 		/**
-		 * Dispatch mode: emit. The open document was saved (Save, Save As): its file is checkpointed.
-		 * The file-thumbnails plugin draws the home screen preview then.
+		 * Dispatch mode: emit. The autosave queue went idle after persisting changes (also after
+		 * Save, which flushes it). The file-thumbnails plugin draws the home screen preview then.
 		 */
 		'file/saved'(info: StoreInfo): void;
+
+		/**
+		 * Dispatch mode: emit. A file was renamed, moved (`to` is its new path) or trashed (`to` is
+		 * `null`), by this window or another. Tabs and the home screen follow it.
+		 */
+		'file/moved'(message: FileMovedMessage): void;
 
 		/**
 		 * Dispatch mode: serial. File > New or Open is about to replace the window's document. A

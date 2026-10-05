@@ -12,9 +12,4 @@ export class FileSessionState {
 	status = $state.raw<AutosaveStatus>(IDLE_STATUS);
 	/** The window shows no document on purpose (the last tab was closed): the home screen. */
 	closed = $state.raw(false);
-	/**
-	 * Document revision at the last Save (or at open). Dirty means the revision moved since;
-	 * `-1` marks a file that was opened with edits nobody ever saved (a recovered one).
-	 */
-	savedRevision = $state.raw(-1);
 }

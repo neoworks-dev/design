@@ -64,8 +64,7 @@ const info: StoreInfo = {
 	createdAt: 0,
 	modifiedAt: 0,
 	recovered: false,
-	unsaved: false,
-	untitled: false
+	inLibrary: true
 };
 
 const keymap: Plugin.Object = {

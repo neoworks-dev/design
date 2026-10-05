@@ -11,12 +11,9 @@ export interface TabView {
 
 export interface Tab {
 	id: string;
-	/** The design file behind the tab; untitled documents live in a temporary file. */
+	/** The design file behind the tab. */
 	path: string;
 	name: string;
-	untitled: boolean;
-	/** Edits since the last Save, as of when the tab was left; the active tab asks the session. */
-	dirty: boolean;
 	view: TabView | null;
 }
 

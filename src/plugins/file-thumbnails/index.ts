@@ -31,14 +31,28 @@ async function storeThumbnail(ctx: Context): Promise<void> {
 	});
 }
 
-// The preview the home screen shows for a file: drawn with the headless renderer whenever the
-// file is saved (Save, Save As) and stored in the file's `thumbnails` table by main.
+const THUMBNAIL_DELAY_MS = 2000;
+
+// The preview the home screen shows for a file: drawn with the headless renderer a moment after
+// autosave went idle (so a burst of edits draws once) and stored in the file's `thumbnails` table
+// by main.
 export default {
 	name: 'file-thumbnails',
 	inject: ['headlessRenderer', 'document', 'fileSession', 'desktop'],
-	apply(ctx: Context): void {
-		ctx.on('file/saved', () => {
-			storeThumbnail(ctx).catch((error: unknown) => ctx.logger.warn('thumbnail', error));
-		});
+	apply(ctx: Context, config?: { delayMs?: number }): void {
+		const delayMs = config?.delayMs ?? THUMBNAIL_DELAY_MS;
+		ctx.effect(() => {
+			let timer: ReturnType<typeof setTimeout> | undefined;
+			const dispose = ctx.on('file/saved', () => {
+				clearTimeout(timer);
+				timer = setTimeout(() => {
+					storeThumbnail(ctx).catch((error: unknown) => ctx.logger.warn('thumbnail', error));
+				}, delayMs);
+			});
+			return () => {
+				clearTimeout(timer);
+				dispose();
+			};
+		}, 'file-thumbnails/after-autosave');
 	}
 };

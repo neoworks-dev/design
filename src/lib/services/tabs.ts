@@ -10,13 +10,15 @@
 // history is per live document, so it starts empty when a tab is switched back to.
 //
 // The tab list follows the session: `file/attached` creates the first tab and relabels the active
-// one after Save As; File > New / Open reach the service through the `file/open-request` event.
+// one after Save a copy; File > New / Open reach the service through the `file/open-request`
+// event; `file/moved` renames, re-points or (when trashed) closes tabs. Closing a tab never asks:
+// every file is already on disk and autosaved.
 
 import { Service, type Context } from '@neoworks/extension-system';
-import type { StoreInfo } from '../../../electron/bridge';
+import type { FileMovedMessage, StoreInfo } from '../../../electron/bridge';
 import type { FileOpenRequest } from '../kernel/events';
 import type { DocumentService } from './document';
-import type { FileSessionService } from './fileSession';
+import { nameOfPath, type FileSessionService } from './fileSession';
 import type { SelectionService } from './selection';
 import type { Tab, TabsState } from './tabsState.svelte';
 
@@ -57,12 +59,6 @@ export class TabsService extends Service {
 		return this.state.tabs.find((tab) => tab.id === this.state.activeId);
 	}
 
-	/** Whether the tab has edits since its last Save (live for the active tab). */
-	isDirty(tab: Tab): boolean {
-		if (tab.id === this.state.activeId) return this.session.dirty;
-		return tab.dirty;
-	}
-
 	/** The name to show: the live one for the active tab (it changes with Save As). */
 	nameOf(tab: Tab): string {
 		if (tab.id === this.state.activeId) return this.session.displayName;
@@ -83,23 +79,37 @@ export class TabsService extends Service {
 			this.addAndActivate(info);
 			return;
 		}
-		this.replaceTab({ ...active, path: info.path, name: info.name, untitled: info.untitled });
+		this.replaceTab({ ...active, path: info.path, name: info.name });
 	}
 
 	/** `file/open-request`: open in a tab, unless there are no tabs yet (the session starts it). */
 	async handleOpenRequest(request: FileOpenRequest): Promise<boolean | undefined> {
 		if (this.state.tabs.length === 0) return undefined;
-		if (request.kind === 'new') await this.newTab();
+		if (request.kind === 'new') await this.newTab(request.directory);
 		else await this.openPath(request.path);
 		return true;
 	}
 
+	/** `file/moved`: a renamed or moved file keeps its tab; a trashed one loses it. */
+	handleMoved(message: FileMovedMessage): Promise<void> {
+		return this.enqueue(async () => {
+			const tab = this.state.tabs.find((candidate) => candidate.path === message.from);
+			if (tab === undefined) return;
+			if (message.to === null) {
+				await this.dropTrashed(tab);
+				return;
+			}
+			this.replaceTab({ ...tab, path: message.to, name: nameOfPath(message.to) });
+		});
+	}
+
 	// ---------- operations (one at a time, in call order) ----------
 
-	newTab(): Promise<void> {
+	/** A new file in `directory` (the library root by default), shown in a new tab. */
+	newTab(directory?: string): Promise<void> {
 		return this.enqueue(async () => {
 			this.leaveActive();
-			await this.whileSwitching(() => this.session.newInTab());
+			await this.whileSwitching(() => this.session.newInTab(directory));
 			this.addFromSession();
 		});
 	}
@@ -122,12 +132,12 @@ export class TabsService extends Service {
 		return this.enqueue(() => this.activateNow(id));
 	}
 
-	/** Close a tab. An untitled document with edits asks first; the last tab leaves the home screen. */
+	/** Close a tab; closing the last one leaves the home screen. */
 	close(id: string): Promise<void> {
 		return this.enqueue(async () => {
 			const tab = this.state.tabs.find((candidate) => candidate.id === id);
 			if (tab === undefined) return;
-			if (id !== this.state.activeId && !tab.untitled) {
+			if (id !== this.state.activeId) {
 				this.removeTab(id);
 				this.rememberClosed(tab);
 				return;
@@ -213,26 +223,32 @@ export class TabsService extends Service {
 	private async closeActiveNow(): Promise<void> {
 		const tab = this.activeTab;
 		if (tab === undefined) return;
-		if (!(await this.session.confirmClose())) return;
 		const neighbour = this.neighbourOf(tab.id);
 		this.removeTab(tab.id);
 		if (neighbour === undefined) {
-			await this.session.closeDocument(this.discardPathOf(tab));
+			await this.session.closeDocument();
 			this.state.activeId = null;
 		} else {
 			await this.whileSwitching(() => this.session.openInTab(neighbour.path));
 			this.state.activeId = neighbour.id;
 			this.restoreView(neighbour);
-			const discardPath = this.discardPathOf(tab);
-			if (discardPath !== undefined) await this.session.discard(discardPath);
 		}
 		this.rememberClosed(tab);
 	}
 
-	/** The temporary file to delete once an untitled tab is closed; saved files are never deleted. */
-	private discardPathOf(tab: Tab): string | undefined {
-		if (tab.untitled) return tab.path;
-		return undefined;
+	/** The file behind `tab` is gone: remove it and show the neighbour, or the home screen. */
+	private async dropTrashed(tab: Tab): Promise<void> {
+		const wasActive = tab.id === this.state.activeId;
+		const neighbour = this.neighbourOf(tab.id);
+		this.removeTab(tab.id);
+		if (!wasActive) return;
+		if (neighbour === undefined) {
+			this.state.activeId = null;
+			return;
+		}
+		await this.whileSwitching(() => this.session.openInTab(neighbour.path));
+		this.state.activeId = neighbour.id;
+		this.restoreView(neighbour);
 	}
 
 	private neighbourOf(id: string): Tab | undefined {
@@ -251,7 +267,6 @@ export class TabsService extends Service {
 		this.replaceTab({
 			...active,
 			name: this.session.displayName,
-			dirty: this.session.dirty,
 			view: { pageId: this.document.currentPageId, selection: this.selection.snapshot() }
 		});
 	}
@@ -275,8 +290,6 @@ export class TabsService extends Service {
 			id: `tab-${this.nextId}`,
 			path: info.path,
 			name: info.name,
-			untitled: info.untitled,
-			dirty: false,
 			view: null
 		};
 		this.nextId += 1;
@@ -296,7 +309,6 @@ export class TabsService extends Service {
 	}
 
 	private rememberClosed(tab: Tab): void {
-		if (tab.untitled) return;
 		const kept = this.state.closedPaths.filter((path) => path !== tab.path);
 		this.state.closedPaths = [...kept, tab.path].slice(-CLOSED_HISTORY_LIMIT);
 	}

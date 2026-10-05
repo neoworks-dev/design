@@ -4,13 +4,13 @@
 // takes exactly the same route as the Open dialog.
 
 import { Service, type Context } from '@neoworks/extension-system';
-import type { RecentFile } from '../../../electron/bridge';
+import type { LibraryFile } from '../../../electron/bridge';
 import type { RecentFilesState } from './recentFilesState.svelte';
 
 export const OPEN_RECENT_MENU = 'app/file/open-recent';
 
 export interface RecentFilesDesktop {
-	filesRecent(): Promise<RecentFile[]>;
+	filesRecent(): Promise<LibraryFile[]>;
 	filesClearRecent(): Promise<void>;
 }
 
@@ -26,7 +26,7 @@ export class RecentFilesService extends Service {
 	}
 
 	/** Reactive: recent documents, newest first. */
-	get entries(): readonly RecentFile[] {
+	get entries(): readonly LibraryFile[] {
 		return this.state.entries;
 	}
 
@@ -52,7 +52,7 @@ export class RecentFilesService extends Service {
 		return { entries: this.state.entries.length, items: this.itemDisposers.length };
 	}
 
-	private async rebuildMenu(entries: readonly RecentFile[]): Promise<void> {
+	private async rebuildMenu(entries: readonly LibraryFile[]): Promise<void> {
 		const previous = this.itemDisposers.splice(0);
 		for (const remove of previous) await remove();
 		entries.forEach((entry, index) => {

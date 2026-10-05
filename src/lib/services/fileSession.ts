@@ -4,19 +4,19 @@
 // one SQLite transaction touching only the affected rows (autosave, no separate snapshot). The
 // queue debounces, batches, applies backpressure and retries; see autosaveQueue.ts.
 //
-// Session. New, open, save and save as over the `files:*` IPC domain; the window title and dirty
-// marker through context keys.
-//
-// Dirty semantics (data-model.md section 7: every transaction is persisted, so nothing is ever
-// "unsaved in memory"):
-//   dirty = a transaction was committed since the last Save (or since the file was opened,
-//   unless it was opened with edits nobody ever saved, which counts as dirty from the start).
-//   Edits are persisted either way, so a dirty *saved* document never asks anything on close.
-//   Only an untitled document with edits asks (main does: Save / Don't Save / Cancel), because
-//   leaving it would throw the work away. Undo back to the saved content is still dirty.
+// Session. New, open, rename and save a copy over the `files:*` and `library:*` IPC domains; the
+// window title through a context key. There is no dirty state and nothing ever asks to save:
+// every file lives in the library (or wherever it was opened) from the moment it exists, and
+// every change is persisted a few milliseconds after it happens. "Save" only flushes the queue.
 
 import { Service, type Context } from '@neoworks/extension-system';
-import type { CommitResult, LoadedDocument, StoreInfo } from '../../../electron/bridge';
+import type {
+	CommitResult,
+	FileMovedMessage,
+	LibraryFile,
+	LoadedDocument,
+	StoreInfo
+} from '../../../electron/bridge';
 import type { DocumentChangeEvent, Transaction } from '../document';
 import type { ContextKeysService } from '../registries/contextKeys.svelte';
 import { AutosaveQueue, type AutosaveStatus } from './autosaveQueue';
@@ -32,20 +32,15 @@ declare module '@neoworks/extension-system' {
 /** The part of the `desktop` service the session uses (the library may not import plugins). */
 export interface FileSessionDesktop {
 	storeCommit(transactions: Transaction[]): Promise<CommitResult>;
-	storeCheckpoint(): Promise<StoreInfo>;
-	filesNewUntitled(): Promise<LoadedDocument | null>;
-	filesOpenInTab(path: string): Promise<LoadedDocument>;
-	filesNewInTab(): Promise<LoadedDocument>;
-	filesConfirmClose(): Promise<boolean>;
-	filesDiscard(path: string): Promise<void>;
 	storeClose(): Promise<void>;
-	filesOpen(path: string): Promise<LoadedDocument | null>;
+	filesNew(directory?: string): Promise<LoadedDocument>;
+	filesOpen(path: string): Promise<LoadedDocument>;
 	filesOpenDialog(): Promise<string | null>;
 	filesSaveDialog(suggestedName: string): Promise<string | null>;
 	filesSaveAs(path: string): Promise<StoreInfo>;
-	filesOfferRecovery(): Promise<LoadedDocument | null>;
 	filesLaunchRequest(): Promise<string | null>;
 	filesFlushed(requestId: string): Promise<void>;
+	libraryRenameFile(path: string, name: string): Promise<LibraryFile>;
 }
 
 export interface FileSessionOptions {
@@ -53,7 +48,7 @@ export interface FileSessionOptions {
 	delayMs?: number;
 	/** Most transactions per IPC message. */
 	maxBatch?: number;
-	/** `auto` (default) opens the launch file, offers recovery, or starts an untitled document. */
+	/** `auto` (default) opens the file the launch named; with none the home screen shows. */
 	startup?: 'auto' | 'none';
 	/** Test seam: replaces the timers of the autosave queue. */
 	schedule?: (callback: () => void, delayMs: number) => unknown;
@@ -63,9 +58,20 @@ export interface FileSessionOptions {
 export const DEFAULT_AUTOSAVE_DELAY_MS = 50;
 export const DEFAULT_AUTOSAVE_BATCH = 200;
 export const DEFAULT_DOCUMENT_NAME = 'Untitled';
+const FILE_EXTENSION = '.ndesign';
+
+/** The file name without directory and `.ndesign`, for either path separator. */
+export function nameOfPath(path: string): string {
+	const separator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+	const base = path.slice(separator + 1);
+	if (base.endsWith(FILE_EXTENSION)) return base.slice(0, -FILE_EXTENSION.length);
+	return base;
+}
 
 export class FileSessionService extends Service {
 	private readonly queue: AutosaveQueue;
+	private lastPersisted = 0;
+	private keysCleared = false;
 	private readonly publishedKeys = new Map<string, () => void>();
 
 	/** Dependencies are captured at construction (the providing plugin injects them). */
@@ -84,9 +90,7 @@ export class FileSessionService extends Service {
 			send: (batch) => this.desktop.storeCommit(batch),
 			schedule: options.schedule,
 			cancel: options.cancel,
-			onStatus: (status) => {
-				this.state.status = status;
-			}
+			onStatus: (status) => this.onQueueStatus(status)
 		});
 		this.publishKeys();
 	}
@@ -109,15 +113,16 @@ export class FileSessionService extends Service {
 		return info.name;
 	}
 
-	get isUntitled(): boolean {
+	/** Whether the file lives in the Draftboard library rather than somewhere else. */
+	get inLibrary(): boolean {
 		const info = this.state.info;
-		return info !== null && info.untitled;
+		return info !== null && info.inLibrary;
 	}
 
-	/** Committed changes since the last Save; see the dirty semantics at the top of this file. */
-	get dirty(): boolean {
-		if (this.state.info === null) return false;
-		return this.document.revision !== this.state.savedRevision;
+	/** Whether changes are waiting for or on their way to disk. */
+	get isSaving(): boolean {
+		const status = this.state.status;
+		return status.queued > 0 || status.inFlight > 0;
 	}
 
 	/** Autosave progress: queued, in flight, last error, persisted count. */
@@ -131,7 +136,6 @@ export class FileSessionService extends Service {
 	attach(info: StoreInfo): void {
 		this.state.info = info;
 		this.state.closed = false;
-		this.state.savedRevision = info.unsaved ? -1 : this.document.revision;
 		this.publishKeys();
 		this.ctx.emit('file/attached', info);
 	}
@@ -148,7 +152,6 @@ export class FileSessionService extends Service {
 	record(event: DocumentChangeEvent): void {
 		if (this.state.info === null) return;
 		this.queue.enqueue(event.transaction);
-		this.publishKeys();
 	}
 
 	/** Send everything queued now; rejects when main cannot be reached or refuses. */
@@ -167,15 +170,15 @@ export class FileSessionService extends Service {
 		this.queue.dispose();
 	}
 
-	// ---------- the session: new, open, save, save as ----------
+	// ---------- the session: new, open, rename, save a copy ----------
 
-	/** Replace the document with a new untitled one. False when the user cancelled. */
-	async newDocument(): Promise<boolean> {
-		if ((await this.ctx.serial('file/open-request', { kind: 'new' })) === true) return true;
+	/** Create a new document in `directory` (the library root by default) and show it. */
+	async newDocument(directory?: string): Promise<boolean> {
+		if ((await this.ctx.serial('file/open-request', { kind: 'new', directory })) === true) {
+			return true;
+		}
 		await this.settleQueue();
-		const loaded = await this.desktop.filesNewUntitled();
-		if (loaded === null) return false;
-		this.adopt(loaded);
+		this.adopt(await this.desktop.filesNew(directory));
 		return true;
 	}
 
@@ -186,10 +189,7 @@ export class FileSessionService extends Service {
 		if ((await this.ctx.serial('file/open-request', { kind: 'open', path: chosen })) === true) {
 			return true;
 		}
-		await this.settleQueue();
-		const loaded = await this.desktop.filesOpen(chosen);
-		if (loaded === null) return false;
-		this.adopt(loaded);
+		await this.openInTab(chosen);
 		return true;
 	}
 
@@ -198,90 +198,80 @@ export class FileSessionService extends Service {
 	/** Make the design file at `path` the live document; the one it had stays on disk as a tab. */
 	async openInTab(path: string): Promise<void> {
 		await this.settleQueue();
-		this.adopt(await this.desktop.filesOpenInTab(path));
+		this.adopt(await this.desktop.filesOpen(path));
 	}
 
-	/** Make a new untitled document the live one; the previous one stays as a tab. */
-	async newInTab(): Promise<void> {
+	/** Make a new document the live one; the previous one stays as a tab. */
+	async newInTab(directory?: string): Promise<void> {
 		await this.settleQueue();
-		this.adopt(await this.desktop.filesNewInTab());
+		this.adopt(await this.desktop.filesNew(directory));
 	}
 
-	/** Persist the queue, then ask whether the live document may be closed; false when cancelled. */
-	async confirmClose(): Promise<boolean> {
-		await this.settleQueue();
-		return this.desktop.filesConfirmClose();
-	}
-
-	/**
-	 * Close the live document and show no document (the home screen). Confirm first. An untitled
-	 * document's temporary file named in `discardPath` is deleted before the home screen lists drafts.
-	 */
-	async closeDocument(discardPath?: string): Promise<void> {
+	/** Close the live document and show no document (the home screen). */
+	async closeDocument(): Promise<void> {
 		await this.detach();
 		await this.desktop.storeClose();
-		if (discardPath !== undefined) await this.desktop.filesDiscard(discardPath);
 		this.state.closed = true;
 		this.publishKeys();
 	}
 
-	/** Delete the temporary file of a closed untitled document. */
-	discard(path: string): Promise<void> {
-		return this.desktop.filesDiscard(path);
+	/** Show no document because there is none left (its file is gone); nothing is flushed. */
+	releaseDocument(): void {
+		this.queue.discard();
+		this.state.info = null;
+		this.state.closed = true;
+		this.publishKeys();
 	}
 
-	/** Save: checkpoint the file. An untitled document needs a place first (Save As). */
-	async save(): Promise<boolean> {
-		const info = this.requireInfo();
-		if (info.untitled) return this.saveAs();
+	/** Save: persist what is queued. The file is a real file already; no dialog, no prompt. */
+	async save(): Promise<void> {
 		await this.flush();
-		const revision = this.document.revision;
-		this.state.info = await this.desktop.storeCheckpoint();
-		this.state.savedRevision = revision;
-		this.publishKeys();
-		this.ctx.emit('file/saved', this.state.info);
-		return true;
+	}
+
+	/** Rename the open file on disk. */
+	async rename(name: string): Promise<void> {
+		const info = this.state.info;
+		if (info === null) return;
+		await this.flush();
+		const renamed = await this.desktop.libraryRenameFile(info.path, name);
+		this.handleMoved({ from: info.path, to: renamed.path });
 	}
 
 	/** Save a copy under `path` (asking when omitted) and keep editing that copy. */
 	async saveAs(path?: string): Promise<boolean> {
-		this.requireInfo();
+		if (this.state.info === null) return false;
 		const destination =
 			path === undefined ? await this.desktop.filesSaveDialog(this.displayName) : path;
 		if (destination === null) return false;
 		await this.flush();
-		const revision = this.document.revision;
 		const saved = await this.desktop.filesSaveAs(destination);
 		this.state.info = saved;
-		this.state.savedRevision = revision;
 		this.publishKeys();
 		this.ctx.emit('file/attached', saved);
-		this.ctx.emit('file/saved', saved);
 		return true;
 	}
 
 	/**
-	 * What the window shows at launch: the file the launch named, else an untitled document a
-	 * crash left behind (main asks whether to restore it), else a new untitled document.
+	 * A file was renamed, moved or trashed (here or in another window): the attached file follows,
+	 * a trashed one is released without writing to it. Tabs and the home screen hear `file/moved`.
 	 */
+	handleMoved(message: FileMovedMessage): void {
+		const info = this.state.info;
+		if (info !== null && info.path === message.from) this.followMove(info, message.to);
+		this.ctx.emit('file/moved', message);
+	}
+
+	/** What the window shows at launch: the file the launch named, else nothing (the home screen). */
 	async startup(isCancelled: () => boolean = () => false): Promise<void> {
 		const launchPath = await this.desktop.filesLaunchRequest();
 		if (isCancelled()) return;
-		if (launchPath !== null) {
-			await this.openDocument(launchPath);
-			return;
-		}
-		const recovered = await this.desktop.filesOfferRecovery();
-		if (isCancelled()) return;
-		if (recovered !== null) {
-			this.adopt(recovered);
-			return;
-		}
-		await this.newDocument();
+		if (launchPath === null) return;
+		await this.openDocument(launchPath);
 	}
 
 	/** Unset every context key this service published; for plugin unmount. */
 	clearKeys(): void {
+		this.keysCleared = true;
 		for (const dispose of this.publishedKeys.values()) dispose();
 		this.publishedKeys.clear();
 	}
@@ -296,10 +286,23 @@ export class FileSessionService extends Service {
 
 	// ---------- internals ----------
 
-	private requireInfo(): StoreInfo {
+	private onQueueStatus(status: AutosaveStatus): void {
+		this.state.status = status;
+		this.setKey('document.saving', this.isSaving);
+		const idle = status.queued === 0 && status.inFlight === 0;
+		if (!idle || status.persisted === this.lastPersisted) return;
+		this.lastPersisted = status.persisted;
 		const info = this.state.info;
-		if (info === null) throw new Error('no document file is open');
-		return info;
+		if (info !== null) this.ctx.emit('file/saved', info);
+	}
+
+	private followMove(info: StoreInfo, to: string | null): void {
+		if (to === null) {
+			this.releaseDocument();
+			return;
+		}
+		this.state.info = { ...info, path: to, name: nameOfPath(to) };
+		this.publishKeys();
 	}
 
 	/** Persist what is queued for the file about to be left; with no file there is nothing. */
@@ -316,12 +319,13 @@ export class FileSessionService extends Service {
 
 	private publishKeys(): void {
 		this.setKey('document.title', this.displayName);
-		this.setKey('document.dirty', this.dirty);
-		this.setKey('document.untitled', this.isUntitled);
 		this.setKey('document.closed', this.state.closed);
+		this.setKey('document.renamable', this.state.info !== null);
+		this.setKey('document.saving', this.isSaving);
 	}
 
 	private setKey(key: string, value: unknown): void {
+		if (this.keysCleared) return;
 		this.publishedKeys.set(key, this.contextKeys.set(key, value));
 	}
 }

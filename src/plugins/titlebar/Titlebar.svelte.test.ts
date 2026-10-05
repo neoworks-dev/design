@@ -53,11 +53,12 @@ function controlButtons(): HTMLButtonElement[] {
 }
 
 describe('titlebar', () => {
-	it('shows the default title and three window controls on linux', async () => {
+	it('shows no file name before a file is open, and three window controls on linux', async () => {
 		await renderTitlebar();
-		expect(target?.querySelector('[data-document-title]')?.textContent?.trim()).toBe('Untitled');
+		expect(target?.querySelector('[data-document-title]')).toBeNull();
+		expect(target?.querySelector('[data-save-status]')).toBeNull();
 		expect(controlButtons()).toHaveLength(3);
-		expect(document.title).toBe('Untitled - Neoworks Design');
+		expect(document.title).toBe('Draftboard');
 	});
 
 	it('gives the window controls accessible names', async () => {
@@ -141,17 +142,60 @@ describe('titlebar', () => {
 		expect(target.querySelector('[data-titlebar]')).not.toBeNull();
 	});
 
-	it('shows the document title and the dirty marker from context keys', async () => {
+	it('shows the file name and the saving status from context keys, never a dirty dot', async () => {
 		const { ctx } = await renderTitlebar();
+		ctx.contextKeys.set('document.renamable', true);
 		ctx.contextKeys.set('document.title', 'Mobile app');
 		flushSync();
 		expect(target?.querySelector('[data-document-title]')?.textContent?.trim()).toBe('Mobile app');
-		expect(target?.querySelector('[data-dirty-marker]')).toBeNull();
+		expect(target?.querySelector('[data-save-status]')?.textContent).toBe('Saved');
+		expect(document.title).toBe('Mobile app - Draftboard');
 
-		ctx.contextKeys.set('document.dirty', true);
+		ctx.contextKeys.set('document.saving', true);
 		flushSync();
-		expect(target?.querySelector('[data-dirty-marker]')).not.toBeNull();
-		expect(document.title).toBe('• Mobile app - Neoworks Design');
+		expect(target?.querySelector('[data-save-status]')?.textContent).toBe('Saving...');
+		expect(target?.querySelector('[data-dirty-marker]')).toBeNull();
+	});
+
+	it('renames the file inline: Enter commits through file.rename, Escape cancels', async () => {
+		const { ctx } = await renderTitlebar();
+		const renamed: unknown[] = [];
+		ctx.commands.register({
+			id: 'file.rename',
+			title: 'Rename file',
+			run: async (args) => {
+				if (args === undefined) {
+					await ctx.commands.run('titlebar.rename');
+					return;
+				}
+				renamed.push(args);
+			}
+		});
+		ctx.contextKeys.set('document.renamable', true);
+		ctx.contextKeys.set('document.title', 'Mobile app');
+		flushSync();
+		target
+			?.querySelector('[data-document-title]')
+			?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		flushSync();
+		const input = target?.querySelector<HTMLInputElement>('[data-title-input]');
+		expect(input).not.toBeNull();
+		if (!input) return;
+		input.value = 'Checkout';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		expect(renamed).toEqual([{ name: 'Checkout' }]);
+		expect(target?.querySelector('[data-title-input]')).toBeNull();
+
+		await ctx.commands.run('titlebar.rename');
+		flushSync();
+		const second = target?.querySelector<HTMLInputElement>('[data-title-input]');
+		second?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		flushSync();
+		expect(renamed).toHaveLength(1);
+		expect(target?.querySelector('[data-title-input]')).toBeNull();
 	});
 
 	it('removes its contributions and restores the window title when unmounted', async () => {
@@ -161,7 +205,7 @@ describe('titlebar', () => {
 		expect(target?.querySelector('[data-titlebar]')).toBeNull();
 		expect(ctx.commands.has('titlebar.close')).toBe(false);
 		expect(ctx.contextKeys.get('window.maximized')).toBeUndefined();
-		expect(document.title).not.toContain('Neoworks Design');
+		expect(ctx.contextKeys.get('titlebar.renaming')).toBeUndefined();
 	});
 });
 
