@@ -46,6 +46,10 @@ import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
 import toolMove from './tool-move';
+import toolImage from './tool-image';
+import toolScale from './tool-scale';
+import toolSection from './tool-section';
+import toolSlice from './tool-slice';
 import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
@@ -54,6 +58,7 @@ import mask from './mask';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import selectionCommands from './selection-commands';
+import shapeHandles from './shape-handles';
 import transformHandles from './transform-handles';
 import zOrder from './z-order';
 
@@ -97,6 +102,11 @@ export const builtinPlugins: Plugin[] = [
 	viewTools,
 	toolMove,
 	transformHandles,
+	shapeHandles,
+	toolImage,
+	toolScale,
+	toolSection,
+	toolSlice,
 	toolShapes,
 	toolFrame,
 	toolText,

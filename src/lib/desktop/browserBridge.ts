@@ -57,7 +57,8 @@ export function createBrowserBridge(): BrowserBridge {
 		},
 		dialogs: {
 			openFile: () => Promise.resolve(null),
-			saveFile: () => Promise.resolve(null)
+			saveFile: () => Promise.resolve(null),
+			openImages: () => Promise.resolve(null)
 		},
 		clipboard: {
 			read: () => Promise.resolve({ ...clipboard }),

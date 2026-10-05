@@ -1,9 +1,12 @@
 import type { Context } from '@neoworks/extension-system';
 import { afterEach, describe, expect, it } from 'vitest';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
-import { selectionProviders } from '../../lib/selecting/fixtures/selectionFixture';
+import {
+	handleInteractionOf,
+	pointerEvent,
+	selectionProviders
+} from '../../lib/selecting/fixtures/selectionFixture';
 import { handleBox, handleWorldPoint } from '../../lib/selecting/handles';
-import { HandleInteraction } from '../../lib/selecting/handleInteraction';
 import type { ResizeGesture } from '../../lib/selecting/resizeGesture';
 import transformHandles from './index';
 
@@ -27,8 +30,7 @@ afterEach(async () => {
 
 async function mountHandles(): Promise<{ ctx: Context; gesture: ResizeGesture }> {
 	mounted = await mountPlugin(transformHandles, { providers: selectionProviders() });
-	const handles = mounted.ctx.canvasInput.claimants.get('transform-handles/handles');
-	const gesture = (handles as HandleInteraction).gesture;
+	const gesture = handleInteractionOf(mounted.ctx, 'transform-handles/handles').gesture;
 	return { ctx: mounted.ctx, gesture };
 }
 
@@ -109,9 +111,7 @@ describe('resize gesture', () => {
 	it('reports the size while it runs and clears it afterwards', async () => {
 		const { ctx, gesture } = await mountHandles();
 		ctx.selection.select(['L']);
-		const handles: unknown = ctx.canvasInput.claimants.get('transform-handles/handles');
-		if (!(handles instanceof HandleInteraction)) throw new Error('handles not registered');
-		const feedback = handles.feedback;
+		const feedback = handleInteractionOf(ctx, 'transform-handles/handles').feedback;
 		gesture.begin('e', { x: 1000, y: 50 });
 		gesture.update({ x: 1030, y: 50 }, NONE);
 		expect(feedback.size).toEqual({ width: 130, height: 100 });
@@ -133,5 +133,29 @@ describe('handle geometry', () => {
 	it('has no box for a locked selection', async () => {
 		const { ctx } = await mountHandles();
 		expect(handleBox(ctx.document.reader, ['locked'])).toBeUndefined();
+	});
+});
+
+describe('pointer claim', () => {
+	it('claims a press on a handle, resizes through the grab and shows the resize cursor', async () => {
+		const { ctx } = await mountHandles();
+		ctx.selection.select(['L']);
+		const handles = handleInteractionOf(ctx, 'transform-handles/handles');
+		expect(handles.cursorAt(pointerEvent(1000, 100))).toBe('nwse-resize');
+		expect(handles.cursorAt(pointerEvent(950, 50))).toBeUndefined();
+		const grab = handles.claim(pointerEvent(1000, 100));
+		expect(grab).toBeDefined();
+		grab?.move(pointerEvent(1040, 130, { ctrlKey: true }));
+		grab?.up(pointerEvent(1040, 130, { ctrlKey: true }));
+		expect(boundsOf(ctx, 'L')).toEqual([900, 0, 140, 130]);
+		expect(ctx.history.undoLabel).toBe('Resize');
+	});
+
+	it('does not claim a press away from the handles', async () => {
+		const { ctx } = await mountHandles();
+		const handles = handleInteractionOf(ctx, 'transform-handles/handles');
+		expect(handles.claim(pointerEvent(1000, 100))).toBeUndefined();
+		ctx.selection.select(['L']);
+		expect(handles.claim(pointerEvent(950, 50))).toBeUndefined();
 	});
 });

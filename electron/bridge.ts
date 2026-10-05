@@ -83,6 +83,13 @@ export interface RecentFile {
 	thumbnail: Thumbnail | null;
 }
 
+/** An image file the user picked in the native dialog, read by main. */
+export interface PickedImage {
+	/** File name with extension, for naming the layer. */
+	name: string;
+	bytes: Uint8Array;
+}
+
 /** An image to store in the open file's `assets` table. */
 export interface AssetPutRequest {
 	mime: string;
@@ -154,6 +161,8 @@ export interface IpcContract {
 	'app:bootReport': { payload: void; result: BootReport | null };
 	'dialogs:openFile': { payload: OpenFileOptions | undefined; result: string[] | null };
 	'dialogs:saveFile': { payload: SaveFileOptions | undefined; result: string | null };
+	/** The native open dialog filtered to images (several allowed); main reads the files. */
+	'dialogs:openImages': { payload: void; result: PickedImage[] | null };
 	'clipboard:read': { payload: void; result: ClipboardContent };
 	'clipboard:write': { payload: ClipboardWrite; result: void };
 	'fonts:list': { payload: void; result: FontRef[] };
@@ -249,6 +258,8 @@ export interface DesktopBridge {
 	dialogs: {
 		openFile(options?: OpenFileOptions): Promise<string[] | null>;
 		saveFile(options?: SaveFileOptions): Promise<string | null>;
+		/** Pick image files (png, jpeg, webp, gif, svg); `null` when cancelled. */
+		openImages(): Promise<PickedImage[] | null>;
 	};
 	clipboard: {
 		read(): Promise<ClipboardContent>;

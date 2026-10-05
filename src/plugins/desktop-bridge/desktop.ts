@@ -22,6 +22,7 @@ import type {
 	IpcEvents,
 	LoadedDocument,
 	OpenFileOptions,
+	PickedImage,
 	RecentFile,
 	SaveFileOptions,
 	StoreInfo,
@@ -125,6 +126,11 @@ export class DesktopService extends Service {
 
 	openFileDialog(options?: OpenFileOptions): Promise<string[] | null> {
 		return typed(() => this.bridge.dialogs.openFile(options));
+	}
+
+	/** Pick image files in the native dialog; main reads them. `null` when cancelled. */
+	openImagesDialog(): Promise<PickedImage[] | null> {
+		return typed(() => this.bridge.dialogs.openImages());
 	}
 
 	saveFileDialog(options?: SaveFileOptions): Promise<string | null> {

@@ -14,6 +14,7 @@ import { buildDocument, frame, group, node, page, rectangle } from '../../docume
 import { at, editingProviders } from '../../editing/fixtures/editingFixture';
 import { Registry } from '../../registries/registry.svelte';
 import type { PointerClaimant } from '../../tools/claim';
+import { HandleInteraction } from '../handleInteraction';
 import type { ToolPointerEvent } from '../../tools/protocol';
 
 const WHITE: Paint = {
@@ -112,7 +113,7 @@ const fakeViewport: Plugin = {
 };
 
 // Stands in for the overlay plugin (snapping draws its guides through it).
-const fakeOverlay: Plugin = {
+export const fakeOverlay: Plugin = {
 	name: 'overlay',
 	apply(ctx: Context): void {
 		const registry = new OverlayRegistry();
@@ -124,7 +125,7 @@ const fakeOverlay: Plugin = {
 };
 
 // Stands in for the canvas input router: just the claimant registry.
-const fakeCanvasInput: Plugin = {
+export const fakeCanvasInput: Plugin = {
 	name: 'canvasInput',
 	apply(ctx: Context): void {
 		const claimants = new Registry<PointerClaimant>();
@@ -211,4 +212,11 @@ export function dragFromTo(
 	pressAt(ctx, from[0], from[1], modifiers);
 	ctx.tools.pointerMove(pointerEvent(to[0], to[1], modifiers));
 	releaseAt(ctx, to[0], to[1], modifiers);
+}
+
+/** The handle interaction a plugin registered with the (fake) canvas input router. */
+export function handleInteractionOf(ctx: Context, id: string): HandleInteraction {
+	const claimant: unknown = ctx.canvasInput.claimants.get(id);
+	if (!(claimant instanceof HandleInteraction)) throw new Error(`no handles registered: ${id}`);
+	return claimant;
 }

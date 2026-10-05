@@ -157,7 +157,7 @@ function marqueeTo(
 }
 
 function enter(ctx: Context, event: ToolPointerEvent): void {
-	const result = enterAt(ctx, event.world);
+	const result = enterAt(ctx, event.world, event);
 	if (result.kind === 'entered') {
 		ctx.selection.select([result.id], 'replace', { source: 'canvas' });
 		return;
