@@ -22,6 +22,7 @@ import effects from './effects';
 import fonts from './fonts';
 import exportPlugin from './export';
 import exportPdf from './export-pdf';
+import exportUi from './export-ui';
 import exportRaster from './export-raster';
 import exportSvg from './export-svg';
 import headlessRenderer from './headless-renderer';
@@ -249,5 +250,6 @@ export const builtinPlugins: Plugin[] = [
 	exportPlugin,
 	exportRaster,
 	exportSvg,
-	exportPdf
+	exportPdf,
+	exportUi
 ];
