@@ -10,6 +10,7 @@ import {
 	type FrameResult,
 	type RenderBackend,
 	type Renderer,
+	type SceneCulling,
 	type RendererStats,
 	type ViewTransform
 } from '../../lib/renderer/types';
@@ -29,6 +30,10 @@ interface CanvasTarget {
 	size: Size;
 	devicePixelRatio: number;
 }
+
+// What recorded pictures bake in without an edit to the document: image bytes arriving, drawing
+// hooks coming and going. Camera and size changes are not on the list: pictures replay at any zoom.
+const PICTURE_INVALIDATING_REASONS = new Set(['image-ready', 'draw-hooks']);
 
 const NO_RESULT: FrameResult = { drawn: false, drawnNodes: 0, layers: 0 };
 
@@ -58,6 +63,8 @@ export class RendererService extends Service implements Renderer {
 	private readonly frameStats = emptyStats();
 	private totalFrameMilliseconds = 0;
 	private shownPageId: NodeId | null = null;
+	private culling: SceneCulling | undefined;
+	private pixelPreviewOn = false;
 	/** What the backend draws with; features add their part through `registerDrawHooks`. */
 	readonly drawHooks = new DrawHookRegistry();
 
@@ -132,6 +139,31 @@ export class RendererService extends Service implements Renderer {
 		return () => void dispose();
 	}
 
+	/** The spatial index to cull with; without one every node is drawn. */
+	setCulling(culling: SceneCulling): () => void {
+		const dispose = this.ctx.effect(() => {
+			this.culling = culling;
+			this.requestFrame('culling');
+			return () => {
+				if (this.culling !== culling) return;
+				this.culling = undefined;
+				this.requestFrame('culling');
+			};
+		}, 'renderer/culling');
+		return () => void dispose();
+	}
+
+	get pixelPreview(): boolean {
+		return this.pixelPreviewOn;
+	}
+
+	/** Pixel preview: 1x rendering magnified with nearest neighbour while zoomed in. */
+	setPixelPreview(enabled: boolean): void {
+		if (this.pixelPreviewOn === enabled) return;
+		this.pixelPreviewOn = enabled;
+		this.requestFrame('pixel-preview');
+	}
+
 	/** Where the camera comes from; the viewport plugin sets it. Identity until then. */
 	setViewProvider(provider: () => ViewTransform): () => void {
 		const dispose = this.ctx.effect(() => {
@@ -187,6 +219,7 @@ export class RendererService extends Service implements Renderer {
 	}
 
 	requestFrame(reason: string): void {
+		if (PICTURE_INVALIDATING_REASONS.has(reason)) this.target?.backend.invalidate?.('everything');
 		this.scheduler.request(reason);
 	}
 
@@ -210,6 +243,7 @@ export class RendererService extends Service implements Renderer {
 	}
 
 	private onSceneChange(change: SceneChange): void {
+		this.target?.backend.invalidate?.(change);
 		this.requestFrame('scene');
 		if (change.kind !== 'reset') return;
 		if (!this.source) return;
@@ -231,6 +265,8 @@ export class RendererService extends Service implements Renderer {
 		try {
 			result = target.backend.render({
 				source,
+				culling: this.culling,
+				pixelPreview: this.pixelPreviewOn,
 				view: this.viewProvider(),
 				size: target.size,
 				devicePixelRatio: target.devicePixelRatio

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import snappingPlugin from '../../plugins/snapping';
 import spatialPlugin from '../../plugins/spatial';
 import { editingProviders } from '../editing/fixtures/editingFixture';
+import type { OverlayContribution } from '../overlay/types';
+import { OverlayRegistry } from './overlay';
 import { describePlugin, mountPlugin } from '../kernel/testing';
 import type { DesignDocument, Rect } from '../document';
 import { buildDocument, page, rectangle } from '../document/fixtures';
@@ -24,13 +26,27 @@ function fakeViewport(zoom: number, visible: Rect): Plugin {
 	} as Plugin;
 }
 
+/** Stands in for the overlay plugin: records contributions in a registry. */
+function fakeOverlay(): Plugin {
+	const registry = new OverlayRegistry();
+	return {
+		name: 'overlay',
+		inject: [],
+		apply: (ctx: Context) =>
+			void ctx.provide('overlay', {
+				registry,
+				register: (contribution: OverlayContribution) => registry.register(contribution)
+			})
+	} as Plugin;
+}
+
 const WHOLE_PAGE = { x: -1000, y: -1000, width: 4000, height: 4000 };
 
 // Page p: frame f at 100,100 (400x400) with boxes a (0,0 10x10 -> page 100,100), b (20,20 ->
 // 120,120), c (40,40 -> 140,140); loose at 600,600.
 function providers(zoom = 1, visible: Rect = WHOLE_PAGE, document?: DesignDocument): Plugin[] {
 	const base = document === undefined ? editingProviders() : editingProviders(document);
-	return [...base, spatialPlugin, fakeViewport(zoom, visible)] as Plugin[];
+	return [...base, spatialPlugin, fakeViewport(zoom, visible), fakeOverlay()] as Plugin[];
 }
 
 function rect(x: number, y: number, width: number, height: number): Rect {
@@ -44,6 +60,7 @@ describePlugin('snapping', snappingPlugin, {
 		expect(ctx.menus.has('app/view')).toBe(true);
 		expect(ctx.snapping.enabled).toBe(true);
 		expect(ctx.snapping.guides).toEqual([]);
+		expect(ctx.overlay.registry.has('snapping/guides')).toBe(true);
 	}
 });
 

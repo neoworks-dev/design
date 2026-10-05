@@ -218,7 +218,9 @@ describe('opacity, blend and multiple fills', () => {
 	});
 
 	it('uses one layer per node that is composited: opacity, group opacity, blend mode', () => {
-		expect(rendered.result.layers).toBe(3);
+		// 3 on the fills frame, plus opacity and multiply on the Effects frame and two layers for
+		// each of the three masks (effects.test.ts probes those frames)
+		expect(rendered.result.layers).toBe(11);
 	});
 });
 

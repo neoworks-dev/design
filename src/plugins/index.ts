@@ -15,7 +15,9 @@ import coreRegions from './core-regions';
 import coreTools from './core-tools';
 import debug from './debug';
 import desktopBridge from './desktop-bridge';
+import effects from './effects';
 import fonts from './fonts';
+import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
@@ -29,7 +31,9 @@ import fileSession from './file-session';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
+import overlay from './overlay';
 import paintShaders from './paint-shaders';
+import pixelGrid from './pixel-grid';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
@@ -55,16 +59,20 @@ export const builtinPlugins: Plugin[] = [
 	renderer,
 	sceneFixture,
 	viewport,
+	overlay,
+	pixelGrid,
 	debug,
 	desktopBridge,
 	fonts,
 	assetsStore,
 	imageCache,
 	paintShaders,
+	effects,
 	documentPlugin,
 	documentScene,
 	selection,
 	spatial,
+	headlessRenderer,
 	hitTest,
 	snapping,
 	history,

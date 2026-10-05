@@ -3,7 +3,8 @@
 // Pure types: no Svelte, no kernel, no DOM.
 
 import type { Size } from '../kernel/types';
-import type { SceneSource } from './sceneSource';
+import type { NodeId, Rect } from '../document/types';
+import type { SceneChange, SceneSource } from './sceneSource';
 
 /**
  * Camera: a world point `(wx, wy)` appears at the screen (canvas element, CSS pixel) position
@@ -18,8 +19,20 @@ export interface ViewTransform {
 
 export const IDENTITY_VIEW: ViewTransform = { x: 0, y: 0, scale: 1 };
 
+/** Which nodes can show in a rectangle of the page: the spatial index, as the renderer sees it. */
+export interface SceneCulling {
+	visibleNodes(pageId: NodeId, rect: Rect): readonly NodeId[];
+}
+
 export interface FrameRequest {
 	source: SceneSource;
+	/** Without it every node is drawn. */
+	culling?: SceneCulling;
+	/**
+	 * Render at one pixel per document unit and magnify with nearest neighbour (pixel preview).
+	 * Only has an effect when the view is magnified (scale above 1).
+	 */
+	pixelPreview?: boolean;
 	view: ViewTransform;
 	/** Canvas size in CSS pixels. */
 	size: Size;
@@ -33,12 +46,17 @@ export interface FrameResult {
 	drawnNodes: number;
 	/** `saveLayer` calls issued for this frame (compositing cost). */
 	layers: number;
+	/** Picture caches: containers replayed from a recording and containers recorded this frame. */
+	picturesReplayed?: number;
+	picturesRecorded?: number;
 }
 
 export interface RenderBackend {
 	/** Pixel size of the target; called when the canvas or the device pixel ratio changed. */
 	resize(pixelWidth: number, pixelHeight: number): void;
 	render(request: FrameRequest): FrameResult;
+	/** Something drawn earlier may have changed: drop cached pictures it affects. */
+	invalidate?(change: SceneChange | 'everything'): void;
 	dispose(): void;
 }
 

@@ -157,6 +157,37 @@ export class RenderSurface {
 		}
 	}
 
+	/**
+	 * A surface of its own kind (GPU when this one is) for drawing something off screen, for
+	 * example a magnified 1x render (pixel preview). The caller deletes it. Null when unavailable.
+	 */
+	makeScratchSurface(width: number, height: number): Surface | null {
+		if (this.surface === null || this.contextLost) return null;
+		const scratch = this.surface.makeSurface({
+			width,
+			height,
+			colorType: this.canvasKit.ColorType.RGBA_8888,
+			alphaType: this.canvasKit.AlphaType.Premul,
+			colorSpace: this.canvasKit.ColorSpace.SRGB
+		});
+		if (scratch === null) return null;
+		return this.tracker.track(scratch);
+	}
+
+	/** Encodes the last flushed frame. `quality` (0-100) applies to JPEG and WEBP. */
+	encode(format: 'PNG' | 'JPEG' | 'WEBP', quality: number): Uint8Array | null {
+		if (this.surface === null || this.contextLost) return null;
+		const image = this.surface.makeImageSnapshot();
+		try {
+			// the stock CanvasKit build only ships the PNG encoder and returns null/undefined otherwise
+			const bytes = image.encodeToBytes(this.canvasKit.ImageFormat[format], quality);
+			if (bytes === null || bytes === undefined) return null;
+			return bytes;
+		} finally {
+			image.delete();
+		}
+	}
+
 	dispose(): void {
 		if (this.disposed) return;
 		this.disposed = true;

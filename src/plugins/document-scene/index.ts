@@ -1,5 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
-import { DocumentSceneSource } from './source';
+import { DocumentSceneSource } from '../../lib/services/documentSceneSource';
 
 // Feeds the live document (current page, variables resolved) to the renderer as its SceneSource,
 // and tells the viewport where the selection is. The renderer knows nothing about the document
