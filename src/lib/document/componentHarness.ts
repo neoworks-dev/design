@@ -2,9 +2,8 @@
 // the same hooks the kernel does (touched marking before, append rounds after) and small fixtures.
 
 import { applyChanges } from './apply';
-import { planComponentAppend } from './componentSync';
+import { applyWithComponentSync } from './componentSync';
 import { planCreateInstance } from './componentOps';
-import { markTouched } from './components';
 import { keyBetween } from './fractionalIndex';
 import { buildDocument, node, page, rectangle, text } from './fixtures';
 import { sequentialIdGenerator } from './ids';
@@ -31,27 +30,15 @@ export function paragraphs(content: string): never {
 	] as never;
 }
 
-/**
- * Apply `changes` the way `document.apply` does with the component plugin mounted. Returns every
- * change that was applied, own and derived, in order: its inverse is the undo step.
- */
 export function applyWithSync(
 	store: DocumentStore,
 	changes: Change[],
 	options: { replay?: boolean; ids?: () => string } = {}
 ): Change[] {
-	const input = options.replay === true ? changes : markTouched(store, changes);
-	const applied = applyChanges(store, input);
-	const everything = [...applied];
-	if (options.replay === true) return everything;
-	let pending = applied;
-	for (let round = 0; round < 8 && pending.length > 0; round += 1) {
-		const extra = planComponentAppend(store, pending, options.ids);
-		if (extra.length === 0) break;
-		pending = applyChanges(store, extra);
-		everything.push(...pending);
-	}
-	return everything;
+	return applyWithComponentSync(store, changes, {
+		replay: options.replay,
+		idGenerator: options.ids
+	});
 }
 
 export function ids(prefix = 'c'): () => string {

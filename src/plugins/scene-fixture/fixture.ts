@@ -17,6 +17,7 @@ import type {
 	StrokeWeights,
 	VectorNetwork
 } from '../../lib/document';
+import { addComponentInstances, componentsPage } from './componentsFixture';
 import { textFrame } from './textFixture';
 import { pngBytes } from '../../lib/renderer/pngFixture';
 import {
@@ -829,7 +830,8 @@ function addThemeVariables(document: DesignDocument): void {
 }
 
 export function buildFixtureDocument(): DesignDocument {
-	const document = buildDocument([firstPage(), secondPage(), shapesPage()]);
+	const document = buildDocument([firstPage(), secondPage(), shapesPage(), componentsPage()]);
+	addComponentInstances(document);
 	addThemeVariables(document);
 	document.id = FIXTURE_FILE_ID;
 	document.name = 'Scene fixture';
