@@ -1,7 +1,6 @@
 import type { Context } from '@neoworks/extension-system';
 import { ViewportService } from './service';
 import { ViewportState } from './state.svelte';
-import ZoomReadout from './ZoomReadout.svelte';
 
 /** Pixels one arrow key press pans; Shift pans four times as far. */
 export const PAN_STEP = 60;
@@ -104,11 +103,11 @@ const PAN_KEYS: PanKey[] = [
 ];
 
 // Provides `viewport`: the camera (pan, zoom, per-page memory), its commands and shortcuts, the
-// wheel / pinch handling, and the zoom readout in the top bar. The renderer draws through the
+// wheel / pinch handling. The zoom control is the zoom-menu plugin. The renderer draws through the
 // camera this plugin hands it.
 export default {
 	name: 'viewport',
-	inject: ['renderer', 'regions', 'commands', 'keymap', 'menus'],
+	inject: ['renderer', 'commands', 'keymap', 'menus'],
 	apply(ctx: Context): void {
 		const viewport = new ViewportService(ctx, new ViewportState());
 
@@ -181,16 +180,5 @@ export default {
 				`shortcut Shift+${pan.key} pan`
 			);
 		}
-
-		ctx.effect(
-			() =>
-				ctx.regions.register({
-					id: 'viewport/zoom-readout',
-					region: 'top-bar',
-					component: ZoomReadout,
-					order: 50
-				}),
-			'viewport zoom readout'
-		);
 	}
 };

@@ -74,6 +74,7 @@ export function createBrowserBridge(): BrowserBridge {
 				return Promise.resolve();
 			}
 		},
+		menu: { set: () => Promise.resolve() },
 		fonts: {
 			list: () => Promise.resolve([]),
 			load: () => Promise.resolve(null)

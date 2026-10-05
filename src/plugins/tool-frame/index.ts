@@ -59,6 +59,7 @@ export default {
 					icon: FrameCornersIcon,
 					shortcut: 'F',
 					group: 'create',
+					toolbarGroup: 'frame',
 					order: 10,
 					cursor: 'crosshair',
 					overlay: { component: CreationPreviewOverlay, props: { preview } },

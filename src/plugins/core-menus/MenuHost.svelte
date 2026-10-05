@@ -34,7 +34,10 @@
 			use:placeWithinViewport={'popup'}
 			class="pointer-events-auto fixed"
 			style:left="{popup.point.x}px"
-			style:top="{popup.point.y}px"
+			style:top={popup.placement === 'below' ? `${popup.point.y}px` : undefined}
+			style:bottom={popup.placement === 'above'
+				? `${window.innerHeight - popup.point.y}px`
+				: undefined}
 			data-menu-popup={popup.kind}
 		>
 			{#if items.length > 0}

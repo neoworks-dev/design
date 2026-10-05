@@ -3,7 +3,7 @@
 // Main only: the preload is sandboxed and must not import this file.
 
 import { z } from 'zod';
-import type { CreateStoreRequest, IpcChannel, IpcContract } from './bridge';
+import type { CreateStoreRequest, IpcChannel, IpcContract, NativeMenuItem } from './bridge';
 import { designDocumentSchema, transactionSchema } from '../src/lib/document/schema';
 
 const fileFilter = z.strictObject({ name: z.string(), extensions: z.array(z.string()) });
@@ -33,6 +33,19 @@ const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
 	path: storePath,
 	document: designDocumentSchema.optional()
 });
+
+const nativeMenuItem: z.ZodType<NativeMenuItem> = z.lazy(() =>
+	z.strictObject({
+		label: z.string(),
+		accelerator: z.string().optional(),
+		enabled: z.boolean(),
+		checked: z.boolean(),
+		command: z.string().optional(),
+		args: z.unknown().optional(),
+		separatorBefore: z.boolean(),
+		submenu: z.array(nativeMenuItem).optional()
+	})
+);
 
 /** More than this in one message is a bug in the sender, not a batch. */
 const MAX_TRANSACTIONS_PER_COMMIT = 5000;
@@ -64,6 +77,7 @@ export const payloadSchemas: PayloadSchemas = {
 		html: z.string().optional(),
 		png: blobBytes.optional()
 	}),
+	'menu:set': z.array(nativeMenuItem).max(32),
 	'fonts:list': z.void(),
 	'fonts:load': fontRef,
 	'store:open': z.strictObject({ path: storePath }),

@@ -137,6 +137,24 @@ export interface SettingsData {
 	plugins: Record<string, Record<string, unknown>>;
 }
 
+/**
+ * One entry of the native application menu, mirrored from the renderer's `menus` registry. A
+ * click runs `command` in the renderer (`menu:command`); `accelerator` is shown, the renderer's
+ * keymap still receives the key press.
+ */
+export interface NativeMenuItem {
+	label: string;
+	/** Electron accelerator syntax, for example `CommandOrControl+K`. */
+	accelerator?: string;
+	enabled: boolean;
+	checked: boolean;
+	/** Command to run in the renderer; absent for submenu parents. */
+	command?: string;
+	args?: unknown;
+	separatorBefore: boolean;
+	submenu?: NativeMenuItem[];
+}
+
 export interface BootFailure {
 	plugin: string;
 	message: string;
@@ -183,6 +201,8 @@ export interface IpcContract {
 	'dialogs:openImages': { payload: void; result: PickedImage[] | null };
 	'clipboard:read': { payload: void; result: ClipboardContent };
 	'clipboard:write': { payload: ClipboardWrite; result: void };
+	/** Replace the native application menu with the renderer's resolved menu bar. */
+	'menu:set': { payload: NativeMenuItem[]; result: void };
 	'fonts:list': { payload: void; result: FontRef[] };
 	'fonts:load': { payload: FontRef; result: Uint8Array | null };
 	/** One open document file per window; these act on the sender's. */
@@ -266,6 +286,8 @@ export interface IpcEvents {
 	'files:flush-request': { requestId: string };
 	/** The OS asked this running instance to open a file (second launch, macOS open-file). */
 	'files:open-request': { path: string };
+	/** A native menu item was clicked: run this command. */
+	'menu:command': { command: string; args?: unknown };
 }
 export type IpcEventChannel = keyof IpcEvents;
 
@@ -275,7 +297,8 @@ export const EVENT_CHANNELS = [
 	'kernel:boot-report',
 	'window:maximized',
 	'files:flush-request',
-	'files:open-request'
+	'files:open-request',
+	'menu:command'
 ] as const;
 type MissingEventChannels = Exclude<IpcEventChannel, (typeof EVENT_CHANNELS)[number]>;
 export const eventChannelsAreExhaustive: MissingEventChannels extends never ? true : never = true;
@@ -306,6 +329,10 @@ export interface DesktopBridge {
 	clipboard: {
 		read(): Promise<ClipboardContent>;
 		write(content: ClipboardWrite): Promise<void>;
+	};
+	menu: {
+		/** Mirror the menu bar to the native application menu. */
+		set(items: NativeMenuItem[]): Promise<void>;
 	};
 	fonts: {
 		/** Installed font faces, sorted by family then style. */

@@ -213,3 +213,42 @@ export function formatChord(chord: string, platform: Platform): string {
 	const names = modifiers.map((modifier) => displayKey(modifier === 'meta' ? 'win' : modifier));
 	return [...names, displayKey(key)].join('+');
 }
+
+const ELECTRON_KEY_NAMES: Record<string, string> = {
+	'+': 'Plus',
+	space: 'Space',
+	enter: 'Enter',
+	tab: 'Tab',
+	escape: 'Esc',
+	backspace: 'Backspace',
+	delete: 'Delete',
+	arrowup: 'Up',
+	arrowdown: 'Down',
+	arrowleft: 'Left',
+	arrowright: 'Right',
+	home: 'Home',
+	end: 'End',
+	pageup: 'PageUp',
+	pagedown: 'PageDown'
+};
+
+const ELECTRON_MODIFIERS: Record<string, string> = {
+	ctrl: 'Ctrl',
+	meta: 'Cmd',
+	alt: 'Alt',
+	shift: 'Shift'
+};
+
+/** A canonical chord in the accelerator syntax of native menus (`Ctrl+Shift+K`). */
+export function toElectronAccelerator(chord: string): string {
+	const key = chordKey(chord);
+	const modifiers = chord
+		.slice(0, chord.length - key.length)
+		.split('+')
+		.filter(Boolean);
+	const names = modifiers.map((modifier) => ELECTRON_MODIFIERS[modifier]);
+	const keyName = ELECTRON_KEY_NAMES[key];
+	if (keyName) names.push(keyName);
+	else names.push(key.toUpperCase());
+	return names.join('+');
+}

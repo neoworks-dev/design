@@ -5,6 +5,7 @@ import {
 	chordKey,
 	formatChord,
 	parseChord,
+	toElectronAccelerator,
 	type KeyEventLike
 } from './chord';
 
@@ -93,5 +94,16 @@ describe('formatChord and chordKey', () => {
 		expect(chordKey('ctrl++')).toBe('+');
 		expect(chordKey('+')).toBe('+');
 		expect(chordKey('space')).toBe('space');
+	});
+});
+
+describe('toElectronAccelerator', () => {
+	it('writes modifiers and keys the way native menus expect', () => {
+		expect(toElectronAccelerator('ctrl+shift+k')).toBe('Ctrl+Shift+K');
+		expect(toElectronAccelerator('meta+alt+arrowup')).toBe('Cmd+Alt+Up');
+		expect(toElectronAccelerator('escape')).toBe('Esc');
+		expect(toElectronAccelerator('ctrl++')).toBe('Ctrl+Plus');
+		expect(toElectronAccelerator('f5')).toBe('F5');
+		expect(toElectronAccelerator(parseChord('Mod+/', 'linux'))).toBe('Ctrl+/');
 	});
 });

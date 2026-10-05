@@ -11,6 +11,7 @@ import { mainFilesPlugin } from './files';
 import { mainElectronPlugin } from './electron';
 import { mainFontsPlugin } from './fonts';
 import { mainIpcPlugin } from './ipc';
+import { mainMenuPlugin } from './menu';
 import { mainProtocolPlugin } from './protocol';
 import { mainSettingsPlugin } from './settings';
 import { mainStorePlugin } from './store';
@@ -34,6 +35,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainAppPlugin },
 		{ plugin: mainDialogsPlugin },
 		{ plugin: mainClipboardPlugin },
+		{ plugin: mainMenuPlugin },
 		{ plugin: mainFontsPlugin },
 		{ plugin: mainSettingsPlugin },
 		{ plugin: mainStorePlugin },
