@@ -42,6 +42,8 @@ import flatten from './flatten';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
+import commandPalette from './command-palette';
+import paletteSources from './palette-sources';
 import overlay from './overlay';
 import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
@@ -121,6 +123,8 @@ export const builtinPlugins: Plugin[] = [
 	coreKeymap,
 	shortcuts,
 	coreMenus,
+	commandPalette,
+	paletteSources,
 	corePanels,
 	coreInspectors,
 	designPanel,
