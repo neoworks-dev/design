@@ -22,6 +22,7 @@
 		"lint:fix": "oxlint --type-aware --fix; eslint . --fix",
 		"qa": "bun scripts/qa.ts",
 		"proof": "bun scripts/proof.ts",
+		"plugin-typings": "bun scripts/plugin-typings.ts",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"package:dir": "bun run build && electron-builder --dir",

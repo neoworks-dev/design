@@ -55,8 +55,12 @@ export class InlineWorker implements WorkerLike {
 		// The source is a function body with `design` and `hostCall` (a raw host API call, which the
 		// real SDK wraps per namespace) in scope; the real worker loads it as an ES module instead.
 		this.stopRuntime = startPluginRuntime(scope, async (source, env) => {
-			const run = new AsyncFunction('design', 'hostCall', source);
-			await run(scope.design, (method: string, params?: unknown) => env.call(method, params));
+			const run = new AsyncFunction('design', 'hostCall', 'figma', source);
+			await run(
+				scope.design,
+				(method: string, params?: unknown) => env.call(method, params),
+				scope.figma
+			);
 		});
 	}
 

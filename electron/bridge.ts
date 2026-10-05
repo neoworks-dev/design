@@ -350,6 +350,32 @@ export interface PluginList {
 	projectTrust: ProjectTrust | null;
 }
 
+/** A plugin's files changed on disk (and its `build` command ran, when it has one). */
+export interface PluginReloadMessage {
+	source: PluginSourceKind;
+	directoryName: string;
+	/** The result of the manifest's `build` command; absent when the plugin has none. */
+	build?: { ok: boolean; output: string };
+}
+
+/** A user's decisions on what plugins may do: by plugin id, permission to granted (true) or denied. */
+export type PluginPermissionDecisions = Record<string, Record<string, boolean>>;
+
+export interface PluginFetchRequest {
+	pluginId: string;
+	url: string;
+	method?: string;
+	headers?: Record<string, string>;
+	body?: string;
+}
+
+export interface PluginFetchResponse {
+	status: number;
+	statusText: string;
+	headers: Record<string, string>;
+	body: string;
+}
+
 // ---------- errors ----------
 
 export type IpcErrorCode =
@@ -500,6 +526,39 @@ export interface IpcContract {
 		payload: { source: PluginSourceKind; directoryName: string; file: string };
 		result: string;
 	};
+	/** Copy a plugin folder, or unpack a plugin `.zip`, into the user plugins directory. */
+	'plugins:install': { payload: { path: string }; result: PluginList };
+	/** Ask for a plugin folder or `.zip` with a native dialog and install it; `null` when cancelled. */
+	'plugins:installFromDialog': { payload: { kind: 'folder' | 'zip' }; result: PluginList | null };
+	/** Write a new plugin from a template into the user plugins directory. */
+	'plugins:create': {
+		payload: { id: string; name: string; template: 'blank' | 'panel' | 'figma' };
+		result: PluginList;
+	};
+	/** Delete an installed plugin of the user plugins directory. */
+	'plugins:remove': { payload: { directoryName: string }; result: PluginList };
+	/** Show a plugin's folder in the OS file manager. */
+	'plugins:reveal': {
+		payload: { source: PluginSourceKind; directoryName: string };
+		result: void;
+	};
+	/** What the user allowed or denied each plugin of the sender's window (project plugins per project). */
+	'plugins:permissions': { payload: void; result: PluginPermissionDecisions };
+	/** Allow (`true`), deny (`false`) or forget (`null`) one permission of a plugin. */
+	'plugins:setPermission': {
+		payload: { pluginId: string; permission: string; granted: boolean | null };
+		result: PluginPermissionDecisions;
+	};
+	/** An HTTP request on behalf of a plugin; refused unless it may use `network` and the host is allowed. */
+	'plugins:fetch': { payload: PluginFetchRequest; result: PluginFetchResponse };
+	/** `clientStorage` of a plugin: JSON values in a file of its own, outside the document. */
+	'plugins:storageGet': { payload: { pluginId: string; key: string }; result: unknown };
+	'plugins:storageSet': {
+		payload: { pluginId: string; key: string; value: unknown };
+		result: void;
+	};
+	'plugins:storageDelete': { payload: { pluginId: string; key: string }; result: void };
+	'plugins:storageKeys': { payload: { pluginId: string }; result: string[] };
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -518,6 +577,8 @@ export interface IpcEvents {
 	'ai:tool-call': AiToolCallMessage;
 	/** A plugin root changed (added, removed, edited) or the window's project did. */
 	'plugins:changed': PluginList;
+	/** The files of one user or project plugin changed: reload it. */
+	'plugins:reload': PluginReloadMessage;
 }
 export type IpcEventChannel = keyof IpcEvents;
 
@@ -531,7 +592,8 @@ export const EVENT_CHANNELS = [
 	'menu:command',
 	'ai:event',
 	'ai:tool-call',
-	'plugins:changed'
+	'plugins:changed',
+	'plugins:reload'
 ] as const;
 type MissingEventChannels = Exclude<IpcEventChannel, (typeof EVENT_CHANNELS)[number]>;
 export const eventChannelsAreExhaustive: MissingEventChannels extends never ? true : never = true;
@@ -657,6 +719,22 @@ export interface DesktopBridge {
 		list(): Promise<PluginList>;
 		setTrust(trusted: boolean): Promise<PluginList>;
 		readFile(source: PluginSourceKind, directoryName: string, file: string): Promise<string>;
+		install(path: string): Promise<PluginList>;
+		create(id: string, name: string, template: 'blank' | 'panel' | 'figma'): Promise<PluginList>;
+		installFromDialog(kind: 'folder' | 'zip'): Promise<PluginList | null>;
+		remove(directoryName: string): Promise<PluginList>;
+		reveal(source: PluginSourceKind, directoryName: string): Promise<void>;
+		permissions(): Promise<PluginPermissionDecisions>;
+		setPermission(
+			pluginId: string,
+			permission: string,
+			granted: boolean | null
+		): Promise<PluginPermissionDecisions>;
+		fetch(request: PluginFetchRequest): Promise<PluginFetchResponse>;
+		storageGet(pluginId: string, key: string): Promise<unknown>;
+		storageSet(pluginId: string, key: string, value: unknown): Promise<void>;
+		storageDelete(pluginId: string, key: string): Promise<void>;
+		storageKeys(pluginId: string): Promise<string[]>;
 	};
 	system: {
 		platform: NodeJS.Platform;

@@ -18,6 +18,7 @@ import {
 	type PluginManifest
 } from '../plugins/manifest';
 import {
+	isLoadable,
 	PluginRuntimeUnavailableError,
 	type PluginRecord,
 	type PluginRuntime,
@@ -94,6 +95,10 @@ export function recordFor(plugin: DiscoveredPlugin): PluginRecord {
 
 interface RegistryHolder {
 	runtime: PluginRuntime | null;
+	/** Ids the user turned off; their records are `disabled` and not loaded. */
+	disabled: Set<string>;
+	/** Called after the records changed without a new plugin list (enable, disable). */
+	onChange: (() => void) | null;
 	disposers: Map<string, () => void>;
 	contexts: Map<string, Context>;
 }
@@ -104,6 +109,8 @@ export class PluginRegistryService extends Service {
 	// `Object.create`, and an assignment through a derived service would shadow instead of share.
 	private readonly holder: RegistryHolder = {
 		runtime: null,
+		disabled: new Set(),
+		onChange: null,
 		disposers: new Map(),
 		contexts: new Map()
 	};
@@ -129,12 +136,57 @@ export class PluginRegistryService extends Service {
 	ingest(list: PluginList): PluginRecord[] {
 		const records = this.resolveShadowing(list.plugins.map((plugin) => recordFor(plugin)));
 		const previous = new Map(this.registry.listAll().map((record) => [record.id, record]));
-		const next = records.map((record) => this.keepRuntimeState(record, previous.get(record.id)));
+		const next = records.map((record) =>
+			this.applyDisabled(this.keepRuntimeState(record, previous.get(record.id)))
+		);
 		for (const id of previous.keys()) {
 			if (!next.some((record) => record.id === id)) this.drop(id);
 		}
 		for (const record of next) this.put(record, previous.get(record.id));
 		return next;
+	}
+
+	/**
+	 * Turn off the plugins with these ids (the plugin manager's choice): they become `disabled` and
+	 * the loader unloads them, stubs and worker with them. The disposer enables them all again.
+	 */
+	setDisabled(ids: readonly string[]): () => void {
+		const mine = new Set(ids);
+		this.holder.disabled = mine;
+		this.reapplyDisabled();
+		return () => {
+			if (this.holder.disabled !== mine) return;
+			this.holder.disabled = new Set();
+			this.reapplyDisabled();
+		};
+	}
+
+	isDisabled(id: string): boolean {
+		return this.holder.disabled.has(id);
+	}
+
+	/** Called whenever the records change by themselves; the manifest plugin re-syncs its loader. */
+	onRecordsChanged(listener: () => void): () => void {
+		this.holder.onChange = listener;
+		return () => {
+			if (this.holder.onChange === listener) this.holder.onChange = null;
+		};
+	}
+
+	private reapplyDisabled(): void {
+		for (const record of this.registry.listAll()) {
+			const next = this.applyDisabled(record);
+			if (next !== record) this.put(next, record);
+		}
+		this.holder.onChange?.();
+	}
+
+	private applyDisabled(record: PluginRecord): PluginRecord {
+		const disabled = this.holder.disabled.has(record.id);
+		if (record.manifest === null) return record;
+		if (disabled && isLoadable(record)) return { ...record, status: 'disabled', error: null };
+		if (!disabled && record.status === 'disabled') return { ...record, status: 'inactive' };
+		return record;
 	}
 
 	/** The host reports a plugin started, stopped or crashed. */

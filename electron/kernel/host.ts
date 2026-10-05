@@ -168,10 +168,21 @@ export interface PluginFilesHost {
 	/** Create `directory` (and parents) when missing. */
 	ensureDirectory(directory: string): Promise<void>;
 	/**
-	 * Call `onChange` when something below `directory` is added, removed or edited. Returns the
+	 * Call `onChange` (with the path below `directory`) when something there is added, removed or edited. Returns the
 	 * function that closes the watcher; a directory that does not exist is not watched.
 	 */
-	watch(directory: string, onChange: () => void): () => void;
+	watch(directory: string, onChange: (relativePath: string) => void): () => void;
+	/** Write a new file, creating its directories. */
+	writeText(file: string, text: string): Promise<void>;
+	/** Run a plugin's `build` command with `directory` as working directory (60 s at most). */
+	runBuild(directory: string, command: string): Promise<{ ok: boolean; output: string }>;
+	/**
+	 * Copy the plugin folder `source`, or unpack the `.zip` `source`, into the new directory
+	 * `destination`. Rejects when `destination` exists or the archive is unsafe.
+	 */
+	install(source: string, destination: string): Promise<void>;
+	/** Delete `directory` and everything in it. */
+	remove(directory: string): Promise<void>;
 }
 
 export interface ElectronHost {
@@ -181,7 +192,17 @@ export interface ElectronHost {
 		handle(scheme: string, handler: (request: { url: string }) => Promise<Response>): void;
 		unhandle(scheme: string): void;
 	};
-	net: { fetch(url: string): Promise<Response> };
+	net: {
+		fetch(
+			url: string,
+			init?: {
+				method?: string;
+				headers?: Record<string, string>;
+				body?: string;
+				signal?: AbortSignal;
+			}
+		): Promise<Response>;
+	};
 	shell: {
 		openExternal(url: string): Promise<void>;
 		/** Show a file selected in the OS file manager. */

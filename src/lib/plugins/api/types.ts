@@ -19,6 +19,8 @@ export type NodeOperation =
 	| {
 			op: 'create';
 			type: NodeType;
+			/** The new node's id, when the plugin must know it before the host answers. */
+			id?: string;
 			/** A name later operations of the same call can use as `parentId` or `id`. */
 			ref?: string;
 			parentId?: string;

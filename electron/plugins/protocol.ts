@@ -7,6 +7,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type Plugin } from '@neoworks/extension-system';
 import { z } from 'zod';
+import {
+	parseHostsParameter,
+	WORKER_HOSTS_PARAMETER,
+	WORKER_MARKER_PARAMETER,
+	workerContentSecurityPolicy
+} from '../../src/lib/plugins/network';
 
 export const APP_SCHEME = 'app';
 
@@ -49,13 +55,16 @@ export const mainProtocolPlugin: Plugin.Object<ProtocolConfig> = {
 			void electron.app.whenReady().then(() => {
 				if (disposed) return;
 				electron.protocol.handle(APP_SCHEME, async (request) => {
-					const { pathname } = new URL(request.url);
+					const { pathname, searchParams } = new URL(request.url);
 					const file = resolveBuildFile(config.buildDirectory, pathname);
 					const response = await electron.net.fetch(pathToFileURL(file).href);
-					const contentType = forcedContentType(file);
-					if (contentType === undefined) return response;
 					const headers = new Headers(response.headers);
-					headers.set('content-type', contentType);
+					const contentType = forcedContentType(file);
+					if (contentType !== undefined) headers.set('content-type', contentType);
+					if (searchParams.has(WORKER_MARKER_PARAMETER)) {
+						const hosts = parseHostsParameter(searchParams.get(WORKER_HOSTS_PARAMETER));
+						headers.set('content-security-policy', workerContentSecurityPolicy(hosts));
+					}
 					return new Response(response.body, { status: response.status, headers });
 				});
 				registered = true;

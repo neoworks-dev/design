@@ -31,7 +31,10 @@ import type {
 	IpcEvents,
 	LoadedDocument,
 	NativeMenuItem,
+	PluginFetchRequest,
+	PluginFetchResponse,
 	PluginList,
+	PluginPermissionDecisions,
 	PluginSourceKind,
 	OpenFileOptions,
 	PickedImage,
@@ -313,6 +316,65 @@ export class DesktopService extends Service {
 	/** A file of a plugin (its main module) as text. */
 	pluginsReadFile(source: PluginSourceKind, directoryName: string, file: string): Promise<string> {
 		return typed(() => this.bridge.plugins.readFile(source, directoryName, file));
+	}
+
+	pluginsInstall(path: string): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.install(path));
+	}
+
+	pluginsCreate(
+		id: string,
+		name: string,
+		template: 'blank' | 'panel' | 'figma'
+	): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.create(id, name, template));
+	}
+
+	/** A native dialog for a plugin folder or `.zip`, then install; `null` when cancelled. */
+	pluginsInstallFromDialog(kind: 'folder' | 'zip'): Promise<PluginList | null> {
+		return typed(() => this.bridge.plugins.installFromDialog(kind));
+	}
+
+	pluginsRemove(directoryName: string): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.remove(directoryName));
+	}
+
+	pluginsReveal(source: PluginSourceKind, directoryName: string): Promise<void> {
+		return typed(() => this.bridge.plugins.reveal(source, directoryName));
+	}
+
+	/** What the user allowed or denied each plugin. */
+	pluginsPermissions(): Promise<PluginPermissionDecisions> {
+		return typed(() => this.bridge.plugins.permissions());
+	}
+
+	pluginsSetPermission(
+		pluginId: string,
+		permission: string,
+		granted: boolean | null
+	): Promise<PluginPermissionDecisions> {
+		return typed(() => this.bridge.plugins.setPermission(pluginId, permission, granted));
+	}
+
+	/** An HTTP request for a plugin; main checks its `network` permission and allowlist. */
+	pluginsFetch(request: PluginFetchRequest): Promise<PluginFetchResponse> {
+		return typed(() => this.bridge.plugins.fetch(request));
+	}
+
+	pluginsStorageGet(pluginId: string, key: string): Promise<unknown> {
+		return typed(() => this.bridge.plugins.storageGet(pluginId, key));
+	}
+
+	pluginsStorageSet(pluginId: string, key: string, value: unknown): Promise<void> {
+		return typed(() => this.bridge.plugins.storageSet(pluginId, key, value));
+	}
+
+	pluginsStorageDelete(pluginId: string, key: string): Promise<void> {
+		return typed(() => this.bridge.plugins.storageDelete(pluginId, key));
+	}
+
+	pluginsStorageKeys(pluginId: string): Promise<string[]> {
+		return typed(() => this.bridge.plugins.storageKeys(pluginId));
 	}
 
 	// ---------- assets and embedded fonts ----------

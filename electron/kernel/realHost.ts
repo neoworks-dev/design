@@ -15,12 +15,14 @@ import {
 	screen,
 	shell
 } from 'electron';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ClipboardContent, ClipboardWrite } from '../bridge';
 import { HarnessAgentHost } from '../ai/harnessAgents';
 import { qaScript, ScriptedAgentHost } from '../ai/scriptedAgents';
 import { fontDirectories, scanFonts } from '../fonts/scan';
+import { readZip, stripCommonRoot } from '../plugins/zipExtract';
 import type { AgentHost } from './agentHost';
 import type {
 	ElectronHost,
@@ -59,13 +61,47 @@ function createPluginFilesHost(): ElectronHost['pluginFiles'] {
 		},
 		watch: (directory, onChange) => {
 			try {
-				const watcher = fs.watch(directory, { recursive: true }, () => onChange());
+				const watcher = fs.watch(directory, { recursive: true }, (_event, name) => {
+					if (name !== null) onChange(String(name));
+				});
 				watcher.on('error', () => watcher.close());
 				return () => watcher.close();
 			} catch {
 				return () => {};
 			}
-		}
+		},
+		install: async (source, destination) => {
+			if (fs.existsSync(destination)) throw new Error(`"${destination}" already exists`);
+			const stat = await fs.promises.stat(source);
+			if (stat.isDirectory()) {
+				await fs.promises.cp(source, destination, { recursive: true });
+				return;
+			}
+			const entries = stripCommonRoot(readZip(await fs.promises.readFile(source)));
+			for (const entry of entries) {
+				const target = path.join(destination, entry.path);
+				await fs.promises.mkdir(path.dirname(target), { recursive: true });
+				await fs.promises.writeFile(target, entry.bytes);
+			}
+		},
+		remove: async (directory) => {
+			await fs.promises.rm(directory, { recursive: true, force: true });
+		},
+		writeText: async (file, text) => {
+			await fs.promises.mkdir(path.dirname(file), { recursive: true });
+			await fs.promises.writeFile(file, text);
+		},
+		runBuild: (directory, command) =>
+			new Promise((resolve) => {
+				execFile(
+					'/bin/sh',
+					['-c', command],
+					{ cwd: directory, timeout: 60_000, maxBuffer: 1024 * 1024 },
+					(error, stdout, stderr) => {
+						resolve({ ok: error === null, output: `${stdout}${stderr}`.trim() });
+					}
+				);
+			})
 	};
 }
 
@@ -298,7 +334,7 @@ export function createRealHost(): ElectronHost {
 			handle: (scheme, handler) => protocol.handle(scheme, handler),
 			unhandle: (scheme) => protocol.unhandle(scheme)
 		},
-		net: { fetch: (url) => net.fetch(url) },
+		net: { fetch: (url, init) => net.fetch(url, init) },
 		shell: {
 			openExternal: (url) => shell.openExternal(url),
 			showItemInFolder: (file) => shell.showItemInFolder(file)

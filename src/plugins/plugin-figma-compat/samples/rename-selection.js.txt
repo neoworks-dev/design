@@ -1,0 +1,14 @@
+// Sample Figma plugin 2: renames the selected layers, remembers it in plugin data and says so.
+const selection = figma.currentPage.selection;
+if (selection.length === 0) {
+	figma.closePlugin('Select some layers first');
+} else {
+	let position = 1;
+	for (const node of selection) {
+		node.name = 'Layer ' + position;
+		node.setPluginData('renamedAt', String(position));
+		position += 1;
+	}
+	figma.notify('Renamed ' + selection.length + ' layers');
+	figma.closePlugin();
+}

@@ -15,9 +15,17 @@ import type { ManifestIssue, PluginManifest } from './manifest';
  *   incompatible  written for an API version this app does not provide
  *   untrusted     lives in a project the user has not trusted
  *   shadowed      another plugin with the same id was found in an earlier root
+ *   disabled      the user turned it off in the plugin manager; nothing of it is loaded
  */
 export type PluginStatus =
-	'inactive' | 'active' | 'failed' | 'invalid' | 'incompatible' | 'untrusted' | 'shadowed';
+	| 'inactive'
+	| 'active'
+	| 'failed'
+	| 'invalid'
+	| 'incompatible'
+	| 'untrusted'
+	| 'shadowed'
+	| 'disabled';
 
 export interface PluginRecord extends RegistryEntry {
 	/** The manifest's id; `invalid:<source>:<directory>` when there is no usable manifest. */

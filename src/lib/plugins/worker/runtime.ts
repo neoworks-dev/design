@@ -10,6 +10,7 @@
 
 import { SDK_API_VERSION, createDesign, type SdkEnv } from './design';
 import { EventHub } from './events';
+import { createFigmaCompat, type FigmaCompat } from './figma/figma';
 import { RpcChannel, type RpcEndpoint, type RpcOptions } from '../rpc';
 
 /** The slice of `DedicatedWorkerGlobalScope` the runtime uses. */
@@ -62,6 +63,10 @@ export function lockdownGlobals(scope: object): string[] {
 		}
 	}
 	return removed;
+}
+
+function usesFigma(source: string): boolean {
+	return /\bfigma\b/.test(source);
 }
 
 function isInitMessage(value: unknown): value is InitMessage {
@@ -136,14 +141,30 @@ function boot(scope: WorkerScope, init: InitMessage, loadModule: ModuleLoader): 
 		reportError
 	};
 	lockdownGlobals(scope);
-	Reflect.set(scope, 'design', createDesign(env));
+	const design = createDesign(env);
+	Reflect.set(scope, 'design', design);
+	// Only a plugin that mentions `figma` gets the Figma layer: it asks the host for a snapshot of
+	// the page and opens a run, which a plugin written for `design` has no use for.
+	let compat: FigmaCompat | null = null;
+	if (usesFigma(init.source)) {
+		const figmaCompat = createFigmaCompat(env, design);
+		compat = figmaCompat;
+		Reflect.set(scope, 'figma', figmaCompat.figma);
+		env.fallbackCommand = () => figmaCompat.launchFromCommand(() => loadModule(init.source, env));
+	}
 	scope.addEventListener('unhandledrejection', (event) =>
 		reportError(Reflect.get(event, 'reason'))
 	);
 
-	loadModule(init.source, env).then(
-		() => channel.emit('lifecycle.ready'),
-		(error: unknown) => channel.emit('lifecycle.error', describeError(error))
-	);
+	const startCompat = compat === null ? Promise.resolve() : compat.start();
+	startCompat
+		.then(() => loadModule(init.source, env))
+		.then(
+			() => {
+				channel.emit('lifecycle.ready');
+				compat?.finish().catch(reportError);
+			},
+			(error: unknown) => channel.emit('lifecycle.error', describeError(error))
+		);
 	return channel;
 }

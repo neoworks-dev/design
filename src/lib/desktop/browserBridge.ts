@@ -162,7 +162,19 @@ export function createBrowserBridge(): BrowserBridge {
 		plugins: {
 			list: () => Promise.resolve({ plugins: [], project: null, projectTrust: null }),
 			setTrust: () => unavailable('trusting a project'),
-			readFile: () => unavailable('reading plugin files')
+			readFile: () => unavailable('reading plugin files'),
+			install: () => unavailable('installing plugins'),
+			create: () => unavailable('creating plugins'),
+			installFromDialog: () => Promise.resolve(null),
+			remove: () => unavailable('removing plugins'),
+			reveal: () => unavailable('showing plugin folders'),
+			permissions: () => Promise.resolve({}),
+			setPermission: () => unavailable('changing plugin permissions'),
+			fetch: () => unavailable('plugin network access'),
+			storageGet: () => Promise.resolve(null),
+			storageSet: () => unavailable('plugin storage'),
+			storageDelete: () => unavailable('plugin storage'),
+			storageKeys: () => Promise.resolve([])
 		},
 		events: {
 			on: (channel, listener) => {

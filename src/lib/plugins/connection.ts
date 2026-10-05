@@ -22,7 +22,12 @@ export interface WorkerEventLike {
 	message?: string;
 }
 
-export type WorkerFactory = (pluginId: string) => WorkerLike;
+export interface WorkerOptions {
+	/** Hosts the worker may reach (`networkAccess.allowedDomains` of a plugin with `network`). */
+	allowedDomains: string[];
+}
+
+export type WorkerFactory = (pluginId: string, options: WorkerOptions) => WorkerLike;
 
 /** A stretch of plugin work that is one undo step: a command, a UI event. */
 export interface PluginRun {
@@ -52,6 +57,8 @@ export interface ConnectionOptions {
 	/** Answers the worker's API requests (`namespace.method`). */
 	dispatch(connection: PluginConnection, method: string, params: unknown): unknown;
 	runScopes(): readonly RunScope[];
+	/** A line was added to the plugin console (the devtools plugin mirrors them). */
+	onLog?(connection: PluginConnection, line: PluginLogLine): void;
 	/** The worker is unusable (a run timed out): the host marks the plugin failed. */
 	onFatal(connection: PluginConnection, reason: string): void;
 }
@@ -171,8 +178,10 @@ export class PluginConnection {
 	}
 
 	addLog(level: PluginLogLine['level'], message: string): void {
-		this.logs.push({ level, message, at: Date.now() });
+		const line: PluginLogLine = { level, message, at: Date.now() };
+		this.logs.push(line);
 		if (this.logs.length > MAX_LOG_LINES) this.logs.splice(0, this.logs.length - MAX_LOG_LINES);
+		this.options.onLog?.(this, line);
 	}
 
 	/** Send a host event to the plugin when it subscribed to `name`. */

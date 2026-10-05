@@ -17,14 +17,23 @@
 import path from 'node:path';
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { z } from 'zod';
-import type { DiscoveredPlugin, PluginList, PluginSourceKind, ProjectTrust } from '../bridge';
-import type { SenderHandle } from '../kernel/host';
+import type {
+	DiscoveredPlugin,
+	PluginList,
+	PluginReloadMessage,
+	PluginSourceKind,
+	ProjectTrust
+} from '../bridge';
+import { isValidPluginId, pluginTemplateFiles } from '../../src/lib/plugins/templates';
+import type { SenderHandle, WindowHandle } from '../kernel/host';
 import { IpcError, emitTo, route } from '../kernel/route';
 
 export const TRUST_FILE = 'plugin-trust.json';
 export const MANIFEST_FILE = 'manifest.json';
 const PROJECT_PLUGIN_PATH = ['.design', 'plugins'];
 const RESCAN_DELAY_MS = 150;
+/** Changes this soon after a plugin's build finished are the build's own output. */
+const BUILD_QUIET_MS = 800;
 /** A plugin's main module is source code; more than this is a mistake, not a plugin. */
 const MAX_PLUGIN_FILE_BYTES = 8 * 1024 * 1024;
 
@@ -51,9 +60,33 @@ function parseJson(text: string): unknown {
 	return JSON.parse(text);
 }
 
+/** The id a plugin's manifest declares, or `null` when it has none that is usable. */
+export function manifestId(plugin: DiscoveredPlugin): string | null {
+	if (typeof plugin.manifest !== 'object' || plugin.manifest === null) return null;
+	const id: unknown = Reflect.get(plugin.manifest, 'id');
+	if (typeof id !== 'string') return null;
+	return id;
+}
+
 function describeError(error: unknown): string {
 	if (error instanceof Error) return error.message;
 	return String(error);
+}
+
+/** The manifest's `build` command, when it names one. */
+function buildCommandOf(plugin: DiscoveredPlugin): string | null {
+	if (typeof plugin.manifest !== 'object' || plugin.manifest === null) return null;
+	const build: unknown = Reflect.get(plugin.manifest, 'build');
+	if (typeof build !== 'string' || build.trim() === '') return null;
+	return build;
+}
+
+/** The directory name an installed plugin gets: the folder or archive name, made safe. */
+export function installName(source: string): string {
+	const base = path.basename(source).replace(/\.zip$/i, '');
+	const safe = base.replace(/[^A-Za-z0-9._-]/g, '-').replace(/^\.+/, '');
+	if (safe === '') throw new IpcError('HANDLER_FAILED', `"${source}" cannot be installed`);
+	return safe;
 }
 
 /** True when `candidate` is `directory` itself or below it, after resolving `..` segments. */
@@ -71,6 +104,12 @@ export class PluginDiscoveryService extends Service {
 	private readonly projectWatchers = new Map<number, { directory: string; stop: () => unknown }>();
 	private readonly asked = new Set<string>();
 	private rescanTimer: (() => unknown) | null = null;
+	private readonly changedPlugins = new Map<
+		string,
+		{ source: PluginSourceKind; directoryName: string }
+	>();
+	private readonly buildingUntil = new Map<string, number>();
+	private readonly building = new Set<string>();
 
 	constructor(
 		ctx: Context,
@@ -143,6 +182,14 @@ export class PluginDiscoveryService extends Service {
 				error: `manifest.json is not valid JSON: ${describeError(error)}`
 			};
 		}
+	}
+
+	/** The plugin of the sender's window whose manifest declares `pluginId`; the first root wins. */
+	async findById(sender: SenderHandle, pluginId: string): Promise<DiscoveredPlugin> {
+		const list = await this.list(sender);
+		const found = list.plugins.find((plugin) => manifestId(plugin) === pluginId);
+		if (found === undefined) throw new IpcError('HANDLER_FAILED', `no plugin "${pluginId}"`);
+		return found;
 	}
 
 	// ---------- trust ----------
@@ -251,10 +298,65 @@ export class PluginDiscoveryService extends Service {
 		}
 		if (directory === null) return;
 		const stop = this.ctx.effect(
-			() => this.ctx.electron.pluginFiles.watch(directory, () => this.scheduleRescan()),
+			() =>
+				this.ctx.electron.pluginFiles.watch(directory, (relative) =>
+					this.noteChange('project', relative)
+				),
 			`plugins:watch project ${directory}`
 		);
 		this.projectWatchers.set(sender.id, { directory, stop });
+	}
+
+	/**
+	 * A file of a plugin changed: rescan, and reload the plugin once the burst of events is over
+	 * (after its `build` command, when it has one). Changes a build makes itself are ignored.
+	 */
+	noteChange(source: PluginSourceKind, relativePath: string): void {
+		const [directoryName] = relativePath.split(/[\\/]/);
+		if (directoryName !== '' && source !== 'builtin') {
+			const key = `${source}/${directoryName}`;
+			const quiet = this.buildingUntil.get(key);
+			const ignored = this.building.has(key) || (quiet !== undefined && Date.now() < quiet);
+			if (!ignored) this.changedPlugins.set(key, { source, directoryName });
+		}
+		this.scheduleRescan();
+	}
+
+	private async reloadChanged(): Promise<void> {
+		const changed = [...this.changedPlugins.values()];
+		this.changedPlugins.clear();
+		for (const entry of changed) await this.reloadPlugin(entry.source, entry.directoryName);
+	}
+
+	private async reloadPlugin(source: PluginSourceKind, directoryName: string): Promise<void> {
+		const key = `${source}/${directoryName}`;
+		const targets: { window: WindowHandle; plugin: DiscoveredPlugin }[] = [];
+		for (const window of this.ctx.electron.windows()) {
+			if (window.isDestroyed()) continue;
+			const list = await this.list(window.sender);
+			const plugin = list.plugins.find(
+				(candidate) => candidate.source === source && candidate.directoryName === directoryName
+			);
+			if (plugin !== undefined && plugin.trusted && plugin.manifest !== null) {
+				targets.push({ window, plugin });
+			}
+		}
+		if (targets.length === 0) return;
+		const message: PluginReloadMessage = { source, directoryName };
+		const command = buildCommandOf(targets[0].plugin);
+		if (command !== null) {
+			this.building.add(key);
+			try {
+				message.build = await this.ctx.electron.pluginFiles.runBuild(
+					targets[0].plugin.directory,
+					command
+				);
+			} finally {
+				this.building.delete(key);
+				this.buildingUntil.set(key, Date.now() + BUILD_QUIET_MS);
+			}
+		}
+		for (const target of targets) emitTo(target.window, 'plugins:reload', message);
 	}
 
 	/** Coalesce bursts of file events (an editor saving, a build writing several files). */
@@ -263,10 +365,103 @@ export class PluginDiscoveryService extends Service {
 		this.rescanTimer = this.ctx.effect(() => {
 			const handle = setTimeout(() => {
 				this.rescanTimer = null;
-				this.refreshAll().catch((error: unknown) => this.ctx.logger.error(error));
+				this.refreshAll()
+					.then(() => this.reloadChanged())
+					.catch((error: unknown) => this.ctx.logger.error(error));
 			}, RESCAN_DELAY_MS);
 			return () => clearTimeout(handle);
 		}, 'plugins:rescan');
+	}
+
+	// ---------- installing and removing ----------
+
+	/** Copy a plugin folder, or unpack a `.zip`, into the user plugins directory. */
+	async install(sender: SenderHandle, source: string): Promise<PluginList> {
+		const name = installName(source);
+		const destination = path.join(this.userDirectory, name);
+		await this.ctx.electron.pluginFiles.ensureDirectory(this.userDirectory);
+		const installed = await this.ctx.electron.pluginFiles.listDirectories(this.userDirectory);
+		if (installed.includes(name)) {
+			throw new IpcError('HANDLER_FAILED', `a plugin folder named "${name}" is already installed`);
+		}
+		try {
+			await this.ctx.electron.pluginFiles.install(source, destination);
+			const manifest = await this.ctx.electron.pluginFiles.readText(
+				path.join(destination, MANIFEST_FILE)
+			);
+			if (manifest === undefined) {
+				throw new IpcError('HANDLER_FAILED', `"${path.basename(source)}" has no manifest.json`);
+			}
+		} catch (error) {
+			await this.ctx.electron.pluginFiles.remove(destination);
+			if (error instanceof IpcError) throw error;
+			throw new IpcError('HANDLER_FAILED', `could not install: ${describeError(error)}`);
+		}
+		const list = await this.list(sender);
+		this.publish(sender, list);
+		return list;
+	}
+
+	/** Pick a folder or a `.zip` with a native dialog and install it; `null` when cancelled. */
+	async installFromDialog(
+		sender: SenderHandle,
+		kind: 'folder' | 'zip'
+	): Promise<PluginList | null> {
+		const picked = await this.ctx.electron.dialog.showOpenDialog({
+			title: kind === 'folder' ? 'Install plugin from folder' : 'Install plugin from .zip',
+			multiple: false,
+			directory: kind === 'folder',
+			filters: kind === 'zip' ? [{ name: 'Plugin archive', extensions: ['zip'] }] : undefined
+		});
+		if (picked === null || picked.length === 0) return null;
+		return this.install(sender, picked[0]);
+	}
+
+	/** Write a new plugin from a template into the user plugins directory. */
+	async create(
+		sender: SenderHandle,
+		id: string,
+		name: string,
+		template: 'blank' | 'panel' | 'figma'
+	): Promise<PluginList> {
+		if (!isValidPluginId(id)) throw new IpcError('INVALID_PAYLOAD', `"${id}" is not a valid id`);
+		const files = this.ctx.electron.pluginFiles;
+		await files.ensureDirectory(this.userDirectory);
+		if ((await files.listDirectories(this.userDirectory)).includes(id)) {
+			throw new IpcError('HANDLER_FAILED', `a plugin folder named "${id}" already exists`);
+		}
+		const destination = path.join(this.userDirectory, id);
+		for (const [relative, text] of Object.entries(pluginTemplateFiles(template, id, name))) {
+			await files.writeText(path.join(destination, relative), text);
+		}
+		const list = await this.list(sender);
+		this.publish(sender, list);
+		return list;
+	}
+
+	/** Delete a plugin of the user plugins directory (bundled and project plugins are not ours to delete). */
+	async remove(sender: SenderHandle, directoryName: string): Promise<PluginList> {
+		const directory = path.join(this.userDirectory, directoryName);
+		if (!isInside(this.userDirectory, directory) || directory === this.userDirectory) {
+			throw new IpcError('HANDLER_FAILED', `"${directoryName}" is not an installed plugin`);
+		}
+		await this.ctx.electron.pluginFiles.remove(directory);
+		const list = await this.list(sender);
+		this.publish(sender, list);
+		return list;
+	}
+
+	async reveal(
+		sender: SenderHandle,
+		source: PluginSourceKind,
+		directoryName: string
+	): Promise<void> {
+		const list = await this.list(sender);
+		const plugin = list.plugins.find(
+			(candidate) => candidate.source === source && candidate.directoryName === directoryName
+		);
+		if (!plugin) throw new IpcError('HANDLER_FAILED', `no ${source} plugin "${directoryName}"`);
+		this.ctx.electron.shell.showItemInFolder(path.join(plugin.directory, MANIFEST_FILE));
 	}
 
 	// ---------- reading plugin files ----------
@@ -321,6 +516,21 @@ export const mainPluginsPlugin: Plugin.Object<PluginDiscoveryConfig> = {
 		route(ctx, 'plugins:setTrust', (request, event) =>
 			discovery.setTrustFor(event.sender, request.trusted)
 		);
+		route(ctx, 'plugins:install', (request, event) =>
+			discovery.install(event.sender, request.path)
+		);
+		route(ctx, 'plugins:installFromDialog', (request, event) =>
+			discovery.installFromDialog(event.sender, request.kind)
+		);
+		route(ctx, 'plugins:create', (request, event) =>
+			discovery.create(event.sender, request.id, request.name, request.template)
+		);
+		route(ctx, 'plugins:remove', (request, event) =>
+			discovery.remove(event.sender, request.directoryName)
+		);
+		route(ctx, 'plugins:reveal', (request, event) =>
+			discovery.reveal(event.sender, request.source, request.directoryName)
+		);
 		route(ctx, 'plugins:readFile', (request, event) =>
 			discovery.readFile(event.sender, request.source, request.directoryName, request.file)
 		);
@@ -330,12 +540,18 @@ export const mainPluginsPlugin: Plugin.Object<PluginDiscoveryConfig> = {
 			await ctx.electron.pluginFiles.ensureDirectory(discovery.userDirectory);
 			return () => {};
 		}, 'plugins:user directory');
-		const rescan = (): void => discovery.scheduleRescan();
-		for (const [label, directory] of [
-			['bundled', discovery.bundledDirectory],
+		const roots: [PluginSourceKind, string][] = [
+			['builtin', discovery.bundledDirectory],
 			['user', discovery.userDirectory]
-		]) {
-			ctx.effect(() => ctx.electron.pluginFiles.watch(directory, rescan), `plugins:watch ${label}`);
+		];
+		for (const [source, directory] of roots) {
+			ctx.effect(
+				() =>
+					ctx.electron.pluginFiles.watch(directory, (relative) =>
+						discovery.noteChange(source, relative)
+					),
+				`plugins:watch ${source}`
+			);
 		}
 
 		ctx.effect(

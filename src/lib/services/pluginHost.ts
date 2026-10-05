@@ -19,11 +19,13 @@
 import { Service, type Context, type Fiber, type Plugin } from '@neoworks/extension-system';
 import {
 	PluginConnection,
+	type PluginLogLine,
 	type PluginRun,
 	type RunScope,
 	type WorkerFactory
 } from '../plugins/connection';
-import type { PluginPermission } from '../plugins/manifest';
+import type { PluginManifest, PluginPermission } from '../plugins/manifest';
+import { normalizeAllowedDomains } from '../plugins/network';
 import { RegistrationBook } from '../plugins/registrations';
 import type { PluginRecord, PluginRuntime } from '../plugins/types';
 import type { PluginRegistryService } from './pluginRegistry';
@@ -86,6 +88,21 @@ export class PluginRefusedError extends Error {
 	}
 }
 
+/**
+ * A call needed a permission the plugin lacks: it never declared it, or the user denied it. The
+ * name crosses the RPC boundary, so a plugin can tell it from other failures
+ * (`error.remoteName === 'PermissionDeniedError'`).
+ */
+export class PermissionDeniedError extends PluginRefusedError {
+	constructor(
+		readonly permission: PluginPermission,
+		reason: string
+	) {
+		super(reason);
+		this.name = 'PermissionDeniedError';
+	}
+}
+
 export interface PluginHostLimits {
 	/** Longest a request to or from a worker may wait for its answer. */
 	requestTimeoutMs: number;
@@ -109,6 +126,7 @@ interface HostHolder {
 	activations: Map<string, Promise<PluginConnection>>;
 	apis: Map<string, ApiNamespace>;
 	runScopes: Set<RunScope>;
+	logListeners: Set<(connection: PluginConnection, line: PluginLogLine) => void>;
 	eventPermissions: Map<string, PluginPermission>;
 }
 
@@ -121,6 +139,12 @@ function describeError(error: unknown): string {
 function runLabel(pluginName: string, title: string | undefined, commandId: string): string {
 	if (title === undefined) return `${pluginName}: ${commandId}`;
 	return title;
+}
+
+function allowedDomainsOf(manifest: PluginManifest): string[] {
+	if (!manifest.permissions.includes('network')) return [];
+	if (manifest.networkAccess === undefined) return [];
+	return normalizeAllowedDomains(manifest.networkAccess.allowedDomains);
 }
 
 function normalize(method: ApiMethod | ApiHandler): ApiMethod {
@@ -136,6 +160,7 @@ export class PluginHostService extends Service {
 		activations: new Map(),
 		apis: new Map(),
 		runScopes: new Set(),
+		logListeners: new Set(),
 		eventPermissions: new Map()
 	};
 
@@ -193,6 +218,14 @@ export class PluginHostService extends Service {
 		};
 	}
 
+	/** Hear every line any plugin writes to its console (`design.log`, errors). */
+	onLog(listener: (connection: PluginConnection, line: PluginLogLine) => void): () => void {
+		this.holder.logListeners.add(listener);
+		return () => {
+			this.holder.logListeners.delete(listener);
+		};
+	}
+
 	registerRunScope(scope: RunScope): () => void {
 		this.holder.runScopes.add(scope);
 		return () => {
@@ -241,6 +274,9 @@ export class PluginHostService extends Service {
 		const record = this.registry.get(pluginId);
 		if (record === undefined || record.manifest === null) {
 			return Promise.reject(new Error(`no plugin "${pluginId}" is loaded`));
+		}
+		if (record.status === 'disabled') {
+			return Promise.reject(new Error(`plugin "${pluginId}" is disabled`));
 		}
 		if (record.status === 'failed') {
 			return Promise.reject(new Error(`plugin "${pluginId}" failed: ${record.error ?? 'unknown'}`));
@@ -317,7 +353,7 @@ export class PluginHostService extends Service {
 			timeoutMs: limits.requestTimeoutMs
 		};
 		const apply = async (ctx: Context): Promise<void> => {
-			const worker = createWorker(record.id);
+			const worker = createWorker(record.id, { allowedDomains: allowedDomainsOf(manifest) });
 			ctx.effect(() => () => worker.terminate(), `plugin ${record.id} worker`);
 			const connection = new PluginConnection({
 				pluginId: record.id,
@@ -328,6 +364,9 @@ export class PluginHostService extends Service {
 				runTimeoutMs: limits.runTimeoutMs,
 				dispatch: (caller, method, params) => this.dispatch(caller, method, params),
 				runScopes: () => [...this.holder.runScopes],
+				onLog: (caller, line) => {
+					for (const listener of this.holder.logListeners) listener(caller, line);
+				},
 				onFatal: (caller, reason) => this.fail(caller.pluginId, reason)
 			});
 			ctx.effect(() => {
@@ -414,7 +453,8 @@ export class PluginHostService extends Service {
 		permission: PluginPermission
 	): Promise<void> {
 		if (!connection.manifest.permissions.includes(permission)) {
-			throw new PluginRefusedError(
+			throw new PermissionDeniedError(
+				permission,
 				`plugin "${connection.pluginId}" did not declare the "${permission}" permission needed by ${method}`
 			);
 		}
@@ -423,7 +463,7 @@ export class PluginHostService extends Service {
 			method,
 			permission
 		});
-		if (typeof refusal === 'string') throw new PluginRefusedError(refusal);
+		if (typeof refusal === 'string') throw new PermissionDeniedError(permission, refusal);
 	}
 
 	snapshotState(): Record<string, unknown> {
@@ -431,6 +471,7 @@ export class PluginHostService extends Service {
 			running: [...this.holder.connections.keys()].sort(),
 			apis: [...this.holder.apis.keys()].sort(),
 			runScopes: this.holder.runScopes.size,
+			logListeners: this.holder.logListeners.size,
 			eventPermissions: [...this.holder.eventPermissions.keys()].sort()
 		};
 	}

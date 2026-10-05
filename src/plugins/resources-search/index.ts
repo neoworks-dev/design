@@ -1,17 +1,19 @@
 import type { Context } from '@neoworks/extension-system';
 import type { PaletteItem } from '../command-palette/service';
+import { ResourceSearchService } from './service';
 
 const SOURCE_ID = 'resources';
 
 // The Resources quick search (Shift+I): the command palette opened on a "Resources" tab that
 // lists the components of the file; Enter inserts the highlighted one at the middle of the
 // selected frame, else of the viewport (the same insert as a double click in the assets panel).
-// Other plugins can add their own resources by registering palette sources: this one only owns
-// the components. Inserting a component into itself is refused and greyed out, as in the panel.
+// Other plugins add their own resources through `resourceSearch.registerProvider` (the plugin
+// manager lists installed plugins that way): this one only owns the components. Inserting a component into itself is refused and greyed out, as in the panel.
 export default {
 	name: 'resources-search',
 	inject: ['palette', 'assetsPanel', 'commands', 'keymap'],
 	apply(ctx: Context): void {
+		const resources = new ResourceSearchService(ctx);
 		ctx.effect(
 			() =>
 				ctx.palette.registerSource({
@@ -19,14 +21,16 @@ export default {
 					title: 'Resources',
 					order: 15,
 					placeholder: 'Insert a component',
-					items: () =>
-						ctx.assetsPanel.searchComponents('').map((entry): PaletteItem => ({
+					items: (query) => [
+						...ctx.assetsPanel.searchComponents('').map((entry): PaletteItem => ({
 							id: entry.id,
 							title: entry.name,
 							subtitle: entry.group,
 							enabled: !entry.blocked,
 							run: () => void ctx.assetsPanel.insertAtDefault(entry.id)
-						}))
+						})),
+						...resources.itemsFor(query)
+					]
 				}),
 			'palette source resources'
 		);

@@ -219,6 +219,7 @@ export class FakeHost implements ElectronHost {
 	readCount = 0;
 	displays: Rect[] = [{ x: 0, y: 0, width: 1920, height: 1080 }];
 	readonly fetched: string[] = [];
+	readonly fetchInits: unknown[] = [];
 	paths: Partial<Record<AppPathName, string>> = {};
 	quitCount = 0;
 	version = '1.2.3';
@@ -304,8 +305,9 @@ export class FakeHost implements ElectronHost {
 	};
 
 	readonly net: ElectronHost['net'] = {
-		fetch: (url) => {
+		fetch: (url, init) => {
 			this.fetched.push(url);
+			this.fetchInits.push(init);
 			return Promise.resolve(new Response('ok'));
 		}
 	};
@@ -392,7 +394,13 @@ export class FakeHost implements ElectronHost {
 	/** Plugin files by absolute path (directories are implied); tests edit them with `setPluginFile`. */
 	readonly pluginTree = new Map<string, string>();
 	readonly pluginDirectories = new Set<string>();
-	readonly pluginWatchers = new Set<{ directory: string; onChange: () => void }>();
+	readonly pluginWatchers = new Set<{
+		directory: string;
+		onChange: (relativePath: string) => void;
+	}>();
+	/** Builds `runBuild` was asked for, and what it answers (tests set `buildResult`). */
+	readonly builds: { directory: string; command: string }[] = [];
+	buildResult: { ok: boolean; output: string } = { ok: true, output: 'built' };
 
 	readonly pluginFiles: ElectronHost['pluginFiles'] = {
 		listDirectories: (directory) => {
@@ -417,15 +425,59 @@ export class FakeHost implements ElectronHost {
 			return () => {
 				this.pluginWatchers.delete(watcher);
 			};
+		},
+		writeText: (file, text) => {
+			this.setPluginFile(file, text);
+			return Promise.resolve();
+		},
+		runBuild: (directory, command) => {
+			this.builds.push({ directory, command });
+			return Promise.resolve(this.buildResult);
+		},
+		install: (source, destination) => {
+			const files = this.installable(source);
+			if (files === undefined) return Promise.reject(new Error(`no plugin at ${source}`));
+			for (const file of this.pluginTree.keys()) {
+				if (file.startsWith(`${destination}/`)) {
+					return Promise.reject(new Error(`"${destination}" already exists`));
+				}
+			}
+			for (const [name, text] of Object.entries(files)) {
+				this.setPluginFile(`${destination}/${name}`, text);
+			}
+			return Promise.resolve();
+		},
+		remove: (directory) => {
+			for (const file of this.pluginTree.keys()) {
+				if (file.startsWith(`${directory}/`)) this.setPluginFile(file, undefined);
+			}
+			return Promise.resolve();
 		}
 	};
+
+	/** Archives tests can install, by path: file name to text. */
+	readonly pluginArchives = new Map<string, Record<string, string>>();
+
+	/** The files a folder or a registered archive holds, by relative path. */
+	private installable(source: string): Record<string, string> | undefined {
+		const archive = this.pluginArchives.get(source);
+		if (archive !== undefined) return archive;
+		const files: Record<string, string> = {};
+		for (const [file, text] of this.pluginTree) {
+			if (file.startsWith(`${source}/`)) files[file.slice(source.length + 1)] = text;
+		}
+		if (Object.keys(files).length === 0) return undefined;
+		return files;
+	}
 
 	/** Test driver: create, edit or (with `undefined`) delete a plugin file; watchers above it fire. */
 	setPluginFile(file: string, text: string | undefined): void {
 		if (text === undefined) this.pluginTree.delete(file);
 		else this.pluginTree.set(file, text);
 		for (const watcher of Array.from(this.pluginWatchers)) {
-			if (file.startsWith(`${watcher.directory}/`)) watcher.onChange();
+			if (file.startsWith(`${watcher.directory}/`)) {
+				watcher.onChange(file.slice(watcher.directory.length + 1));
+			}
 		}
 	}
 

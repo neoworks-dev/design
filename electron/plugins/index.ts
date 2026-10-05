@@ -17,6 +17,8 @@ import { mainFontsPlugin } from './fonts';
 import { mainIpcPlugin } from './ipc';
 import { mainMenuPlugin } from './menu';
 import { mainPluginsPlugin } from './pluginDiscovery';
+import { mainPluginPermissionsPlugin } from './pluginPermissions';
+import { mainPluginStoragePlugin } from './pluginStorage';
 import { mainProtocolPlugin } from './protocol';
 import { mainSettingsPlugin } from './settings';
 import { mainStorePlugin } from './store';
@@ -52,6 +54,8 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainAssetsPlugin },
 		{ plugin: mainPluginsPlugin, config: { bundledDirectory: options.bundledPluginsDirectory } },
 		{ plugin: mainArchivePlugin },
+		{ plugin: mainPluginPermissionsPlugin },
+		{ plugin: mainPluginStoragePlugin },
 		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }
 	];
 }

@@ -7,6 +7,13 @@
 import type { HistoryService, GroupHandle } from '../../services/history';
 import type { PluginRun, RunScope } from '../connection';
 
+declare module '@neoworks/extension-system' {
+	interface Context {
+		/** One undo step per plugin run; provided by `plugin-api`, used by APIs that write. */
+		pluginUndo: PluginUndo;
+	}
+}
+
 interface RunState {
 	handle: GroupHandle;
 	runId: string;

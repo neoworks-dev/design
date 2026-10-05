@@ -32,6 +32,15 @@ export default {
 			loader.sync(records).catch((error: unknown) => ctx.logger.error(error));
 		};
 
+		ctx.effect(
+			() =>
+				registry.onRecordsChanged(() => {
+					if (alive)
+						loader.sync(registry.records()).catch((error: unknown) => ctx.logger.error(error));
+				}),
+			'plugin-manifests follow enable and disable'
+		);
+
 		ctx.desktop.on('plugins:changed', adopt);
 		ctx.desktop
 			.pluginsList()

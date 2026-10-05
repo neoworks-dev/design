@@ -47,7 +47,12 @@ describe('standard kernel test: mount, assert contributions, dispose, state iden
 		['main-app', (snapshot) => expect(snapshot.handlers).toContain('app:quit')],
 		['main-dialogs', (snapshot) => expect(snapshot.handlers).toContain('dialogs:openImages')],
 		['main-fonts', (snapshot) => expect(snapshot.handlers).toContain('fonts:load')],
-		['main-protocol', (snapshot) => expect(snapshot.protocolSchemes).toEqual(['app'])]
+		['main-protocol', (snapshot) => expect(snapshot.protocolSchemes).toEqual(['app'])],
+		[
+			'main-plugin-permissions',
+			(snapshot) => expect(snapshot.handlers).toContain('plugins:permissions')
+		],
+		['main-plugin-storage', (snapshot) => expect(snapshot.handlers).toContain('plugins:storageGet')]
 	];
 
 	for (const [name, assertContribution] of perPlugin) {
@@ -339,6 +344,21 @@ describe('main-protocol', () => {
 			'application/wasm'
 		);
 		expect(forcedContentType('/build/200.html')).toBeUndefined();
+	});
+
+	it('confines a plugin worker script to the hosts its manifest allows', async () => {
+		const { host } = await bootTestKernel({ host: { deferReady: true } });
+		host.becomeReady();
+		await settle();
+		const handler = host.protocolHandlers.get('app');
+		const confined = await handler?.({
+			url: 'app://design/worker.js?pluginWorker=1&pluginHosts=api.example.com,*'
+		});
+		const policy = confined?.headers.get('content-security-policy');
+		expect(policy).toContain('connect-src https://api.example.com');
+		expect(policy).not.toContain('*');
+		const plain = await handler?.({ url: 'app://design/200.html' });
+		expect(plain?.headers.get('content-security-policy')).toBeNull();
 	});
 
 	it('does not touch the protocol if unloaded before ready', async () => {

@@ -45,6 +45,7 @@ describe('preload bridge', () => {
 			'kernel:boot-report',
 			'menu:command',
 			'plugins:changed',
+			'plugins:reload',
 			'window:maximized'
 		]);
 	});

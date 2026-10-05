@@ -1,0 +1,34 @@
+// Sample Figma plugin 3: loads a font, builds a card (frame, text), groups two layers, counts its
+// runs in clientStorage and finds its own layers again.
+async function main() {
+	await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+	const frame = figma.createFrame();
+	frame.name = 'Card';
+	frame.resize(240, 120);
+	frame.cornerRadius = 12;
+	frame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+
+	const title = figma.createText();
+	title.name = 'Title';
+	title.characters = 'Hello Figma';
+	title.fontSize = 24;
+	frame.appendChild(title);
+	title.x = 16;
+	title.y = 16;
+
+	const dot = figma.createEllipse();
+	dot.name = 'Dot';
+	dot.resize(12, 12);
+	frame.appendChild(dot);
+	dot.x = 16;
+	dot.y = 70;
+	const badge = figma.group([title, dot], frame);
+	badge.name = 'Badge';
+
+	const runs = ((await figma.clientStorage.getAsync('runs')) || 0) + 1;
+	await figma.clientStorage.setAsync('runs', runs);
+	const found = figma.currentPage.findAll((node) => node.type === 'TEXT');
+	figma.notify('Run ' + runs + ', ' + found.length + ' text layer');
+	figma.closePlugin();
+}
+main();

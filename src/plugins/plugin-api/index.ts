@@ -45,6 +45,7 @@ export default {
 	apply(ctx: Context, config: PluginApiConfig): void {
 		const host = ctx.pluginHost;
 		const undo = new PluginUndo(ctx.history);
+		ctx.provide('pluginUndo', undo);
 		const guard = new DeletionGuard();
 		const blocklist: PluginApiBlocklist = {
 			isBlockedCommand: (id) =>

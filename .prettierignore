@@ -6,3 +6,6 @@ bun.lock
 docs
 .qa
 electron/store/fixtures
+packages/plugin-typings/types
+packages/plugin-typings/index.d.ts
+packages/plugin-typings/manifest.schema.json
