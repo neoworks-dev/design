@@ -17,9 +17,12 @@ const buildDirectory = path.join(distDirectory, '../../build');
 const bundledPluginsDirectory = path.join(distDirectory, '../../plugins');
 // Set by `bun run electron:dev`; NODE_ENV is avoided because bun build inlines it.
 const devServerUrl = process.env.DEV_SERVER_URL;
+const APP_NAME = 'Draftboard';
 const appOrigin = `${APP_SCHEME}://design`;
 
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+// Names the default userData directory, so it comes before anything reads a path.
+app.setName(APP_NAME);
 applyDebugPaths();
 
 protocol.registerSchemesAsPrivileged([

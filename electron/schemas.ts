@@ -36,6 +36,15 @@ const MAX_BLOB_BYTES = 512 * 1024 * 1024;
 const blobBytes = z.instanceof(Uint8Array).refine((bytes) => bytes.byteLength <= MAX_BLOB_BYTES);
 const pixelSize = z.number().int().positive();
 const storePath = z.string().min(1);
+/** A file or folder name: one path segment, so no separators and no `..`. */
+const libraryName = z
+	.string()
+	.trim()
+	.min(1)
+	.max(200)
+	.refine((name) => !/[/\\\0]/.test(name) && name !== '.' && !name.includes('..'), {
+		message: 'must be a single name without path separators or ".."'
+	});
 const pluginIdSchema = z
 	.string()
 	.regex(/^[a-z][a-z0-9-]*$/)
@@ -146,16 +155,11 @@ export const payloadSchemas: PayloadSchemas = {
 	'versions:remove': z.strictObject({ id: z.string().min(1).max(64) }),
 	'versions:restorePlan': z.strictObject({ seq: z.number().int().min(0) }),
 	'store:checkpoint': z.void(),
-	'files:openInTab': z.strictObject({ path: storePath }),
-	'files:newInTab': z.void(),
-	'files:confirmClose': z.void(),
-	'files:discard': z.strictObject({ path: storePath }),
-	'files:newUntitled': z.void(),
+	'files:new': z.strictObject({ directory: storePath.optional() }),
 	'files:open': z.strictObject({ path: storePath }),
 	'files:openDialog': z.void(),
 	'files:saveDialog': z.strictObject({ suggestedName: z.string() }),
 	'files:saveAs': z.strictObject({ path: storePath }),
-	'files:offerRecovery': z.void(),
 	'files:launchRequest': z.void(),
 	'assets:put': z.strictObject({
 		mime: z.string().min(1),
@@ -244,7 +248,6 @@ export const payloadSchemas: PayloadSchemas = {
 	'plugins:storageDelete': z.strictObject({ pluginId: pluginIdSchema, key: storageKeySchema }),
 	'plugins:storageKeys': z.strictObject({ pluginId: pluginIdSchema }),
 	'files:recent': z.void(),
-	'files:drafts': z.void(),
 	'files:removeRecent': z.strictObject({ path: storePath }),
 	'files:reveal': z.strictObject({ path: storePath }),
 	'files:clearRecent': z.void(),
@@ -254,5 +257,17 @@ export const payloadSchemas: PayloadSchemas = {
 		height: z.number().int().positive(),
 		bytes: z.instanceof(Uint8Array)
 	}),
-	'files:flushed': z.strictObject({ requestId: z.string().min(1) })
+	'files:flushed': z.strictObject({ requestId: z.string().min(1) }),
+	'library:overview': z.void(),
+	'library:list': z.strictObject({ directory: storePath }),
+	'library:search': z.strictObject({ query: z.string().max(200) }),
+	'library:createFolder': z.strictObject({ parent: storePath, name: libraryName }),
+	'library:renameFolder': z.strictObject({ path: storePath, name: libraryName }),
+	'library:trashFolder': z.strictObject({ path: storePath }),
+	'library:renameFile': z.strictObject({ path: storePath, name: libraryName }),
+	'library:moveFile': z.strictObject({ path: storePath, directory: storePath }),
+	'library:duplicateFile': z.strictObject({ path: storePath }),
+	'library:trashFile': z.strictObject({ path: storePath }),
+	'library:linkFolder': z.void(),
+	'library:unlinkFolder': z.strictObject({ id: z.string().min(1).max(64) })
 };

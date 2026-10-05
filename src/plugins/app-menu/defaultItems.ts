@@ -31,6 +31,7 @@ export const DEFAULT_ITEMS: DefaultItem[] = [
 	{ menu: 'app/file', command: 'file.open', group: '1_file' },
 	{ menu: 'app/file', command: 'file.save', group: '2_save' },
 	{ menu: 'app/file', command: 'file.saveAs', group: '2_save' },
+	{ menu: 'app/file', command: 'file.rename', group: '2_save' },
 	{ menu: 'app/file', command: 'titlebar.close', group: '9_window' },
 
 	{ menu: 'app/edit', command: 'edit.undo', group: '1_history' },

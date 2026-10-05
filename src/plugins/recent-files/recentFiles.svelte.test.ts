@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DesktopBridge, RecentFile } from '../../../electron/bridge';
+import type { DesktopBridge, LibraryFile } from '../../../electron/bridge';
 import { describePlugin, mountPlugin } from '../../lib/kernel/testing';
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
@@ -9,12 +9,19 @@ import coreRegions from '../core-regions';
 import desktopBridge from '../desktop-bridge';
 import recentFiles from './index';
 
-function recent(name: string): RecentFile {
-	return { path: `/docs/${name}.ndesign`, name, openedAt: 1, thumbnail: null };
+function recent(name: string): LibraryFile {
+	return {
+		path: `/docs/${name}.ndesign`,
+		name,
+		modifiedAt: 1,
+		openedAt: 1,
+		location: { kind: 'external' },
+		thumbnail: null
+	};
 }
 
 function bridgeWith(
-	list: () => RecentFile[],
+	list: () => LibraryFile[],
 	clear = vi.fn(() => Promise.resolve())
 ): Partial<DesktopBridge> {
 	const files: Partial<DesktopBridge['files']> = {

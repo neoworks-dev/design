@@ -20,8 +20,7 @@ function infoOf(path: string, overrides: Partial<StoreInfo> = {}): StoreInfo {
 		createdAt: 0,
 		modifiedAt: 0,
 		recovered: false,
-		unsaved: false,
-		untitled: false,
+		inLibrary: true,
 		...overrides
 	};
 }
@@ -37,8 +36,7 @@ class FakeBackend {
 	readonly calls: string[] = [];
 	readonly onDisk = new Map<string, LoadedDocument>();
 	open: string | null = null;
-	confirmClose = true;
-	private untitledCount = 0;
+	private newCount = 0;
 
 	constructor() {
 		this.onDisk.set('/docs/a.ndesign', loadedAt('/docs/a.ndesign'));
@@ -64,27 +62,11 @@ class FakeBackend {
 			files: {
 				...base.files,
 				open: (path) => this.switchTo(path, 'open'),
-				openInTab: (path) => this.switchTo(path, 'openInTab'),
-				newInTab: () => {
-					this.untitledCount += 1;
-					const path = `/untitled/u${this.untitledCount}.ndesign`;
-					this.onDisk.set(path, loadedAt(path, { untitled: true, name: 'Untitled' }));
-					return this.switchTo(path, 'newInTab');
-				},
-				confirmClose: () => {
-					this.calls.push('confirmClose');
-					return Promise.resolve(this.confirmClose);
-				},
-				discard: (path) => {
-					this.calls.push(`discard:${path}`);
-					this.onDisk.delete(path);
-					return Promise.resolve();
-				},
-				newUntitled: () => {
-					this.untitledCount += 1;
-					const path = `/untitled/u${this.untitledCount}.ndesign`;
-					this.onDisk.set(path, loadedAt(path, { untitled: true, name: 'Untitled' }));
-					return this.switchTo(path, 'newUntitled');
+				new: (directory) => {
+					this.newCount += 1;
+					const path = `${directory ?? '/lib'}/Untitled ${this.newCount}.ndesign`;
+					this.onDisk.set(path, loadedAt(path, { name: `Untitled ${this.newCount}` }));
+					return this.switchTo(path, 'new');
 				},
 				flushed: () => Promise.resolve()
 			}
@@ -152,15 +134,14 @@ describe('tabs follow the session', () => {
 		await mounted.cleanup();
 	});
 
-	it('File > Open and New open tabs instead of replacing the document', async () => {
+	it('File > Open and New (into a folder) open tabs instead of replacing the document', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		await startWithFileA(mounted, backend);
 		await mounted.ctx.fileSession.openDocument('/docs/b.ndesign');
 		await mounted.ctx.fileSession.newDocument();
-		expect(titles(mounted.ctx)).toEqual(['a', 'b', 'Untitled']);
-		expect(backend.calls).toEqual(['openInTab:/docs/b.ndesign', 'newInTab:/untitled/u1.ndesign']);
-		expect(mounted.ctx.tabs.activeTab?.untitled).toBe(true);
+		expect(titles(mounted.ctx)).toEqual(['a', 'b', 'Untitled 1']);
+		expect(backend.calls).toEqual(['open:/docs/b.ndesign', 'new:/lib/Untitled 1.ndesign']);
 		await mounted.cleanup();
 	});
 
@@ -175,7 +156,7 @@ describe('tabs follow the session', () => {
 		await mounted.cleanup();
 	});
 
-	it('Save As relabels the active tab instead of adding one', async () => {
+	it('Save a copy relabels the active tab instead of adding one', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		await startWithFileA(mounted, backend);
@@ -197,7 +178,7 @@ describe('switching', () => {
 		document.apply(document.setProps(firstPage.id, { name: 'edited in a' }), user);
 
 		await mounted.ctx.fileSession.openDocument('/docs/b.ndesign');
-		expect(backend.calls).toEqual(['commit:1', 'openInTab:/docs/b.ndesign']);
+		expect(backend.calls).toEqual(['commit:1', 'open:/docs/b.ndesign']);
 		expect(document.pages().map((entry) => entry.name)).toEqual(['/docs/b.ndesign']);
 
 		await service.activate(tabA.id);
@@ -283,19 +264,17 @@ describe('closing', () => {
 		await mounted.cleanup();
 	});
 
-	it('an untitled tab asks main; cancelling keeps it, confirming discards its file', async () => {
+	it('a new tab closes without any prompt: its file is already on disk', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		await startWithFileA(mounted, backend);
 		await mounted.ctx.tabs.newTab();
-		backend.confirmClose = false;
-		await mounted.ctx.tabs.closeActive();
-		expect(titles(mounted.ctx)).toEqual(['a', 'Untitled']);
-		backend.confirmClose = true;
+		expect(titles(mounted.ctx)).toEqual(['a', 'Untitled 1']);
+		backend.calls.length = 0;
 		await mounted.ctx.tabs.closeActive();
 		expect(titles(mounted.ctx)).toEqual(['a']);
-		expect(backend.calls).toContain('discard:/untitled/u1.ndesign');
-		expect(backend.onDisk.has('/untitled/u1.ndesign')).toBe(false);
+		expect(backend.calls).toEqual(['open:/docs/a.ndesign']);
+		expect(backend.onDisk.has('/lib/Untitled 1.ndesign')).toBe(true);
 		await mounted.cleanup();
 	});
 
@@ -313,14 +292,13 @@ describe('closing', () => {
 		await mounted.cleanup();
 	});
 
-	it('closing the last, untitled tab deletes its file before the home screen lists drafts', async () => {
+	it('the new-tab command creates in the folder the home screen shows', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
-		await mounted.ctx.fileSession.newDocument();
-		backend.calls.length = 0;
-		await mounted.ctx.tabs.closeActive();
-		expect(backend.calls).toEqual(['confirmClose', 'storeClose', 'discard:/untitled/u1.ndesign']);
-		expect(mounted.ctx.contextKeys.get('document.closed')).toBe(true);
+		await startWithFileA(mounted, backend);
+		mounted.ctx.contextKeys.set('home.directory', '/lib/Work');
+		await mounted.ctx.commands.run('tabs.new');
+		expect(backend.calls).toEqual(['new:/lib/Work/Untitled 1.ndesign']);
 		await mounted.cleanup();
 	});
 
@@ -336,6 +314,72 @@ describe('closing', () => {
 		expect(titles(mounted.ctx)).toEqual(['b', 'a']);
 		expect(mounted.ctx.tabs.activeTab?.path).toBe('/docs/a.ndesign');
 		expect(mounted.ctx.tabs.canReopenClosed).toBe(false);
+		await mounted.cleanup();
+	});
+});
+
+describe('files that move', () => {
+	function moved(mounted: MountedPlugin, from: string, to: string | null): void {
+		mounted.ctx.emit('file/moved', { from, to });
+	}
+
+	it('a renamed file keeps its tab under the new path and name', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		await startWithFileA(mounted, backend);
+		await mounted.ctx.fileSession.openDocument('/docs/b.ndesign');
+		moved(mounted, '/docs/a.ndesign', '/lib/Work/Poster.ndesign');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		const [tabA] = mounted.ctx.tabs.tabs;
+		expect(tabA.path).toBe('/lib/Work/Poster.ndesign');
+		expect(mounted.ctx.tabs.nameOf(tabA)).toBe('Poster');
+		await mounted.cleanup();
+	});
+
+	it('the active file following a move through files:moved renames its tab too', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		await startWithFileA(mounted, backend);
+		mounted.ctx.fileSession.handleMoved({ from: '/docs/a.ndesign', to: '/docs/z.ndesign' });
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(mounted.ctx.tabs.activeTab).toMatchObject({ path: '/docs/z.ndesign' });
+		expect(titles(mounted.ctx)).toEqual(['z']);
+		await mounted.cleanup();
+	});
+
+	it('a trashed background tab closes; the active document stays', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		await startWithFileA(mounted, backend);
+		await mounted.ctx.fileSession.openDocument('/docs/b.ndesign');
+		moved(mounted, '/docs/a.ndesign', null);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(titles(mounted.ctx)).toEqual(['b']);
+		expect(mounted.ctx.tabs.activeTab?.path).toBe('/docs/b.ndesign');
+		await mounted.cleanup();
+	});
+
+	it('a trashed active tab shows its neighbour, without flushing into the trashed file', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		await startWithFileA(mounted, backend);
+		await mounted.ctx.fileSession.openDocument('/docs/b.ndesign');
+		backend.calls.length = 0;
+		mounted.ctx.fileSession.handleMoved({ from: '/docs/b.ndesign', to: null });
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(titles(mounted.ctx)).toEqual(['a']);
+		expect(backend.calls).toEqual(['open:/docs/a.ndesign']);
+		await mounted.cleanup();
+	});
+
+	it('trashing the only open file shows the home screen', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		await startWithFileA(mounted, backend);
+		mounted.ctx.fileSession.handleMoved({ from: '/docs/a.ndesign', to: null });
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(mounted.ctx.tabs.tabs).toEqual([]);
+		expect(mounted.ctx.contextKeys.get('document.closed')).toBe(true);
 		await mounted.cleanup();
 	});
 });

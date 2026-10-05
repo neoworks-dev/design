@@ -12,6 +12,8 @@ import { mainDiagnosticsPlugin } from './diagnostics';
 import { mainDialogsPlugin } from './dialogs';
 import { mainExportsPlugin } from './exports';
 import { mainFilesPlugin } from './files';
+import { mainLibraryPlugin } from './library';
+import { mainLibraryOperationsPlugin } from './libraryOperations';
 import { mainElectronPlugin } from './electron';
 import { mainFontsPlugin } from './fonts';
 import { mainIpcPlugin } from './ipc';
@@ -33,6 +35,8 @@ export interface MainPluginOptions {
 	window: WindowsConfig;
 	/** Design files named on the command line of this launch. */
 	launchPaths?: string[];
+	/** The library root; default: `DRAFTBOARD_LIBRARY_DIR` or the platform's data directory. */
+	libraryDirectory?: string;
 }
 
 export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
@@ -50,12 +54,14 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainFontsPlugin },
 		{ plugin: mainSettingsPlugin },
 		{ plugin: mainAiPlugin },
+		{ plugin: mainLibraryPlugin, config: { libraryDirectory: options.libraryDirectory } },
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin },
 		{ plugin: mainPluginsPlugin, config: { bundledDirectory: options.bundledPluginsDirectory } },
 		{ plugin: mainArchivePlugin },
 		{ plugin: mainPluginPermissionsPlugin },
 		{ plugin: mainPluginStoragePlugin },
-		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }
+		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } },
+		{ plugin: mainLibraryOperationsPlugin }
 	];
 }

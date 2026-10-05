@@ -207,6 +207,8 @@ export interface ElectronHost {
 		openExternal(url: string): Promise<void>;
 		/** Show a file selected in the OS file manager. */
 		showItemInFolder(file: string): void;
+		/** Move a file or directory to the OS trash; rejects when the OS cannot. */
+		trashItem(file: string): Promise<void>;
 	};
 	dialog: {
 		showOpenDialog(request: OpenDialogRequest): Promise<string[] | null>;

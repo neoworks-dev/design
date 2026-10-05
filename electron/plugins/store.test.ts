@@ -10,6 +10,7 @@ import { bootMinimalKernel, settle, type TestKernel } from '../kernel/testing';
 import type { FakeWindow } from '../kernel/fakeHost';
 import { DocumentFile } from '../store/documentFile';
 import { richDocument } from '../store/testDocument';
+import { mainLibraryPlugin } from './library';
 import { mainStorePlugin } from './store';
 
 let directory = '';
@@ -23,7 +24,10 @@ afterEach(() => {
 type Kernel = TestKernel & { window: FakeWindow };
 
 async function boot(): Promise<Kernel> {
-	return bootMinimalKernel([{ plugin: mainStorePlugin }]);
+	return bootMinimalKernel([
+		{ plugin: mainLibraryPlugin, config: { libraryDirectory: path.join(directory, 'library') } },
+		{ plugin: mainStorePlugin }
+	]);
 }
 
 async function call<T>(kernel: Kernel, channel: string, payload?: unknown): Promise<IpcResult<T>> {
@@ -42,7 +46,9 @@ function failureOf<T>(result: IpcResult<T>): string {
 
 describe('main-store plugin', () => {
 	it('mounts its routes and unmounts leaving the host state identical', async () => {
-		const kernel = await bootMinimalKernel([]);
+		const kernel = await bootMinimalKernel([
+			{ plugin: mainLibraryPlugin, config: { libraryDirectory: path.join(directory, 'library') } }
+		]);
 		const before = kernel.host.snapshot();
 		const fiber = kernel.root.plugin(mainStorePlugin);
 		await fiber;
@@ -223,7 +229,7 @@ describe('main-store plugin', () => {
 		);
 	});
 
-	it('checkpoint saves: clears the unsaved marker; a crashed file reopens as recovered', async () => {
+	it('checkpoint folds the WAL and clears the marker; a crashed file reopens as recovered', async () => {
 		const kernel = await boot();
 		const target = path.join(directory, 'save.ndesign');
 		const document = richDocument();
@@ -239,7 +245,8 @@ describe('main-store plugin', () => {
 		);
 		expect(kernel.root.store.current(kernel.window.sender).info().unsaved).toBe(true);
 		const saved = value(await call<StoreInfo>(kernel, 'store:checkpoint'));
-		expect(saved.unsaved).toBe(false);
+		expect(saved.inLibrary).toBe(false);
+		expect(kernel.root.store.current(kernel.window.sender).info().unsaved).toBe(false);
 
 		const crashed = path.join(directory, 'crashed.ndesign');
 		copyFileSync(target, crashed);

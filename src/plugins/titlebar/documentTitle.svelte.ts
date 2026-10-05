@@ -1,11 +1,11 @@
-// Document title and dirty marker. The file session (later issue) publishes the context keys
-// `document.title` and `document.dirty`; the titlebar only reads them, so it never imports the
-// session plugin.
+// Document title and save status. The file session publishes the context keys `document.title`,
+// `document.renamable` (a file is open) and `document.saving` (autosave has work); the titlebar
+// only reads them, so it never imports the session plugin.
 
 import type { ContextKeysService } from '../../lib/registries/contextKeys.svelte';
 
 export const DEFAULT_DOCUMENT_TITLE = 'Untitled';
-const APP_NAME = 'Neoworks Design';
+const APP_NAME = 'Draftboard';
 
 export function documentTitleOf(contextKeys: ContextKeysService): string {
 	const title = contextKeys.get('document.title');
@@ -13,15 +13,22 @@ export function documentTitleOf(contextKeys: ContextKeysService): string {
 	return DEFAULT_DOCUMENT_TITLE;
 }
 
-export function isDocumentDirty(contextKeys: ContextKeysService): boolean {
-	return contextKeys.get('document.dirty') === true;
+export function isDocumentRenamable(contextKeys: ContextKeysService): boolean {
+	return contextKeys.get('document.renamable') === true;
 }
 
-/** The OS window title (task switchers, window lists): `• title - App` while dirty. */
+export function isDocumentSaving(contextKeys: ContextKeysService): boolean {
+	return contextKeys.get('document.saving') === true;
+}
+
+export function isRenamingTitle(contextKeys: ContextKeysService): boolean {
+	return contextKeys.get('titlebar.renaming') === true;
+}
+
+/** The OS window title (task switchers, window lists): `title - Draftboard`. */
 export function windowTitleOf(contextKeys: ContextKeysService): string {
-	const base = `${documentTitleOf(contextKeys)} - ${APP_NAME}`;
-	if (isDocumentDirty(contextKeys)) return `• ${base}`;
-	return base;
+	if (!isDocumentRenamable(contextKeys)) return APP_NAME;
+	return `${documentTitleOf(contextKeys)} - ${APP_NAME}`;
 }
 
 /**

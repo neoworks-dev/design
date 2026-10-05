@@ -12,6 +12,7 @@ import { DocumentFile } from '../store/documentFile';
 import { richDocument } from '../store/testDocument';
 import { TransactionRecorder } from '../store/testRecorder';
 import { mainAssetsPlugin } from './assets';
+import { mainLibraryPlugin } from './library';
 import { mainStorePlugin } from './store';
 
 let directory = '';
@@ -26,6 +27,7 @@ type Kernel = TestKernel & { window: FakeWindow };
 
 async function boot(): Promise<Kernel> {
 	const kernel = await bootMinimalKernel([
+		{ plugin: mainLibraryPlugin, config: { libraryDirectory: path.join(directory, 'library') } },
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin }
 	]);
@@ -58,7 +60,10 @@ async function put(
 
 describe('main-assets plugin', () => {
 	it('mounts its routes and unmounts leaving the host state identical', async () => {
-		const kernel = await bootMinimalKernel([{ plugin: mainStorePlugin }]);
+		const kernel = await bootMinimalKernel([
+			{ plugin: mainLibraryPlugin, config: { libraryDirectory: path.join(directory, 'library') } },
+			{ plugin: mainStorePlugin }
+		]);
 		const before = kernel.host.snapshot();
 		const fiber = kernel.root.plugin(mainAssetsPlugin);
 		await fiber;

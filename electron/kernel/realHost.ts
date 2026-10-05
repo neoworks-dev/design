@@ -267,6 +267,7 @@ export function createRealHost(): ElectronHost {
 			y: options.y,
 			minWidth: options.minWidth,
 			minHeight: options.minHeight,
+			title: 'Draftboard',
 			frame: options.frame,
 			titleBarStyle: options.titleBarStyle,
 			backgroundColor: options.backgroundColor,
@@ -337,7 +338,8 @@ export function createRealHost(): ElectronHost {
 		net: { fetch: (url, init) => net.fetch(url, init) },
 		shell: {
 			openExternal: (url) => shell.openExternal(url),
-			showItemInFolder: (file) => shell.showItemInFolder(file)
+			showItemInFolder: (file) => shell.showItemInFolder(file),
+			trashItem: (file) => shell.trashItem(file)
 		},
 		dialog: {
 			showOpenDialog: async (request) => {

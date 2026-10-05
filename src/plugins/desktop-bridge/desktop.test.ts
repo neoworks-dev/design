@@ -188,8 +188,7 @@ describe('DesktopService', () => {
 			createdAt: 1,
 			modifiedAt: 2,
 			recovered: false,
-			unsaved: false,
-			untitled: false
+			inLibrary: true
 		};
 		bridge.store = {
 			open: (path) => {
@@ -259,6 +258,75 @@ describe('DesktopService', () => {
 		expect(parseBridgeError(new Error('SOMETHING_ELSE: x'))).toBeNull();
 		expect(parseBridgeError(new Error('no separator'))).toBeNull();
 		expect(parseBridgeError('a string')).toBeNull();
+	});
+});
+
+describe('library calls', () => {
+	async function mount(bridge: DesktopBridge): Promise<DesktopService> {
+		const root = new Context();
+		await root.plugin(desktopBridgePlugin, { bridge });
+		const service = root.reflect.get('desktop');
+		if (!(service instanceof DesktopService)) throw new Error('desktop service missing');
+		return service;
+	}
+
+	it('forwards the files and library routes with their arguments', async () => {
+		const bridge = createBrowserBridge();
+		const calls: string[] = [];
+		const record = <Value>(label: string, value: Value) => {
+			return (...args: unknown[]): Promise<Value> => {
+				calls.push(`${label}:${args.join(',')}`);
+				return Promise.resolve(value);
+			};
+		};
+		const file = {
+			path: '/lib/a.ndesign',
+			name: 'a',
+			modifiedAt: 1,
+			openedAt: null,
+			location: { kind: 'library' as const, folder: '' },
+			thumbnail: null
+		};
+		const newDocument = record('new', { info: undefined, document: undefined });
+		bridge.files = {
+			...bridge.files,
+			new: newDocument as unknown as DesktopBridge['files']['new']
+		};
+		bridge.library = {
+			...bridge.library,
+			createFolder: record('createFolder', {
+				path: '/lib/W',
+				name: 'W',
+				fileCount: 0,
+				modifiedAt: 1
+			}),
+			renameFile: record('renameFile', file),
+			moveFile: record('moveFile', file),
+			trashFile: record('trashFile', undefined),
+			unlinkFolder: record('unlinkFolder', undefined)
+		};
+		const desktop = await mount(bridge);
+		await desktop.filesNew('/lib/W');
+		await desktop.libraryCreateFolder('/lib', 'W');
+		await desktop.libraryRenameFile('/lib/a.ndesign', 'b');
+		await desktop.libraryMoveFile('/lib/a.ndesign', '/lib/W');
+		await desktop.libraryTrashFile('/lib/a.ndesign');
+		await desktop.libraryUnlinkFolder('l1');
+		expect(calls).toEqual([
+			'new:/lib/W',
+			'createFolder:/lib,W',
+			'renameFile:/lib/a.ndesign,b',
+			'moveFile:/lib/a.ndesign,/lib/W',
+			'trashFile:/lib/a.ndesign',
+			'unlinkFolder:l1'
+		]);
+	});
+
+	it('the browser bridge has an empty library and cancelled link dialog', async () => {
+		const bridge = createBrowserBridge();
+		expect((await bridge.library.overview()).folders).toEqual([]);
+		expect(await bridge.library.linkFolder()).toBeNull();
+		expect(await bridge.files.recent()).toEqual([]);
 	});
 });
 

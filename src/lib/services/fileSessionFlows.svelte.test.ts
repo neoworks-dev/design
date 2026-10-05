@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type {
 	CommitResult,
 	DesktopBridge,
+	LibraryFile,
 	LoadedDocument,
 	StoreInfo
 } from '../../../electron/bridge';
@@ -27,8 +28,7 @@ function infoOf(overrides: Partial<StoreInfo> = {}): StoreInfo {
 		createdAt: 0,
 		modifiedAt: 0,
 		recovered: false,
-		unsaved: false,
-		untitled: false,
+		inLibrary: true,
 		...overrides
 	};
 }
@@ -39,32 +39,44 @@ function loadedPage(name: string, info: Partial<StoreInfo> = {}): LoadedDocument
 	return { info: infoOf({ documentId: document.id, ...info }), document };
 }
 
-/** A scriptable `files` and `store` bridge that records the order of calls. */
+function libraryFile(path: string, name: string): LibraryFile {
+	return {
+		path,
+		name,
+		modifiedAt: 0,
+		openedAt: null,
+		location: { kind: 'library', folder: '' },
+		thumbnail: null
+	};
+}
+
+/** A scriptable `files`, `library` and `store` bridge that records the order of calls. */
 class FakeBackend {
 	readonly calls: string[] = [];
-	newUntitled: LoadedDocument | null = loadedPage('Fresh', { name: 'Untitled', untitled: true });
-	opened: LoadedDocument | null = loadedPage('Opened', { name: 'opened' });
+	fresh: LoadedDocument = loadedPage('Fresh', { name: 'Untitled', path: '/lib/Untitled.ndesign' });
+	opened: LoadedDocument = loadedPage('Opened', { name: 'opened' });
 	openFailure: string | null = null;
-	recovery: LoadedDocument | null = null;
 	launch: string | null = null;
 	openDialogResult: string | null = '/docs/chosen.ndesign';
 	saveDialogResult: string | null = '/docs/saved.ndesign';
 	suggestedNames: string[] = [];
-	checkpointInfo: StoreInfo = infoOf();
 	saveAsName = 'saved';
 
 	store: DesktopBridge['store'] = {
 		open: () => Promise.reject(new Error('not used')),
 		create: () => Promise.reject(new Error('not used')),
 		load: () => Promise.reject(new Error('not used')),
-		close: () => Promise.resolve(),
+		close: () => {
+			this.calls.push('storeClose');
+			return Promise.resolve();
+		},
 		commit: (transactions): Promise<CommitResult> => {
 			this.calls.push(`commit:${transactions.length}`);
 			return Promise.resolve({ committed: transactions.length, documentRows: 0 });
 		},
 		checkpoint: () => {
 			this.calls.push('checkpoint');
-			return Promise.resolve(this.checkpointInfo);
+			return Promise.resolve(infoOf());
 		}
 	};
 
@@ -77,20 +89,23 @@ class FakeBackend {
 		embeddedFonts: () => Promise.resolve([])
 	};
 
+	library: DesktopBridge['library'] = {
+		...createBrowserBridge().library,
+		renameFile: (path, name) => {
+			this.calls.push(`rename:${path}:${name}`);
+			return Promise.resolve(libraryFile(`/docs/${name}.ndesign`, name));
+		}
+	};
+
 	files: DesktopBridge['files'] = {
 		recent: () => Promise.resolve([]),
-		drafts: () => Promise.resolve([]),
 		removeRecent: () => Promise.resolve(),
 		reveal: () => Promise.resolve(),
 		clearRecent: () => Promise.resolve(),
 		setThumbnail: () => Promise.resolve(),
-		openInTab: () => Promise.reject(new Error('not used')),
-		newInTab: () => Promise.reject(new Error('not used')),
-		confirmClose: () => Promise.resolve(true),
-		discard: () => Promise.resolve(),
-		newUntitled: () => {
-			this.calls.push('newUntitled');
-			return Promise.resolve(this.newUntitled);
+		new: (directory) => {
+			this.calls.push(`new:${directory ?? ''}`);
+			return Promise.resolve(this.fresh);
 		},
 		open: (path) => {
 			this.calls.push(`open:${path}`);
@@ -108,13 +123,7 @@ class FakeBackend {
 		},
 		saveAs: (path) => {
 			this.calls.push(`saveAs:${path}`);
-			return Promise.resolve(
-				infoOf({ path, name: this.saveAsName, untitled: false, unsaved: false })
-			);
-		},
-		offerRecovery: () => {
-			this.calls.push('offerRecovery');
-			return Promise.resolve(this.recovery);
+			return Promise.resolve(infoOf({ path, name: this.saveAsName }));
 		},
 		launchRequest: () => {
 			this.calls.push('launchRequest');
@@ -146,7 +155,12 @@ async function mount(
 			documentWith(sampleDocument()),
 			desktopBridge
 		],
-		desktop: { store: backend.store, files: backend.files, events: base.events },
+		desktop: {
+			store: backend.store,
+			files: backend.files,
+			library: backend.library,
+			events: base.events
+		},
 		config: { delayMs: 0, startup }
 	});
 	return Object.assign(mounted, { emit: base.emit.bind(base) });
@@ -161,34 +175,17 @@ function titleKey(mounted: MountedPlugin): unknown {
 }
 
 describe('new and open', () => {
-	it('new document flushes the old file first, replaces the document and attaches the new file', async () => {
+	it('new document flushes the old file first, then creates the file in the folder and attaches it', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		const { fileSession, document } = mounted.ctx;
 		fileSession.attach(infoOf());
 		document.apply(document.setProps('n3', { name: 'edited' }), user);
 
-		expect(await fileSession.newDocument()).toBe(true);
-		expect(backend.calls).toEqual(['commit:1', 'newUntitled']);
+		expect(await fileSession.newDocument('/lib/Work')).toBe(true);
+		expect(backend.calls).toEqual(['commit:1', 'new:/lib/Work']);
 		expect(document.pages().map((entry) => entry.name)).toEqual(['Fresh']);
-		expect(fileSession.info).toMatchObject({ untitled: true, name: 'Untitled' });
-		expect(fileSession.dirty).toBe(false);
-		await mounted.cleanup();
-	});
-
-	it('a cancelled new or open leaves everything as it was', async () => {
-		const backend = new FakeBackend();
-		backend.newUntitled = null;
-		backend.opened = null;
-		const mounted = await mount(backend);
-		const { fileSession, document } = mounted.ctx;
-		fileSession.attach(infoOf());
-		expect(await fileSession.newDocument()).toBe(false);
-		expect(await fileSession.openDocument('/docs/x.ndesign')).toBe(false);
-		backend.openDialogResult = null;
-		expect(await fileSession.openDocument()).toBe(false);
-		expect(document.pages().map((entry) => entry.name)).toEqual(['A', 'B']);
-		expect(fileSession.info).toMatchObject({ path: '/docs/a.ndesign' });
+		expect(fileSession.info).toMatchObject({ name: 'Untitled', inLibrary: true });
 		await mounted.cleanup();
 	});
 
@@ -206,11 +203,15 @@ describe('new and open', () => {
 		await mounted.cleanup();
 	});
 
-	it('open without a path asks the dialog', async () => {
+	it('open without a path asks the dialog; a cancelled dialog changes nothing', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		await mounted.ctx.fileSession.openDocument();
 		expect(backend.calls).toEqual(['openDialog', 'open:/docs/chosen.ndesign']);
+		backend.calls.length = 0;
+		backend.openDialogResult = null;
+		expect(await mounted.ctx.fileSession.openDocument()).toBe(false);
+		expect(backend.calls).toEqual(['openDialog']);
 		await mounted.cleanup();
 	});
 
@@ -227,63 +228,24 @@ describe('new and open', () => {
 	});
 });
 
-describe('dirty state and the context keys', () => {
-	it('dirty follows commits and Save; keys mirror it for the title bar', async () => {
+describe('the context keys', () => {
+	it('mirror the file name and whether autosave has work; there is no dirty key', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		const { fileSession, document, contextKeys } = mounted.ctx;
 		expect(contextKeys.get('document.title')).toBe('Untitled');
-		expect(contextKeys.get('document.dirty')).toBe(false);
+		expect(contextKeys.get('document.renamable')).toBe(false);
 
 		fileSession.attach(infoOf({ name: 'design' }));
-		expect(fileSession.dirty).toBe(false);
 		expect(contextKeys.get('document.title')).toBe('design');
+		expect(contextKeys.get('document.renamable')).toBe(true);
+		expect(contextKeys.get('document.saving')).toBe(false);
+		expect(contextKeys.get('document.dirty')).toBeUndefined();
 
 		document.apply(document.setProps('n3', { name: 'x' }), user);
-		expect(fileSession.dirty).toBe(true);
-		expect(contextKeys.get('document.dirty')).toBe(true);
-
-		backend.checkpointInfo = infoOf({ name: 'design' });
-		expect(await fileSession.save()).toBe(true);
-		expect(backend.calls).toEqual(['commit:1', 'checkpoint']);
-		expect(fileSession.dirty).toBe(false);
-		expect(contextKeys.get('document.dirty')).toBe(false);
-
-		const transaction = document.apply(document.setProps('n3', { name: 'y' }), user);
-		expect(contextKeys.get('document.dirty')).toBe(true);
-		document.apply(transaction.undo, { ...user, replay: 'undo' });
-		expect(fileSession.dirty).toBe(true);
-		await mounted.cleanup();
-	});
-
-	it('a file opened with edits nobody saved (recovered) is dirty from the start', async () => {
-		const mounted = await mount(new FakeBackend());
-		mounted.ctx.fileSession.attach(infoOf({ unsaved: true, recovered: true }));
-		expect(mounted.ctx.fileSession.dirty).toBe(true);
-		expect(mounted.ctx.contextKeys.get('document.dirty')).toBe(true);
-		await mounted.cleanup();
-	});
-
-	it('without a file there is nothing to be dirty', async () => {
-		const mounted = await mount(new FakeBackend());
-		mounted.ctx.document.apply(mounted.ctx.document.setProps('n3', { name: 'x' }), user);
-		expect(mounted.ctx.fileSession.dirty).toBe(false);
-		await mounted.cleanup();
-	});
-
-	it('edits made while a save is in flight keep the document dirty', async () => {
-		const backend = new FakeBackend();
-		const mounted = await mount(backend);
-		const { fileSession, document } = mounted.ctx;
-		fileSession.attach(infoOf());
-		document.apply(document.setProps('n3', { name: 'x' }), user);
-		const original = backend.store.checkpoint.bind(backend.store);
-		backend.store.checkpoint = async () => {
-			document.apply(document.setProps('n3', { name: 'during' }), user);
-			return original();
-		};
-		await fileSession.save();
-		expect(fileSession.dirty).toBe(true);
+		await settle();
+		expect(contextKeys.get('document.saving')).toBe(false);
+		expect(backend.calls).toEqual(['commit:1']);
 		await mounted.cleanup();
 	});
 
@@ -297,42 +259,72 @@ describe('dirty state and the context keys', () => {
 	});
 });
 
-describe('save and save as', () => {
-	it('saving an untitled document asks where, using its name, then flushes and saves as', async () => {
+describe('autosave', () => {
+	it('persists every committed change without anyone asking, then announces it is idle', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		const { fileSession, document } = mounted.ctx;
-		fileSession.attach(infoOf({ name: 'Untitled', untitled: true, path: '/u/untitled-1.ndesign' }));
-		document.apply(document.setProps('n3', { name: 'x' }), user);
-
-		expect(await fileSession.save()).toBe(true);
-		expect(backend.suggestedNames).toEqual(['Untitled']);
-		expect(backend.calls).toEqual(['saveDialog', 'commit:1', 'saveAs:/docs/saved.ndesign']);
-		expect(fileSession.info).toMatchObject({
-			path: '/docs/saved.ndesign',
-			untitled: false,
-			name: 'saved'
+		fileSession.attach(infoOf());
+		let saved = 0;
+		mounted.ctx.on('file/saved', () => {
+			saved += 1;
 		});
-		expect(fileSession.dirty).toBe(false);
-		expect(titleKey(mounted)).toBe('saved');
-		expect(mounted.ctx.contextKeys.get('document.untitled')).toBe(false);
+		document.apply(document.setProps('n3', { name: 'one' }), user);
+		await settle();
+		document.apply(document.setProps('n3', { name: 'two' }), user);
+		await settle();
+		expect(backend.calls).toEqual(['commit:1', 'commit:1']);
+		expect(saved).toBe(2);
+		await mounted.cleanup();
+	});
+});
+
+describe('save, rename and save a copy', () => {
+	it('save only flushes the queue: no dialog, no checkpoint', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		const { fileSession, document } = mounted.ctx;
+		fileSession.attach(infoOf());
+		document.apply(document.setProps('n3', { name: 'x' }), user);
+		await fileSession.save();
+		expect(backend.calls).toEqual(['commit:1']);
 		await mounted.cleanup();
 	});
 
-	it('cancelling the save dialog saves nothing', async () => {
+	it('save with no file open does nothing', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		await mounted.ctx.fileSession.save();
+		expect(backend.calls).toEqual([]);
+		await mounted.cleanup();
+	});
+
+	it('save a copy asks where, using the file name, flushes, then continues in the copy', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		const { fileSession, document } = mounted.ctx;
+		fileSession.attach(infoOf({ name: 'design' }));
+		document.apply(document.setProps('n3', { name: 'x' }), user);
+
+		expect(await fileSession.saveAs()).toBe(true);
+		expect(backend.suggestedNames).toEqual(['design']);
+		expect(backend.calls).toEqual(['saveDialog', 'commit:1', 'saveAs:/docs/saved.ndesign']);
+		expect(fileSession.info).toMatchObject({ path: '/docs/saved.ndesign', name: 'saved' });
+		expect(titleKey(mounted)).toBe('saved');
+		await mounted.cleanup();
+	});
+
+	it('cancelling the save a copy dialog saves nothing', async () => {
 		const backend = new FakeBackend();
 		backend.saveDialogResult = null;
 		const mounted = await mount(backend);
-		const { fileSession, document } = mounted.ctx;
-		fileSession.attach(infoOf({ untitled: true }));
-		document.apply(document.setProps('n3', { name: 'x' }), user);
-		expect(await fileSession.save()).toBe(false);
+		mounted.ctx.fileSession.attach(infoOf());
+		expect(await mounted.ctx.fileSession.saveAs()).toBe(false);
 		expect(backend.calls).toEqual(['saveDialog']);
-		expect(fileSession.dirty).toBe(true);
 		await mounted.cleanup();
 	});
 
-	it('save as with a path skips the dialog and renames the document to the new file', async () => {
+	it('save a copy with a path skips the dialog', async () => {
 		const backend = new FakeBackend();
 		backend.saveAsName = 'copy';
 		const mounted = await mount(backend);
@@ -344,34 +336,92 @@ describe('save and save as', () => {
 		await mounted.cleanup();
 	});
 
-	it('saving needs an open file', async () => {
+	it('rename flushes, renames through the library and follows the new path', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		const { fileSession, document } = mounted.ctx;
+		fileSession.attach(infoOf());
+		document.apply(document.setProps('n3', { name: 'x' }), user);
+		const moves: unknown[] = [];
+		mounted.ctx.on('file/moved', (message) => {
+			moves.push(message);
+		});
+
+		await fileSession.rename('Checkout');
+		expect(backend.calls).toEqual(['commit:1', 'rename:/docs/a.ndesign:Checkout']);
+		expect(fileSession.info).toMatchObject({ path: '/docs/Checkout.ndesign', name: 'Checkout' });
+		expect(titleKey(mounted)).toBe('Checkout');
+		expect(moves).toEqual([{ from: '/docs/a.ndesign', to: '/docs/Checkout.ndesign' }]);
+		await mounted.cleanup();
+	});
+});
+
+describe('files that move', () => {
+	it('files:moved renames the attached file and tells tabs and home', async () => {
 		const mounted = await mount(new FakeBackend());
-		await expect(mounted.ctx.fileSession.save()).rejects.toThrow(/no document file/);
+		mounted.ctx.fileSession.attach(infoOf());
+		const moves: unknown[] = [];
+		mounted.ctx.on('file/moved', (message) => {
+			moves.push(message);
+		});
+		mounted.emit('files:moved', { from: '/docs/a.ndesign', to: '/lib/Work/b.ndesign' });
+		expect(mounted.ctx.fileSession.info).toMatchObject({ path: '/lib/Work/b.ndesign', name: 'b' });
+		expect(moves).toHaveLength(1);
+		mounted.emit('files:moved', { from: '/other.ndesign', to: null });
+		expect(mounted.ctx.fileSession.info).toMatchObject({ path: '/lib/Work/b.ndesign' });
+		expect(moves).toHaveLength(2);
+		await mounted.cleanup();
+	});
+
+	it('a trashed attached file is released without writing to it', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		const { fileSession, document, contextKeys } = mounted.ctx;
+		fileSession.attach(infoOf());
+		document.apply(document.setProps('n3', { name: 'x' }), user);
+		mounted.emit('files:moved', { from: '/docs/a.ndesign', to: null });
+		await settle();
+		expect(fileSession.info).toBeNull();
+		expect(contextKeys.get('document.closed')).toBe(true);
+		expect(backend.calls).toEqual([]);
 		await mounted.cleanup();
 	});
 });
 
 describe('commands and shortcuts', () => {
-	it('file.new, file.open (with and without a path), file.save and file.saveAs', async () => {
+	it('file.new, file.open, file.save, file.saveAs and file.rename', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		const { commands, fileSession } = mounted.ctx;
-		await commands.run('file.new');
-		expect(fileSession.info).toMatchObject({ untitled: true });
+		await commands.run('file.new', { directory: '/lib/Work' });
+		expect(fileSession.info).toMatchObject({ name: 'Untitled' });
 		await commands.run('file.open', { path: '/docs/p.ndesign' });
 		expect(fileSession.info).toMatchObject({ name: 'opened' });
 		await commands.run('file.save');
 		await commands.run('file.saveAs', { path: '/docs/s.ndesign' });
+		await commands.run('file.rename', { name: 'Final' });
 		expect(backend.calls).toEqual([
-			'newUntitled',
+			'new:/lib/Work',
 			'open:/docs/p.ndesign',
-			'checkpoint',
-			'saveAs:/docs/s.ndesign'
+			'saveAs:/docs/s.ndesign',
+			'rename:/docs/s.ndesign:Final'
 		]);
+		expect(commands.get('file.saveAs')?.title).toBe('Save a copy as...');
 		await mounted.cleanup();
 	});
 
-	it('Mod+N, Mod+O, Mod+S and Mod+Shift+S are bound, and work from a text field', async () => {
+	it('file.new uses the folder the home screen shows, when it publishes one', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		const unset = mounted.ctx.contextKeys.set('home.directory', '/lib/Shown');
+		await mounted.ctx.commands.run('file.new');
+		unset();
+		await mounted.ctx.commands.run('file.new');
+		expect(backend.calls).toEqual(['new:/lib/Shown', 'new:']);
+		await mounted.cleanup();
+	});
+
+	it('Mod+N, Mod+O, Mod+S and Mod+Shift+S are bound, and Mod+S works from a text field', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
 		const bindings = mounted.ctx.keymap.registry
@@ -386,6 +436,7 @@ describe('commands and shortcuts', () => {
 			])
 		);
 		mounted.ctx.fileSession.attach(infoOf());
+		mounted.ctx.document.apply(mounted.ctx.document.setProps('n3', { name: 'x' }), user);
 		const input = globalThis.document.createElement('input');
 		const handled = mounted.ctx.keymap.handleKeydown({
 			key: 's',
@@ -400,7 +451,7 @@ describe('commands and shortcuts', () => {
 		});
 		expect(handled).toBe(true);
 		await settle();
-		expect(backend.calls).toContain('checkpoint');
+		expect(backend.calls).toEqual(['commit:1']);
 		await mounted.cleanup();
 	});
 });
@@ -416,23 +467,14 @@ describe('startup', () => {
 		await mounted.cleanup();
 	});
 
-	it('restores what a crash left, when the user agrees', async () => {
-		const backend = new FakeBackend();
-		backend.recovery = loadedPage('Recovered', { name: 'Untitled', untitled: true, unsaved: true });
-		const mounted = await mount(backend, 'auto');
-		await settle();
-		expect(backend.calls).toEqual(['launchRequest', 'offerRecovery']);
-		expect(mounted.ctx.document.pages().map((entry) => entry.name)).toEqual(['Recovered']);
-		expect(mounted.ctx.fileSession.dirty).toBe(true);
-		await mounted.cleanup();
-	});
-
-	it('otherwise starts a new untitled document', async () => {
+	it('opens nothing without a launch file: no recovery offer, no new document', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend, 'auto');
 		await settle();
-		expect(backend.calls).toEqual(['launchRequest', 'offerRecovery', 'newUntitled']);
-		expect(mounted.ctx.fileSession.info).toMatchObject({ untitled: true });
+		expect(backend.calls).toEqual(['launchRequest']);
+		expect(mounted.ctx.fileSession.info).toBeNull();
+		// The home screen shows while no file is attached.
+		expect(mounted.ctx.contextKeys.get('document.closed')).toBe(true);
 		await mounted.cleanup();
 	});
 

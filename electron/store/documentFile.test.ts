@@ -59,8 +59,8 @@ function storeErrorCode(work: () => unknown): string {
 describe('file format constants', () => {
 	it('lives in one module: .ndesign, MIME, UTI, NWDS application id', () => {
 		expect(FILE_EXTENSION).toBe('ndesign');
-		expect(FILE_MIME_TYPE).toBe('application/vnd.neoworks.design+sqlite');
-		expect(FILE_UTI).toBe('dev.neoworks.design');
+		expect(FILE_MIME_TYPE).toBe('application/vnd.neoworks.draftboard+sqlite');
+		expect(FILE_UTI).toBe('dev.neoworks.draftboard');
 		expect(APPLICATION_ID).toBe(0x4e574453);
 		expect(Buffer.from(APPLICATION_ID.toString(16), 'hex').toString('ascii')).toBe('NWDS');
 	});

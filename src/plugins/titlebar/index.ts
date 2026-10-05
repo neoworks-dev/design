@@ -49,6 +49,22 @@ export default {
 
 		ctx.effect(
 			() =>
+				ctx.commands.register({
+					id: 'titlebar.rename',
+					title: 'Rename file in the title bar',
+					run: () => {
+						ctx.contextKeys.set('titlebar.renaming', true);
+					}
+				}),
+			'command titlebar.rename'
+		);
+		ctx.effect(() => {
+			const unset = ctx.contextKeys.set('titlebar.renaming', false);
+			return () => unset();
+		}, 'titlebar/renaming key');
+
+		ctx.effect(
+			() =>
 				ctx.regions.register({
 					id: 'titlebar/title',
 					region: 'top-bar',
