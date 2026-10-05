@@ -1,7 +1,5 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
-import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import HostRoot from '../../lib/kernel/fixtures/HostRoot.svelte';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import type { FrameDriver } from '../../lib/renderer/frameScheduler';
 import type { SceneSource } from '../../lib/renderer/sceneSource';
@@ -340,37 +338,10 @@ describe('viewport service', () => {
 	});
 });
 
-describe('zoom readout', () => {
-	it('shows the zoom as a percentage and resets to 100 percent on click', async () => {
-		const { ctx } = await mountViewport();
-		const target = document.createElement('div');
-		document.body.append(target);
-		const host = mount(HostRoot, { target, props: { ctx, region: 'top-bar' } });
-		flushSync();
-		try {
-			const readout = target.querySelector('[data-zoom-readout]');
-			expect(readout?.textContent?.trim()).toBe(`${Math.round(ctx.viewport.zoom * 100)}%`);
-			ctx.viewport.zoomTo(2);
-			flushSync();
-			expect(readout?.textContent?.trim()).toBe('200%');
-			(readout as HTMLElement).click();
-			await new Promise((resolve) => setTimeout(resolve, 0));
-			flushSync();
-			expect(readout?.textContent?.trim()).toBe('100%');
-		} finally {
-			await unmount(host);
-			target.remove();
-		}
-	});
-});
-
 describePlugin('viewport', viewport, {
 	providers: providers(),
 	contributes: ({ ctx }) => {
 		expect(ctx.viewport).toBeDefined();
 		expect(ctx.commands.registry.get('viewport.zoom-to-fit')).toBeDefined();
-		expect(ctx.regions.contributions('top-bar').map((entry) => entry.id)).toContain(
-			'viewport/zoom-readout'
-		);
 	}
 });

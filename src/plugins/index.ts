@@ -51,6 +51,7 @@ import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
+import zoomMenu from './zoom-menu';
 import toolbar from './toolbar';
 import toolMove from './tool-move';
 import toolImage from './tool-image';
@@ -117,6 +118,7 @@ export const builtinPlugins: Plugin[] = [
 	toolbar,
 	canvasInput,
 	viewTools,
+	zoomMenu,
 	toolMove,
 	transformHandles,
 	shapeHandles,
