@@ -1,0 +1,125 @@
+# Builds the installers on all three platforms and smoke-tests that the packaged app starts (#140).
+#
+# Not verified on GitHub yet: written next to the local Linux run (bun run package:dir, bun run
+# smoke). Two things the repository cannot do for itself:
+#   - The @neoworks* packages are `bun link`ed from sibling checkouts (see CLAUDE.md). The job
+#     checks them out next to this repository with a token that can read them
+#     (secret NEOWORKS_CHECKOUT_TOKEN) and links them the same way.
+#   - Signing and notarization need credentials; without the secrets below the macOS and Windows
+#     artifacts are built unsigned.
+#       CSC_LINK, CSC_KEY_PASSWORD                      macOS / Windows signing certificate
+#       APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   macOS notarization
+
+name: package
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - electron-builder.yml
+      - packaging/**
+      - scripts/smoke.ts
+      - .github/workflows/package.yml
+
+env:
+  # Organisation that owns the sibling checkouts of the linked packages.
+  NEOWORKS_ORG: neoworks-dev
+
+jobs:
+  package:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+            builder: --linux
+          - name: macos
+            os: macos-latest
+            builder: --mac
+          - name: windows
+            os: windows-latest
+            builder: --win
+    defaults:
+      run:
+        shell: bash
+        working-directory: design
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: design
+
+      - uses: oven-sh/setup-bun@v2
+
+      # Sibling checkouts, then `bun link` so `link:@neoworks/...` resolves like on a dev machine.
+      - name: Check out the linked packages
+        working-directory: .
+        run: |
+          for repo in extension-system combined-agent-harness-adapter neoworks.dev lint-config; do
+            git clone --depth 1 "https://x-access-token:${{ secrets.NEOWORKS_CHECKOUT_TOKEN }}@github.com/${NEOWORKS_ORG}/${repo}.git" "${repo}"
+          done
+
+      - name: Link the packages
+        working-directory: .
+        run: |
+          (cd extension-system && bun install && bun run build && bun link)
+          (cd combined-agent-harness-adapter && bun install && bun run build && bun link)
+          (cd neoworks.dev && bun install && cd packages/ui && bun link)
+          (cd lint-config && bun install && bun link)
+
+      - name: Install
+        run: |
+          bun link @neoworks/extension-system @neoworks/harness @neoworks-dev/ui @neoworks/lint-config
+          bun install
+
+      - name: Check, lint and test
+        if: matrix.name == 'linux'
+        run: |
+          bun run check
+          bun run lint
+          bun run test
+
+      - name: Build the app
+        run: bun run build
+
+      - name: Package
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Without a certificate electron-builder would stop at "no identity"; build unsigned.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+        run: bunx electron-builder ${{ matrix.builder }} --publish never
+
+      # Starts the unpacked app (a display on Linux), waits for the renderer to boot and fails
+      # when a plugin failed or the window did not load from app://.
+      - name: Smoke test (linux)
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb
+          xvfb-run -a bun run smoke --screenshot release/smoke.png
+
+      - name: Smoke test (macos)
+        if: matrix.name == 'macos'
+        run: bun run smoke "$(ls -d release/mac*/'Neoworks Design.app')/Contents/MacOS/Neoworks Design" --screenshot release/smoke.png
+
+      - name: Smoke test (windows)
+        if: matrix.name == 'windows'
+        run: bun run smoke --screenshot release/smoke.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.name }}
+          path: |
+            design/release/*.AppImage
+            design/release/*.deb
+            design/release/*.dmg
+            design/release/*.exe
+            design/release/smoke.png
+          if-no-files-found: error
