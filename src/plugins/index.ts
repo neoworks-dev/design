@@ -40,6 +40,7 @@ import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
+import svgImport from './svg-import';
 import textEdit from './text-edit';
 import textFormat from './text-format';
 import textLayout from './text-layout';
@@ -78,6 +79,7 @@ export const builtinPlugins: Plugin[] = [
 	pixelGrid,
 	rulersGuides,
 	flatten,
+	svgImport,
 	debug,
 	desktopBridge,
 	fonts,
