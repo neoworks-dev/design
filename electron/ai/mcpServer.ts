@@ -203,6 +203,30 @@ export class McpServer {
 			return { content: [{ type: 'text', text: `unknown tool: ${String(name)}` }], isError: true };
 		}
 		const result = await session.onCall(name, params.arguments ?? {});
-		return { content: [{ type: 'text', text: result.text }], isError: !result.ok };
+		return { content: contentOf(result), isError: !result.ok };
+	}
+}
+
+/**
+ * A tool that answers JSON with `mimeType` and `base64` (export_png, get_screenshot) is sent as MCP
+ * image content, so the model sees the picture instead of reading base64 as text.
+ */
+export function contentOf(result: { ok: boolean; text: string }): unknown[] {
+	const text = { type: 'text', text: result.text };
+	if (!result.ok) return [text];
+	try {
+		const parsed: unknown = JSON.parse(result.text);
+		if (typeof parsed !== 'object' || parsed === null) return [text];
+		const mimeType = Reflect.get(parsed, 'mimeType');
+		const base64 = Reflect.get(parsed, 'base64');
+		if (typeof mimeType !== 'string' || typeof base64 !== 'string') return [text];
+		const width = Reflect.get(parsed, 'width');
+		const height = Reflect.get(parsed, 'height');
+		return [
+			{ type: 'image', data: base64, mimeType },
+			{ type: 'text', text: `image ${String(width)}x${String(height)}` }
+		];
+	} catch {
+		return [text];
 	}
 }

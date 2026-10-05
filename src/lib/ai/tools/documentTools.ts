@@ -137,7 +137,7 @@ function describeNode(node: Node): string {
 	return `${node.type} ${node.id} "${node.name}"`;
 }
 
-function base64Of(bytes: Uint8Array): string {
+export function base64Of(bytes: Uint8Array): string {
 	let binary = '';
 	const chunk = 0x8000;
 	for (let start = 0; start < bytes.length; start += chunk) {

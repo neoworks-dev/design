@@ -39,16 +39,15 @@ export interface AiChatHistory {
 	revertLastRun(): boolean;
 }
 
-/** The parts of the document and selection the chat uses. */
+/** The parts of the document the chat uses. */
 export interface AiChatDocument {
 	readonly documentId: string;
-	get(id: string): { id: string; name: string; type: string } | undefined;
-}
-export interface AiChatSelection {
-	readonly ids: readonly string[];
 }
 
-const MAX_ATTACHED_LAYERS = 20;
+/** What `aiContext` offers the chat: the selection as a prompt attachment. */
+export interface AiChatContext {
+	selectionAttachment(): AiAttachment | undefined;
+}
 
 export class AiChatService extends Service {
 	constructor(
@@ -56,7 +55,7 @@ export class AiChatService extends Service {
 		private readonly ai: AiChatAi,
 		private readonly aiHistory: AiChatHistory,
 		private readonly document: AiChatDocument,
-		private readonly selection: AiChatSelection,
+		private readonly context: AiChatContext,
 		private readonly state: AiChatState
 	) {
 		super(ctx, 'aiChat');
@@ -211,20 +210,9 @@ export class AiChatService extends Service {
 	}
 
 	private attachments(): AiAttachment[] {
-		if (!this.state.attachSelection || this.selection.ids.length === 0) return [];
-		const lines: string[] = [];
-		for (const id of this.selection.ids.slice(0, MAX_ATTACHED_LAYERS)) {
-			const node = this.document.get(id);
-			if (node !== undefined) lines.push(`${node.type} ${node.id} "${node.name}"`);
-		}
-		const extra = this.selection.ids.length - MAX_ATTACHED_LAYERS;
-		if (extra > 0) lines.push(`and ${extra} more`);
-		return [
-			{
-				kind: 'selection',
-				label: `Selection (${this.selection.ids.length})`,
-				text: lines.join('\n')
-			}
-		];
+		if (!this.state.attachSelection) return [];
+		const attachment = this.context.selectionAttachment();
+		if (attachment === undefined) return [];
+		return [attachment];
 	}
 }

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolCallMessage } from '../bridge';
-import { McpServer } from './mcpServer';
+import { contentOf, McpServer } from './mcpServer';
 import { qaScript, ScriptedAgentHost } from './scriptedAgents';
 import { ToolBroker } from './toolBroker';
 
@@ -159,5 +159,18 @@ describe('scripted agent', () => {
 		const input = received[1].input as { ops: unknown[] };
 		expect(input.ops).toHaveLength(4);
 		expect(events.at(-1)).toMatchObject({ type: 'text' });
+	});
+});
+
+describe('contentOf', () => {
+	it('sends an image answer as MCP image content and anything else as text', () => {
+		const picture = JSON.stringify({ width: 4, height: 3, mimeType: 'image/png', base64: 'AAAA' });
+		expect(contentOf({ ok: true, text: picture })).toEqual([
+			{ type: 'image', data: 'AAAA', mimeType: 'image/png' },
+			{ type: 'text', text: 'image 4x3' }
+		]);
+		expect(contentOf({ ok: true, text: '{"a":1}' })).toEqual([{ type: 'text', text: '{"a":1}' }]);
+		expect(contentOf({ ok: true, text: 'plain' })).toEqual([{ type: 'text', text: 'plain' }]);
+		expect(contentOf({ ok: false, text: picture })).toEqual([{ type: 'text', text: picture }]);
 	});
 });

@@ -25,6 +25,7 @@ import documentPlugin from './document';
 import documentScene from './document-scene';
 import ai from './ai';
 import aiChat from './ai-chat';
+import aiContext from './ai-context';
 import aiHistory from './ai-history';
 import aiTools from './ai-tools';
 import align from './align';
@@ -217,5 +218,6 @@ export const builtinPlugins: Plugin[] = [
 	ai,
 	aiTools,
 	aiHistory,
+	aiContext,
 	aiChat
 ];
