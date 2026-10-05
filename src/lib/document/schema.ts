@@ -425,6 +425,7 @@ const pageSchema = strictObject({
 	backgrounds: z.array(paintSchema),
 	guides: z.array(guideSchema),
 	flowStartingPoints: z.array(strictObject({ nodeId, name: z.string() })),
+	exportSettings: z.array(exportSettingSchema).optional(),
 	explicitVariableModes: variableModes
 });
 

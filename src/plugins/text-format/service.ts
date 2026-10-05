@@ -22,12 +22,14 @@ import {
 	letterSpacingPatch,
 	lineHeightPatch,
 	mergeRangeStyles,
+	paragraphsIn,
 	patchedTypingStyle,
 	restyleNode,
 	restyleRange,
 	setAlignment,
 	styleOfRange,
 	toggleList,
+	updateParagraphs,
 	weightPatch,
 	type StylePatch
 } from '../../lib/text/formatting';
@@ -148,6 +150,25 @@ export class TextFormatService extends Service {
 		this.updateParagraphs(
 			(paragraphs, range) => toggleList(paragraphs, range, kind),
 			kind === 'ORDERED' ? 'Numbered list' : 'Bulleted list'
+		);
+	}
+
+	/** Spacing after and indent of every touched paragraph (the typography section's settings). */
+	setParagraphProps(
+		props: Partial<Pick<Paragraph, 'indent' | 'spacingAfter'>>,
+		label: string
+	): void {
+		this.updateParagraphs(
+			(paragraphs, range) =>
+				updateParagraphs(paragraphs, range, (paragraph) => ({ ...paragraph, ...props })),
+			label
+		);
+	}
+
+	/** The paragraphs the next paragraph command touches: those of the range, or every one. */
+	touchedParagraphs(): Paragraph[] {
+		return this.targets().flatMap((target) =>
+			paragraphsIn(target.node.paragraphs, this.paragraphRange(target))
 		);
 	}
 
