@@ -19,6 +19,7 @@ import type {
 	DocumentReplaceEvent
 } from '../document';
 import type { ClipboardPayload } from '../editing/clipboardPayload';
+import type { MoveBeginRequest, MoveDrag } from '../selecting/moveDrag';
 import type { NodeId } from '../document/types';
 import type { SurfaceResetReason } from '../renderer/surface';
 import type { Camera } from '../viewport/camera';
@@ -83,6 +84,14 @@ declare module '@neoworks/extension-system' {
 		 * on an image: whoever owns that editor starts it (`tool-image` owns `crop`).
 		 */
 		'canvas/edit-request'(id: string, editor: 'text' | 'vector' | 'crop'): void;
+
+		/**
+		 * Dispatch mode: bail. The Move tool starts dragging the selection. A plugin that knows
+		 * better how to drag these nodes (auto layout reorders its children) returns its own
+		 * `MoveDrag`; with no answer the tool moves the selection freely. Call as
+		 * `ctx.bail('move/begin', { ids, startWorld, modifiers })`.
+		 */
+		'move/begin'(request: MoveBeginRequest): MoveDrag | void;
 
 		/** Dispatch mode: emit. A creation tool finished or cancelled; snap guides can go. */
 		'tools/snap-release'(): void;

@@ -2,13 +2,27 @@
 // (every character is 10 wide, every line 20 tall) so no Skia is needed.
 
 import type { Context, Plugin } from '@neoworks/extension-system';
-import { plainText, type DesignDocument, type NodeId, type Paragraph } from '../../../lib/document';
+import {
+	plainText,
+	type DesignDocument,
+	type NodeId,
+	type Paint,
+	type Paragraph
+} from '../../../lib/document';
 import { rectangle, type NodeSpec } from '../../../lib/document/fixtures';
 import { at, editingProviders } from '../../../lib/editing/fixtures/editingFixture';
 import { fakeText } from '../../../lib/layout/testing';
 import variablesCore from '../../variables-core';
 
 export { at };
+
+const WHITE: Paint = {
+	type: 'SOLID',
+	visible: true,
+	opacity: 1,
+	blendMode: 'NORMAL',
+	color: { r: 1, g: 1, b: 1 }
+};
 
 export function paragraphsOf(content: string): Paragraph[] {
 	return [
@@ -46,5 +60,5 @@ export function autolayoutProviders(document: DesignDocument): Plugin[] {
 }
 
 export function rect(id: string, width: number, height: number, x = 0, y = 0): NodeSpec {
-	return rectangle({ id, name: id, width, height, transform: at(x, y) });
+	return rectangle({ id, name: id, width, height, transform: at(x, y), fills: [WHITE] });
 }

@@ -22,6 +22,7 @@ import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
 import autolayout from './autolayout';
+import autolayoutHandles from './autolayout-handles';
 import appMenu from './app-menu';
 import boolean from './boolean';
 import clipboard from './clipboard';
@@ -149,6 +150,7 @@ export const builtinPlugins: Plugin[] = [
 	zoomMenu,
 	toolMove,
 	transformHandles,
+	autolayoutHandles,
 	shapeHandles,
 	toolImage,
 	toolScale,

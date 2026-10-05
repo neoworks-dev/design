@@ -19,6 +19,7 @@ import {
 	type ToolPointerEvent
 } from '../tools/protocol';
 import { marqueeSelect, rectBetween, toggleInto } from './marquee';
+import type { MoveDrag } from './moveDrag';
 import { MoveSession } from './moveSession';
 import { enterAt, isDeepSelect, pickAt } from './pick';
 
@@ -53,7 +54,7 @@ type Press =
 export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers {
 	const gesture = new PointerGesture();
 	let press: Press = { kind: 'none' };
-	let session: MoveSession | undefined;
+	let session: MoveDrag | undefined;
 	let pressWorld: Point = { x: 0, y: 0 };
 
 	const reset = (): void => {
@@ -86,7 +87,7 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 			if (update.phase !== 'dragging') return;
 			if (press.kind === 'empty') marqueeTo(ctx, state, press, event);
 			if (press.kind !== 'object') return;
-			if (update.startedDragging) session = MoveSession.begin(ctx, state, pressWorld, event);
+			if (update.startedDragging) session = beginDrag(ctx, state, pressWorld, event);
 			session?.update(event.world, event);
 		},
 		onPointerUp(): void {
@@ -126,6 +127,18 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 			ctx.selection.setHover(null);
 		}
 	};
+}
+
+/** A plugin may take the drag (auto layout reorders); otherwise the selection moves freely. */
+function beginDrag(
+	ctx: Context,
+	state: MoveToolState,
+	startWorld: Point,
+	event: ToolPointerEvent
+): MoveDrag | undefined {
+	const offered = ctx.bail('move/begin', { ids: ctx.selection.ids, startWorld, modifiers: event });
+	if (offered !== undefined) return offered;
+	return MoveSession.begin(ctx, state, startWorld, event);
 }
 
 function hover(ctx: Context, event: ToolPointerEvent): void {

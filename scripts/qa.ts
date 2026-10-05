@@ -43,7 +43,8 @@ const HELP = `qa — debug the app on a virtual display, driven over CDP
   logs [lines] [--renderer|--main]
 
   click <target>   dblclick <target>   rightclick <target>   (--modifiers Control,Alt,Shift)
-  drag <from> <to> [<more> ...] [--modifiers Control,Alt,Shift]   (a path through every point)
+  drag <from> <to> [<more> ...] [--modifiers Control,Alt,Shift] [--screenshot-before-release <label>]
+                               (a path through every point; the screenshot shows drag feedback)
   type <text>                  inserts text into the focused element
   press <chord> [chord ...]    Escape, Control+z, Shift+Tab, v
   scroll <deltaY> [--at <target>]
@@ -208,12 +209,14 @@ function parseModifiers(value: string | undefined): string[] {
 
 async function dragCommand(cdp: CdpSession, args: string[]): Promise<void> {
 	const refs = readRefs();
-	const { rest, value: modifiers } = takeOption(args, '--modifiers');
+	const { rest: withoutMid, value: midLabel } = takeOption(args, '--screenshot-before-release');
+	const { rest, value: modifiers } = takeOption(withoutMid, '--modifiers');
 	requireArgument(rest, 1, 'to');
 	const points = [];
 	for (const target of rest) points.push(await resolveTarget(cdp, target, refs));
 	holdModifiers(parseModifiers(modifiers));
-	await dragPath(cdp, points);
+	const beforeRelease = midLabel ? () => saveScreenshot(cdp, midLabel, undefined) : undefined;
+	await dragPath(cdp, points, undefined, beforeRelease);
 	holdModifiers([]);
 	print(`dragged ${points.map((point) => `${point.x},${point.y}`).join(' -> ')}`);
 }

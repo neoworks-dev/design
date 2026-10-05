@@ -9,7 +9,8 @@
 //
 // Each node goes into the deepest frame under its own centre. A node inside a group keeps the
 // group while its centre stays over the group's frame. Auto layout frames are never drop targets
-// and auto layout children never move (the auto layout handles issue owns reordering).
+// and auto layout children never move here: the `autolayout-handles` plugin takes over the drag
+// (the `move/begin` event, see moveDrag.ts) and reorders them.
 
 import type { Context } from '@neoworks/extension-system';
 import { cloneSubtree, isFrameLike, type Change, type NodeId, type Rect } from '../document';
@@ -18,13 +19,14 @@ import { nestingSource } from '../editing/creationTool.svelte';
 import { topLevelIds, unionBounds } from '../editing/selectionOps';
 import type { Modifiers, Point } from '../tools/protocol';
 import { constrainToAxis, draggableIds, lockedAxis, planDrag, type DragItem } from './drag';
+import type { MoveDrag } from './moveDrag';
 
 /** The ui state the session reports to the overlay. */
 export interface MoveFeedback {
 	dropTargetId: NodeId | null;
 }
 
-export class MoveSession {
+export class MoveSession implements MoveDrag {
 	private readonly items: DragItem[] = [];
 	private readonly originalParents = new Map<NodeId, NodeId>();
 	private readonly group: ReturnType<Context['history']['beginGroup']>;
