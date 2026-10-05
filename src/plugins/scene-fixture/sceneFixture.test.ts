@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
+import { DocumentStore, type Node, type NodeId } from '../../lib/document';
+import { planReflow } from '../../lib/layout/reflow';
 import { mountPlugin, type MountedPlugin, type StateSnapshot } from '../../lib/kernel/testing';
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
 import documentPlugin from '../document';
 import { isFixtureEnabled } from './enabled';
-import { FIRST_PAGE_ID, FIXTURE_FILE_ID } from './fixture';
+import { buildFixtureDocument, FIRST_PAGE_ID, FIXTURE_FILE_ID } from './fixture';
 import sceneFixture from './index';
 
 let mounted: MountedPlugin | undefined;
@@ -73,3 +75,15 @@ describe('unmounting', () => {
 function withoutRevision(state: StateSnapshot): StateSnapshot {
 	return { ...state, services: { ...state.services, document: {} } };
 }
+
+describe('auto layout frame of the fixture', () => {
+	it('is stored exactly where the engine puts it', () => {
+		const store = new DocumentStore(buildFixtureDocument());
+		const source = {
+			node: (id: NodeId): Node => store.requireNode(id),
+			children: (id: NodeId): readonly NodeId[] => store.children(id),
+			measureText: (): { width: number; height: number } => ({ width: 0, height: 0 })
+		};
+		expect(planReflow(store, source, 'frame-auto')).toEqual([]);
+	});
+});

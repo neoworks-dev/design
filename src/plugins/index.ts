@@ -21,6 +21,8 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
+import autolayout from './autolayout';
+import autolayoutHandles from './autolayout-handles';
 import appMenu from './app-menu';
 import boolean from './boolean';
 import clipboard from './clipboard';
@@ -30,6 +32,7 @@ import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
+import inspectorAutolayout from './inspector-autolayout';
 import layoutGrids from './layout-grids';
 import inspectPanel from './inspect-panel';
 import inspectorEffects from './inspector-effects';
@@ -119,6 +122,7 @@ export const builtinPlugins: Plugin[] = [
 	paintShaders,
 	effects,
 	textLayout,
+	autolayout,
 	textEdit,
 	textFormat,
 	documentPlugin,
@@ -152,6 +156,7 @@ export const builtinPlugins: Plugin[] = [
 	inspectorPage,
 	inspectorPosition,
 	inspectorLayoutSize,
+	inspectorAutolayout,
 	inspectorAppearance,
 	inspectorTypography,
 	inspectorSelectionColors,
@@ -169,6 +174,7 @@ export const builtinPlugins: Plugin[] = [
 	zoomMenu,
 	toolMove,
 	transformHandles,
+	autolayoutHandles,
 	shapeHandles,
 	toolImage,
 	toolScale,

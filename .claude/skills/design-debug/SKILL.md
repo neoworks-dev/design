@@ -101,7 +101,9 @@ bun run qa wait "Export" [--gone] [--timeout 10000]
 | `at=x,y` | a window point, for the canvas and anything without an element |
 
 Hold modifiers on a drag or click with `--modifiers Control,Alt,Shift` (for example
-`bun run qa drag at=600,300 at=800,450 --modifiers Alt`).
+`bun run qa drag at=600,300 at=800,450 --modifiers Alt`). To photograph drag feedback (insertion
+lines, ghosts, value labels) add `--screenshot-before-release <label>`: it is taken with the
+button still down.
 
 ## Renderer state: `eval` and the debug hook
 
