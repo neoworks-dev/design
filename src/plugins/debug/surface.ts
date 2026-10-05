@@ -34,7 +34,7 @@ export type DebugServiceName = (typeof DEBUG_SERVICE_NAMES)[number];
 
 export interface PluginDebugInfo {
 	name: string;
-	state: 'pending' | 'loading' | 'active' | 'failed' | 'disposed' | 'unloading';
+	state: 'pending' | 'loading' | 'active' | 'failed' | 'disposed' | 'unloading' | 'disabled';
 	error?: string;
 }
 

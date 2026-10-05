@@ -23,23 +23,12 @@
 		"qa": "bun scripts/qa.ts",
 		"proof": "bun scripts/proof.ts",
 		"test": "vitest run",
-		"test:watch": "vitest"
-	},
-	"build": {
-		"appId": "dev.neoworks.design",
-		"productName": "Neoworks Design",
-		"files": [
-			"build/**/*",
-			"plugins/**/*",
-			"electron/dist/**/*"
-		],
-		"linux": {
-			"target": [
-				"AppImage",
-				"deb"
-			],
-			"category": "Graphics"
-		}
+		"test:watch": "vitest",
+		"package:dir": "bun run build && electron-builder --dir",
+		"package:linux": "bun run build && electron-builder --linux",
+		"package:mac": "bun run build && electron-builder --mac",
+		"package:win": "bun run build && electron-builder --win",
+		"smoke": "bun scripts/smoke.ts"
 	},
 	"devDependencies": {
 		"@neoworks/lint-config": "link:@neoworks/lint-config",
@@ -78,5 +67,7 @@
 		"nanoid": "^6.0.1",
 		"phosphor-svelte": "^3.1.0",
 		"zod": "^4.6.5"
-	}
+	},
+	"homepage": "https://github.com/neoworks-dev/design",
+	"desktopName": "neoworks-design.desktop"
 }

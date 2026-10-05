@@ -2,6 +2,7 @@
 // plugins declare `inject` and activate when their providers appear.
 
 import type { Plugin } from '@neoworks/extension-system';
+import archiveIo from './archive-io';
 import assetsStore from './assets-store';
 import canvasInput from './canvas-input';
 import canvaskit from './canvaskit';
@@ -19,6 +20,7 @@ import coreTools from './core-tools';
 import debug from './debug';
 import desktopBridge from './desktop-bridge';
 import effects from './effects';
+import errorUi from './error-ui';
 import fonts from './fonts';
 import exportPlugin from './export';
 import exportPdf from './export-pdf';
@@ -103,6 +105,7 @@ import variablesCore from './variables-core';
 import variablesUi from './variables-ui';
 import styles from './styles';
 import variants from './variants';
+import versionHistory from './version-history';
 import viewport from './viewport';
 import viewTools from './view-tools';
 import zoomMenu from './zoom-menu';
@@ -134,6 +137,32 @@ import shortcuts from './shortcuts';
 import shapeHandles from './shape-handles';
 import transformHandles from './transform-handles';
 import zOrder from './z-order';
+
+/**
+ * Plugins safe mode leaves out: everything that is not needed to open, look at and edit a
+ * document. The shell, document, canvas, selection, history and file session stay.
+ */
+export const optionalPluginNames: ReadonlySet<string> = new Set([
+	'ai',
+	'ai-batch',
+	'ai-chat',
+	'ai-context',
+	'ai-generate',
+	'ai-history',
+	'ai-palette',
+	'ai-rename',
+	'ai-review',
+	'ai-search',
+	'ai-tools',
+	'comments',
+	'export',
+	'export-pdf',
+	'export-raster',
+	'export-svg',
+	'export-ui',
+	'scene-fixture',
+	'svg-import'
+]);
 
 export const builtinPlugins: Plugin[] = [
 	coreRegions,
@@ -267,5 +296,8 @@ export const builtinPlugins: Plugin[] = [
 	pluginManifests,
 	pluginHost,
 	pluginApi,
-	pluginUi
+	pluginUi,
+	errorUi,
+	versionHistory,
+	archiveIo
 ];

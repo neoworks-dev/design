@@ -8,6 +8,7 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type {
 	AiProviderInfo,
+	ArchiveEntry,
 	AiSendRequest,
 	AiStartRequest,
 	AiToolResultMessage,
@@ -18,7 +19,9 @@ import type {
 	ClipboardContent,
 	ClipboardWrite,
 	CommitResult,
+	CreateFromArchiveRequest,
 	CreateStoreRequest,
+	DiagnosticsReport,
 	DraftFile,
 	ExportFileData,
 	DesktopBridge,
@@ -33,10 +36,13 @@ import type {
 	OpenFileOptions,
 	PickedImage,
 	RecentFile,
+	RestorePlan,
 	SaveFileOptions,
 	SettingsData,
 	StoreInfo,
-	Thumbnail
+	Thumbnail,
+	VersionHistoryData,
+	VersionMark
 } from '../../../electron/bridge';
 import type { Transaction } from '../../lib/document';
 
@@ -134,6 +140,16 @@ export class DesktopService extends Service {
 		return typed(() => this.bridge.app.bootReport());
 	}
 
+	/** Recent log lines of main and the renderer plus versions, for the log viewer. */
+	diagnostics(): Promise<DiagnosticsReport> {
+		return typed(() => this.bridge.diagnostics.read());
+	}
+
+	/** Load the window again; `safeMode` starts with only the core plugins. */
+	restartWindow(safeMode: boolean): Promise<void> {
+		return typed(() => this.bridge.diagnostics.restart(safeMode));
+	}
+
 	openFileDialog(options?: OpenFileOptions): Promise<string[] | null> {
 		return typed(() => this.bridge.dialogs.openFile(options));
 	}
@@ -153,6 +169,21 @@ export class DesktopService extends Service {
 	 */
 	writeExports(files: ExportFileData[]): Promise<string[] | null> {
 		return typed(() => this.bridge.exports.write(files));
+	}
+
+	/** Zip the files and write them where the save dialog says; `null` when cancelled. */
+	archiveExport(suggestedName: string, entries: ArchiveEntry[]): Promise<string | null> {
+		return typed(() => this.bridge.archive.export(suggestedName, entries));
+	}
+
+	/** Pick a design archive; main unzips it. `null` when cancelled. */
+	archiveRead(): Promise<{ path: string; entries: ArchiveEntry[] } | null> {
+		return typed(() => this.bridge.archive.read());
+	}
+
+	/** Create a design file from an imported archive (asks where); the path or `null`. */
+	archiveCreateFile(request: CreateFromArchiveRequest): Promise<string | null> {
+		return typed(() => this.bridge.archive.createFile(request));
 	}
 
 	/** What the OS clipboard holds (text, html and a PNG image, each `null` when absent). */
@@ -207,6 +238,26 @@ export class DesktopService extends Service {
 	/** Save: checkpoint the open file and clear its unsaved marker. */
 	storeCheckpoint(): Promise<StoreInfo> {
 		return typed(() => this.bridge.store.checkpoint());
+	}
+
+	// ---------- version history ----------
+
+	/** Marks and the newest log entries of the open file. */
+	storeVersions(): Promise<VersionHistoryData> {
+		return typed(() => this.bridge.versions.list());
+	}
+
+	storeAddVersion(name: string): Promise<VersionMark> {
+		return typed(() => this.bridge.versions.add(name));
+	}
+
+	storeDeleteVersion(id: string): Promise<void> {
+		return typed(() => this.bridge.versions.remove(id));
+	}
+
+	/** The changes that undo everything logged after `seq`; `available` is false once pruned. */
+	storeRestorePlan(seq: number): Promise<RestorePlan> {
+		return typed(() => this.bridge.versions.restorePlan(seq));
 	}
 
 	// ---------- settings ----------

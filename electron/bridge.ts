@@ -6,7 +6,7 @@
 // methods to `DesktopBridge` and `preload.ts`, and register the routes from a main plugin with
 // `route()`.
 
-import type { AssetRecord, DesignDocument, Transaction } from '../src/lib/document/types';
+import type { AssetRecord, Change, DesignDocument, Transaction } from '../src/lib/document/types';
 
 // ---------- shared value types ----------
 
@@ -66,6 +66,46 @@ export interface CreateStoreRequest {
 	document?: DesignDocument;
 }
 
+/** What made a version mark: the user (named), a Save, or opening the file. */
+export type VersionKind = 'named' | 'save' | 'session';
+/** A position in the transaction log with a name: the state after the transaction `seq`. */
+export interface VersionMark {
+	id: string;
+	name: string;
+	kind: VersionKind;
+	seq: number;
+	/** Milliseconds since the epoch. */
+	createdAt: number;
+}
+/** One logged transaction, without its changes, for the history list. */
+export interface LogEntrySummary {
+	seq: number;
+	id: string;
+	/** Milliseconds since the epoch. */
+	createdAt: number;
+	/** `user`, `plugin`, `ai` or `sync`. */
+	origin: string;
+	label: string;
+}
+export interface VersionHistoryData {
+	/** Position of the newest logged transaction (survives pruning); 0 before the first. */
+	latestSeq: number;
+	/** Position of the oldest transaction still logged; `latestSeq + 1` when the log is empty. */
+	oldestSeq: number;
+	marks: VersionMark[];
+	/** The newest entries, oldest first. */
+	entries: LogEntrySummary[];
+}
+/** What undoing everything after a position takes; `available` is false once it was pruned. */
+export interface RestorePlan {
+	available: boolean;
+	/** One change list that undoes the transactions after the position, newest first. */
+	changes: Change[];
+	/** Transactions it undoes. */
+	count: number;
+	latestSeq: number;
+}
+
 /** An encoded preview image, as stored in a file's `thumbnails` table. */
 export interface Thumbnail {
 	mime: string;
@@ -119,6 +159,25 @@ export interface ExportFileData {
 	/** A file name; directories are stripped by main. */
 	name: string;
 	bytes: Uint8Array;
+}
+
+/** One file of a design archive (a zip of JSON): a relative path and its bytes. */
+export interface ArchiveEntry {
+	path: string;
+	bytes: Uint8Array;
+}
+/** An image to store in a file created from an archive; its hash must match its bytes. */
+export interface ArchiveImageData {
+	hash: string;
+	mime: string;
+	width?: number;
+	height?: number;
+	bytes: Uint8Array;
+}
+export interface CreateFromArchiveRequest {
+	document: DesignDocument;
+	images: ArchiveImageData[];
+	fonts: Array<FontRef & { bytes: Uint8Array }>;
 }
 
 /** What the OS clipboard holds, as far as the app reads it. Absent kinds are `null`. */
@@ -177,6 +236,23 @@ export interface BootReport {
 	loaded: string[];
 	failed: BootFailure[];
 	pending: BootPending[];
+}
+
+/** What "copy diagnostics" and the log viewer show; assembled by main (`diagnostics:read`). */
+export interface DiagnosticsReport {
+	app: {
+		version: string;
+		electron: string;
+		chrome: string;
+		platform: string;
+		arch: string;
+		/** The window was loaded with only the core plugins. */
+		safeMode: boolean;
+	};
+	/** The newest lines the main kernel logged, oldest first. */
+	main: string[];
+	/** The newest lines the renderer wrote to its console, oldest first. */
+	renderer: string[];
 }
 
 // ---------- AI (main-ai, renderer `ai` service) ----------
@@ -297,6 +373,9 @@ export interface IpcContract {
 	'app:path': { payload: AppPathName; result: string };
 	'app:quit': { payload: void; result: void };
 	'app:bootReport': { payload: void; result: BootReport | null };
+	'diagnostics:read': { payload: void; result: DiagnosticsReport };
+	/** Load the window again, in safe mode (core plugins only) or normally. */
+	'diagnostics:restart': { payload: { safeMode: boolean }; result: void };
 	'dialogs:openFile': { payload: OpenFileOptions | undefined; result: string[] | null };
 	'dialogs:saveFile': { payload: SaveFileOptions | undefined; result: string | null };
 	/** The native open dialog filtered to images (several allowed); main reads the files. */
@@ -306,6 +385,18 @@ export interface IpcContract {
 	 * a folder. Resolves with the written paths; `null` when the user cancelled (nothing written).
 	 */
 	'exports:write': { payload: { files: ExportFileData[] }; result: string[] | null };
+	/** Zip `entries` and write them where the native save dialog says; `null` when cancelled. */
+	'archive:export': {
+		payload: { suggestedName: string; entries: ArchiveEntry[] };
+		result: string | null;
+	};
+	/** The native open dialog for a design archive; main unzips it. `null` when cancelled. */
+	'archive:read': { payload: void; result: { path: string; entries: ArchiveEntry[] } | null };
+	/**
+	 * Create a design file from an imported archive at a path the native save dialog gives
+	 * (without opening it). The path, or `null` when cancelled.
+	 */
+	'archive:create': { payload: CreateFromArchiveRequest; result: string | null };
 	'clipboard:read': { payload: void; result: ClipboardContent };
 	'clipboard:write': { payload: ClipboardWrite; result: void };
 	/** Replace the native application menu with the renderer's resolved menu bar. */
@@ -321,6 +412,13 @@ export interface IpcContract {
 	'store:commit': { payload: { transactions: Transaction[] }; result: CommitResult };
 	/** Save: fold the WAL into the file and clear the unsaved marker. */
 	'store:checkpoint': { payload: void; result: StoreInfo };
+	/** Version history of the open file: marks and the newest log entries. */
+	'versions:list': { payload: void; result: VersionHistoryData };
+	/** Mark the current end of the log with a name. */
+	'versions:add': { payload: { name: string }; result: VersionMark };
+	'versions:remove': { payload: { id: string }; result: void };
+	/** The changes that undo everything logged after `seq` (see `RestorePlan`). */
+	'versions:restorePlan': { payload: { seq: number }; result: RestorePlan };
 	/**
 	 * A new empty document in a temporary file in the app's `untitled` directory. `null` when the
 	 * user cancelled leaving an untitled document with edits.
@@ -455,6 +553,10 @@ export interface DesktopBridge {
 		/** The main kernel's boot report; `null` until main finished booting. */
 		bootReport(): Promise<BootReport | null>;
 	};
+	diagnostics: {
+		read(): Promise<DiagnosticsReport>;
+		restart(safeMode: boolean): Promise<void>;
+	};
 	dialogs: {
 		openFile(options?: OpenFileOptions): Promise<string[] | null>;
 		saveFile(options?: SaveFileOptions): Promise<string | null>;
@@ -463,6 +565,11 @@ export interface DesktopBridge {
 	};
 	exports: {
 		write(files: ExportFileData[]): Promise<string[] | null>;
+	};
+	archive: {
+		export(suggestedName: string, entries: ArchiveEntry[]): Promise<string | null>;
+		read(): Promise<{ path: string; entries: ArchiveEntry[] } | null>;
+		createFile(request: CreateFromArchiveRequest): Promise<string | null>;
 	};
 	clipboard: {
 		read(): Promise<ClipboardContent>;
@@ -490,6 +597,12 @@ export interface DesktopBridge {
 		commit(transactions: Transaction[]): Promise<CommitResult>;
 		/** Save: checkpoint the file and clear its unsaved marker. */
 		checkpoint(): Promise<StoreInfo>;
+	};
+	versions: {
+		list(): Promise<VersionHistoryData>;
+		add(name: string): Promise<VersionMark>;
+		remove(id: string): Promise<void>;
+		restorePlan(seq: number): Promise<RestorePlan>;
 	};
 	settings: {
 		load(): Promise<SettingsData>;

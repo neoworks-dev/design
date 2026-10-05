@@ -1,0 +1,124 @@
+# Packaging (#140). `bun run package:<target>` builds the SvelteKit app and the electron bundles
+# first (`bun run build`), then runs electron-builder with this file.
+#
+# What goes in: the static build (`build/`, which holds the `app://` assets, the CanvasKit wasm and
+# the bundled fonts) and the compiled main and preload bundles (`electron/dist/`). Main is bundled
+# with `--packages external`, so its runtime dependencies (the harness, zod, the extension system)
+# are copied from node_modules by electron-builder.
+
+appId: dev.neoworks.design
+productName: Neoworks Design
+copyright: Copyright (c) Neoworks
+
+directories:
+  output: release
+  # `build/` is the SvelteKit output here, so icons live elsewhere.
+  buildResources: packaging
+
+files:
+  - package.json
+  - build/**/*
+  # Bundled third-party plugins (plugin discovery's built-in root).
+  - plugins/**/*
+  - electron/dist/**/*
+  - '!electron/dist/**/*.map'
+  # Renderer-only packages: vite bundled them into build/, main never loads them.
+  - '!node_modules/canvaskit-wasm'
+  - '!node_modules/@fontsource'
+  - '!node_modules/@neoworks-dev'
+  - '!node_modules/phosphor-svelte'
+
+# Files the OS or a child process has to read from disk, not from inside app.asar: the AI harness
+# starts agent processes from its packages, and wasm modules next to the app stay inspectable.
+asar: true
+asarUnpack:
+  - '**/*.wasm'
+  - node_modules/@agentclientprotocol/**
+  - node_modules/@neoworks/harness/**
+
+# Use the electron that bun installed instead of downloading the same release again.
+electronDist: node_modules/electron/dist
+
+# `.ndesign` documents (data-model.md section 7: extension, MIME type, UTI). Double clicking one
+# starts the app with the path as an argument (Linux, Windows) or sends `open-file` (macOS); both
+# end up in main-files (`launchPaths`, `files:open-request`).
+fileAssociations:
+  - ext: ndesign
+    name: Neoworks Design document
+    description: Neoworks Design document
+    mimeType: application/vnd.neoworks.design+sqlite
+    role: Editor
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Graphics
+  executableName: neoworks-design
+  syncDesktopName: true
+  icon: icon.png
+  synopsis: Offline design tool with built-in AI and plugins
+  maintainer: Moritz Utcke <moritz.utcke@gmx.de>
+  desktop:
+    entry:
+      StartupWMClass: Neoworks Design
+
+deb:
+  artifactName: neoworks-design_${version}_${arch}.${ext}
+  packageName: neoworks-design
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+
+appImage:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.graphics-design
+  icon: icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: packaging/entitlements.mac.plist
+  entitlementsInherit: packaging/entitlements.mac.plist
+  # The type behind `.ndesign` for Finder and Spotlight.
+  extendInfo:
+    UTExportedTypeDeclarations:
+      - UTTypeIdentifier: dev.neoworks.design
+        UTTypeDescription: Neoworks Design document
+        UTTypeConformsTo:
+          - public.data
+          - public.database
+        UTTypeTagSpecification:
+          public.filename-extension:
+            - ndesign
+          public.mime-type: application/vnd.neoworks.design+sqlite
+# Signing and notarization run only when credentials are in the environment (CSC_LINK,
+# CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID); without them the dmg is
+# built unsigned. `notarize` is switched on in the CI job when the secrets exist.
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+
+# Auto update is optional and off: nothing is published and no update feed is read. To turn it on
+# later, set `publish` (a generic or GitHub provider) and call electron-updater from a main plugin
+# behind a setting.
+publish: null

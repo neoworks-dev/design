@@ -58,12 +58,33 @@ export function createBrowserBridge(): BrowserBridge {
 			quit: () => Promise.resolve(),
 			bootReport: () => Promise.resolve(report)
 		},
+		diagnostics: {
+			read: () =>
+				Promise.resolve({
+					app: {
+						version: BROWSER_VERSION,
+						electron: 'none',
+						chrome: 'browser',
+						platform: 'browser',
+						arch: 'unknown',
+						safeMode: false
+					},
+					main: [],
+					renderer: []
+				}),
+			restart: () => Promise.resolve()
+		},
 		dialogs: {
 			openFile: () => Promise.resolve(null),
 			saveFile: () => Promise.resolve(null),
 			openImages: () => Promise.resolve(null)
 		},
 		exports: { write: () => Promise.resolve(null) },
+		archive: {
+			export: () => Promise.resolve(null),
+			read: () => Promise.resolve(null),
+			createFile: () => Promise.resolve(null)
+		},
 		clipboard: {
 			read: () => Promise.resolve({ ...clipboard }),
 			write: (content) => {
@@ -87,6 +108,12 @@ export function createBrowserBridge(): BrowserBridge {
 			close: () => Promise.resolve(),
 			commit: () => unavailable('saving files'),
 			checkpoint: () => unavailable('saving files')
+		},
+		versions: {
+			list: () => unavailable('version history'),
+			add: () => unavailable('version history'),
+			remove: () => unavailable('version history'),
+			restorePlan: () => unavailable('version history')
 		},
 		ai: {
 			providers: () => Promise.resolve([]),

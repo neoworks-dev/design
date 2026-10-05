@@ -73,6 +73,9 @@ export interface WindowOptions {
 export interface RendererObserver {
 	consoleMessage(level: string, message: string): void;
 	gone(reason: string, exitCode: number): void;
+	/** The page stopped answering (hung script). `responsive` follows when it recovers. */
+	unresponsive?(): void;
+	responsive?(): void;
 }
 
 export type WindowEventName =
@@ -82,6 +85,8 @@ export interface WindowHandle {
 	readonly id: number;
 	readonly sender: SenderHandle;
 	loadURL(url: string): Promise<void>;
+	/** Load the current page again (also revives a crashed renderer). */
+	reload(): void;
 	minimize(): void;
 	maximize(): void;
 	unmaximize(): void;

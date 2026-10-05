@@ -337,6 +337,22 @@ export class FilesService extends Service {
 		return this.launchPaths.shift() ?? null;
 	}
 
+	/**
+	 * The path of the saved (not untitled) file `sender` has open, or `null`. Untitled documents
+	 * are not here: the next start offers them for recovery by itself.
+	 */
+	savedFileOf(sender: SenderHandle): string | null {
+		if (!this.store.hasStore(sender)) return null;
+		const info = this.store.infoOf(this.store.current(sender));
+		if (info.untitled) return null;
+		return info.path;
+	}
+
+	/** Have the next window that asks for its launch file open `target` (a reloaded window). */
+	queueLaunch(target: string): void {
+		this.launchPaths.unshift(target);
+	}
+
 	/** The OS asked the running app to open `target`: tell the window, or keep it for launch. */
 	requestOpen(target: string): void {
 		const windows = this.ctx.electron.windows();

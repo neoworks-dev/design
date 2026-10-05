@@ -4,9 +4,11 @@
 import type { PluginEntry } from '../kernel/boot';
 import type { ElectronHost } from '../kernel/host';
 import { mainAiPlugin } from './ai';
+import { mainArchivePlugin } from './archive';
 import { mainAppPlugin } from './app';
 import { mainAssetsPlugin } from './assets';
 import { mainClipboardPlugin } from './clipboard';
+import { mainDiagnosticsPlugin } from './diagnostics';
 import { mainDialogsPlugin } from './dialogs';
 import { mainExportsPlugin } from './exports';
 import { mainFilesPlugin } from './files';
@@ -38,6 +40,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainProtocolPlugin, config: { buildDirectory: options.buildDirectory } },
 		{ plugin: mainWindowPlugin, config: options.window },
 		{ plugin: mainAppPlugin },
+		{ plugin: mainDiagnosticsPlugin },
 		{ plugin: mainDialogsPlugin },
 		{ plugin: mainClipboardPlugin },
 		{ plugin: mainExportsPlugin },
@@ -48,6 +51,7 @@ export function mainPlugins(options: MainPluginOptions): PluginEntry[] {
 		{ plugin: mainStorePlugin },
 		{ plugin: mainAssetsPlugin },
 		{ plugin: mainPluginsPlugin, config: { bundledDirectory: options.bundledPluginsDirectory } },
+		{ plugin: mainArchivePlugin },
 		{ plugin: mainFilesPlugin, config: { launchPaths: options.launchPaths } }
 	];
 }

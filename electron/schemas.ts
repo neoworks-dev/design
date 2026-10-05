@@ -3,7 +3,14 @@
 // Main only: the preload is sandboxed and must not import this file.
 
 import { z } from 'zod';
-import type { CreateStoreRequest, IpcChannel, IpcContract, NativeMenuItem } from './bridge';
+import { isSafeArchivePath } from './archive/zip';
+import type {
+	CreateFromArchiveRequest,
+	CreateStoreRequest,
+	IpcChannel,
+	IpcContract,
+	NativeMenuItem
+} from './bridge';
 import { designDocumentSchema, transactionSchema } from '../src/lib/document/schema';
 
 const fileFilter = z.strictObject({ name: z.string(), extensions: z.array(z.string()) });
@@ -32,6 +39,26 @@ const storePath = z.string().min(1);
 const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
 	path: storePath,
 	document: designDocumentSchema.optional()
+});
+
+const archiveEntry = z.strictObject({
+	path: z.string().min(1).max(1024).refine(isSafeArchivePath),
+	bytes: blobBytes
+});
+const createFromArchiveRequest: z.ZodType<CreateFromArchiveRequest> = z.strictObject({
+	document: designDocumentSchema,
+	images: z.array(
+		z.strictObject({
+			hash: z.string().min(1),
+			mime: z.string().min(1),
+			width: pixelSize.optional(),
+			height: pixelSize.optional(),
+			bytes: blobBytes
+		})
+	),
+	fonts: z.array(
+		z.strictObject({ family: z.string().min(1), style: z.string().min(1), bytes: blobBytes })
+	)
 });
 
 const nativeMenuItem: z.ZodType<NativeMenuItem> = z.lazy(() =>
@@ -76,6 +103,8 @@ export const payloadSchemas: PayloadSchemas = {
 	'app:path': z.enum(['userData', 'documents', 'downloads', 'temp', 'home']),
 	'app:quit': z.void(),
 	'app:bootReport': z.void(),
+	'diagnostics:read': z.void(),
+	'diagnostics:restart': z.strictObject({ safeMode: z.boolean() }),
 	'dialogs:openFile': openFileOptions,
 	'dialogs:saveFile': saveFileOptions,
 	'dialogs:openImages': z.void(),
@@ -85,6 +114,12 @@ export const payloadSchemas: PayloadSchemas = {
 			.min(1)
 			.max(500)
 	}),
+	'archive:export': z.strictObject({
+		suggestedName: z.string().min(1).max(255),
+		entries: z.array(archiveEntry).min(1).max(100_000)
+	}),
+	'archive:read': z.void(),
+	'archive:create': createFromArchiveRequest,
 	'clipboard:read': z.void(),
 	'clipboard:write': z.strictObject({
 		text: z.string().optional(),
@@ -101,6 +136,10 @@ export const payloadSchemas: PayloadSchemas = {
 	'store:commit': z.strictObject({
 		transactions: z.array(transactionSchema).max(MAX_TRANSACTIONS_PER_COMMIT)
 	}),
+	'versions:list': z.void(),
+	'versions:add': z.strictObject({ name: z.string().trim().min(1).max(200) }),
+	'versions:remove': z.strictObject({ id: z.string().min(1).max(64) }),
+	'versions:restorePlan': z.strictObject({ seq: z.number().int().min(0) }),
 	'store:checkpoint': z.void(),
 	'files:openInTab': z.strictObject({ path: storePath }),
 	'files:newInTab': z.void(),

@@ -35,12 +35,14 @@ function trustedOrigins(): string[] {
 	return [appOrigin, `${devUrl.protocol}//${devUrl.host}`];
 }
 
-// DESIGN_QA_FIXTURE=0 loads the app without the QA fixture scene, so a session edits a real file.
+// QA sessions only. DESIGN_QA_FIXTURE=0 loads the app without the QA fixture scene, so a session
+// edits a real file; DESIGN_QA_FAIL_PLUGIN=1 mounts a plugin that throws, to see the error UI.
 function entryUrl(): string {
 	const base = devServerUrl ? devServerUrl : `${appOrigin}/`;
-	if (process.env.DESIGN_QA !== '1' || process.env.DESIGN_QA_FIXTURE !== '0') return base;
+	if (process.env.DESIGN_QA !== '1') return base;
 	const url = new URL(base);
-	url.searchParams.set('fixture', '0');
+	if (process.env.DESIGN_QA_FIXTURE === '0') url.searchParams.set('fixture', '0');
+	if (process.env.DESIGN_QA_FAIL_PLUGIN === '1') url.searchParams.set('failplugin', '1');
 	return url.toString();
 }
 
@@ -58,7 +60,8 @@ async function boot(): Promise<void> {
 				entryUrl: entryUrl(),
 				devServer: devServerUrl !== undefined,
 				preloadPath: path.join(distDirectory, 'preload.cjs'),
-				qaSession: isQaSession
+				qaSession: isQaSession,
+				safeMode: process.argv.includes('--safe-mode')
 			}
 		})
 	);

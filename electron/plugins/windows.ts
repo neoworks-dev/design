@@ -5,7 +5,7 @@
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { z } from 'zod';
 import { emitTo, route } from '../kernel/route';
-import type { IpcInvokeEvent, WindowHandle, WindowOptions } from '../kernel/host';
+import type { IpcInvokeEvent, RendererObserver, WindowHandle, WindowOptions } from '../kernel/host';
 import { MIN_WINDOW_SIZE } from '../windowBounds';
 import { loadWindowState, trackWindowState } from '../windowState';
 
@@ -16,18 +16,27 @@ export const windowsConfigSchema = z.strictObject({
 	devServer: z.boolean(),
 	preloadPath: z.string(),
 	/** `bun run qa` session: mirror the renderer console to stdout, keep devtools closed. */
-	qaSession: z.boolean()
+	qaSession: z.boolean(),
+	/** Start with only the core plugins in the renderer (the `safe=1` query parameter). */
+	safeMode: z.boolean().optional()
 });
 export type WindowsConfig = z.infer<typeof windowsConfigSchema>;
 
 /** The renderer's debug plugin looks for this query parameter (src/plugins/debug/enabled.ts). */
 export const QA_QUERY_PARAMETER = 'qa';
 
-/** The page to load: in a QA session it carries `?qa=1`, which switches the debug hook on. */
-export function entryUrlFor(config: WindowsConfig): string {
-	if (!config.qaSession) return config.entryUrl;
+/** The renderer's boot reads this query parameter and mounts only the core plugins. */
+export const SAFE_MODE_QUERY_PARAMETER = 'safe';
+
+/**
+ * The page to load: in a QA session it carries `?qa=1`, which switches the debug hook on; in safe
+ * mode `?safe=1`.
+ */
+export function entryUrlFor(config: WindowsConfig, safeMode: boolean = false): string {
+	if (!config.qaSession && !safeMode) return config.entryUrl;
 	const url = new URL(config.entryUrl);
-	url.searchParams.set(QA_QUERY_PARAMETER, '1');
+	if (config.qaSession) url.searchParams.set(QA_QUERY_PARAMETER, '1');
+	if (safeMode) url.searchParams.set(SAFE_MODE_QUERY_PARAMETER, '1');
 	return url.toString();
 }
 
@@ -36,12 +45,29 @@ const LOAD_RETRY_DELAY_MS = 500;
 
 export class WindowsService extends Service {
 	private currentMainWindow: WindowHandle | null = null;
+	private currentSafeMode: boolean;
 
 	constructor(
 		ctx: Context,
 		private readonly config: WindowsConfig
 	) {
 		super(ctx, 'windows');
+		this.currentSafeMode = config.safeMode === true;
+	}
+
+	/** Whether the page was last loaded in safe mode. */
+	get safeMode(): boolean {
+		return this.currentSafeMode;
+	}
+
+	/** Load the entry page again, in safe mode or not. A crashed renderer comes back with it. */
+	reloadMainWindow(safeMode: boolean): void {
+		const window = this.currentMainWindow;
+		if (!window || window.isDestroyed()) return;
+		this.currentSafeMode = safeMode;
+		window.loadURL(entryUrlFor(this.config, safeMode)).catch((error: unknown) => {
+			this.ctx.logger.error(error);
+		});
 	}
 
 	get mainWindow(): WindowHandle | null {
@@ -106,6 +132,7 @@ export class WindowsService extends Service {
 		removers.push(window.on('maximize', () => emitTo(window, 'window:maximized', true)));
 		removers.push(window.on('unmaximize', () => emitTo(window, 'window:maximized', false)));
 		if (this.config.qaSession) removers.push(window.observeRenderer(consoleMirror));
+		removers.push(window.observeRenderer(this.rendererEvents(window)));
 		removers.push(trackWindowState(window, electron));
 
 		const stopLoading = this.loadEntry(window);
@@ -119,6 +146,17 @@ export class WindowsService extends Service {
 		};
 	}
 
+	/** Tells the kernel what the window's renderer does; diagnostics and recovery listen. */
+	private rendererEvents(window: WindowHandle): RendererObserver {
+		return {
+			consoleMessage: (level, message) =>
+				this.ctx.emit('windows/renderer-message', window, level, message),
+			gone: (reason, exitCode) => this.ctx.emit('windows/renderer-gone', window, reason, exitCode),
+			unresponsive: () => this.ctx.emit('windows/renderer-unresponsive', window),
+			responsive: () => this.ctx.emit('windows/renderer-responsive', window)
+		};
+	}
+
 	private forgetWindow(window: WindowHandle): void {
 		if (this.currentMainWindow === window) this.currentMainWindow = null;
 	}
@@ -127,7 +165,7 @@ export class WindowsService extends Service {
 	private loadEntry(window: WindowHandle): () => void {
 		let cancelled = false;
 		let retryTimer: ReturnType<typeof setTimeout> | undefined;
-		const entryUrl = entryUrlFor(this.config);
+		const entryUrl = entryUrlFor(this.config, this.currentSafeMode);
 		const attemptLoad = (attempt: number): void => {
 			window.loadURL(entryUrl).catch(() => {
 				if (cancelled || !this.config.devServer || attempt >= LOAD_RETRY_ATTEMPTS) return;

@@ -59,6 +59,10 @@ const bridge: DesktopBridge = {
 		quit: () => invoke('app:quit'),
 		bootReport: () => invoke('app:bootReport')
 	},
+	diagnostics: {
+		read: () => invoke('diagnostics:read'),
+		restart: (safeMode) => invoke('diagnostics:restart', { safeMode })
+	},
 	dialogs: {
 		openFile: (options) => invoke('dialogs:openFile', options),
 		saveFile: (options) => invoke('dialogs:saveFile', options),
@@ -66,6 +70,11 @@ const bridge: DesktopBridge = {
 	},
 	exports: {
 		write: (files) => invoke('exports:write', { files })
+	},
+	archive: {
+		export: (suggestedName, entries) => invoke('archive:export', { suggestedName, entries }),
+		read: () => invoke('archive:read'),
+		createFile: (request) => invoke('archive:create', request)
 	},
 	clipboard: {
 		read: () => invoke('clipboard:read'),
@@ -93,6 +102,12 @@ const bridge: DesktopBridge = {
 		cancel: (sessionId) => invoke('ai:cancel', { sessionId }),
 		end: (sessionId) => invoke('ai:end', { sessionId }),
 		toolResult: (result) => invoke('ai:toolResult', result)
+	},
+	versions: {
+		list: () => invoke('versions:list'),
+		add: (name) => invoke('versions:add', { name }),
+		remove: (id) => invoke('versions:remove', { id }),
+		restorePlan: (seq) => invoke('versions:restorePlan', { seq })
 	},
 	settings: {
 		load: () => invoke('settings:load'),

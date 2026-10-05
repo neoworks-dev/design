@@ -22,7 +22,7 @@ import type {
 	Variable,
 	VariableCollection
 } from '../../src/lib/document/types';
-import type { Thumbnail } from '../bridge';
+import type { RestorePlan, Thumbnail, VersionHistoryData, VersionMark } from '../bridge';
 import { APPLICATION_ID, OPEN_PRAGMAS } from './constants';
 import {
 	collectUnreferencedAssets,
@@ -37,6 +37,7 @@ import {
 import { asStoreError, StoreError } from './errors';
 import { pruneTransactionLog, writeTransaction, type WriteStats } from './transactionWriter';
 import { readHeader, requireDesignFile } from './header';
+import { addMark, deleteMark, restorePlan, versionHistory } from './versions';
 import { LATEST_SCHEMA_VERSION, migrate, readUserVersion } from './migrations';
 import {
 	assetToRow,
@@ -211,6 +212,7 @@ export class DocumentFile {
 		if (session) {
 			file.markSessionOpen();
 			file.pruneLog(Date.now());
+			file.transact((open) => addMark(open, { name: 'Opened', kind: 'session' }, Date.now()));
 		}
 		return file;
 	}
@@ -427,6 +429,7 @@ export class DocumentFile {
 			collectUnreferencedAssets(open);
 			this.setMeta(open, UNSAVED_KEY, '0');
 			this.setMeta(open, 'modified_at', String(now));
+			addMark(open, { name: 'Saved', kind: 'save' }, now);
 		});
 		this.unsaved = false;
 		database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
@@ -490,6 +493,27 @@ export class DocumentFile {
 				runId: logged.runId
 			};
 		});
+	}
+
+	// ---------- version history (versions.ts) ----------
+
+	versionHistory(): VersionHistoryData {
+		return versionHistory(this.requireOpen());
+	}
+
+	/** Mark the current end of the log with a name the user chose. */
+	addVersion(name: string, now = Date.now()): VersionMark {
+		const mark = this.transact((database) => addMark(database, { name, kind: 'named' }, now));
+		if (mark === null) throw new StoreError('CORRUPT', 'a named version was not created');
+		return mark;
+	}
+
+	deleteVersion(id: string): void {
+		this.transact((database) => deleteMark(database, id));
+	}
+
+	restorePlan(seq: number): RestorePlan {
+		return restorePlan(this.requireOpen(), seq);
 	}
 
 	/** Drop log entries beyond the row cap or older than the age limit. */

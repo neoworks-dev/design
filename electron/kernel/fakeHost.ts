@@ -76,6 +76,20 @@ export class FakeWindow implements WindowHandle {
 		}
 		return Promise.resolve();
 	}
+	reloadCount = 0;
+	reload(): void {
+		this.reloadCount += 1;
+	}
+	/** Test drivers: what the renderer process does. */
+	logFromRenderer(level: string, message: string): void {
+		for (const observer of Array.from(this.observers)) observer.consoleMessage(level, message);
+	}
+	crashRenderer(reason: string): void {
+		for (const observer of Array.from(this.observers)) observer.gone(reason, 1);
+	}
+	hangRenderer(): void {
+		for (const observer of Array.from(this.observers)) observer.unresponsive?.();
+	}
 	minimize(): void {
 		this.minimized = true;
 	}
