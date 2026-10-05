@@ -63,12 +63,13 @@ describePlugin('file-thumbnails', fileThumbnails, {
 	}
 });
 
-describe('thumbnail on save', () => {
+describe('thumbnail after autosave', () => {
 	it('draws the first frame small and stores it in the open file', async () => {
 		const stored: Thumbnail[] = [];
 		const { providers, exportNode } = fakes(true);
 		const mounted = await mountPlugin(fileThumbnails, {
 			providers,
+			config: { delayMs: 0 },
 			desktop: bridgeWith((thumbnail) => {
 				stored.push(thumbnail);
 				return Promise.resolve();
@@ -94,6 +95,7 @@ describe('thumbnail on save', () => {
 		const { providers, exportNode } = fakes(false);
 		const mounted = await mountPlugin(fileThumbnails, {
 			providers,
+			config: { delayMs: 0 },
 			desktop: bridgeWith(setThumbnail)
 		});
 		mounted.ctx.emit('file/saved', {} as never);
@@ -118,6 +120,7 @@ describe('thumbnail on save', () => {
 		});
 		const mounted = await mountPlugin(fileThumbnails, {
 			providers,
+			config: { delayMs: 0 },
 			desktop: bridgeWith(setThumbnail)
 		});
 		mounted.ctx.emit('file/saved', {} as never);

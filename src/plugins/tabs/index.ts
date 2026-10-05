@@ -7,11 +7,16 @@ interface TabCommand {
 	id: string;
 	title: string;
 	key: string;
-	run: (tabs: TabsService) => Promise<void>;
+	run: (tabs: TabsService, ctx: Context) => Promise<void>;
 }
 
 const COMMANDS: TabCommand[] = [
-	{ id: 'tabs.new', title: 'New tab', key: 'Mod+Alt+N', run: (tabs) => tabs.newTab() },
+	{
+		id: 'tabs.new',
+		title: 'New tab',
+		key: 'Mod+Alt+N',
+		run: (_tabs, ctx) => ctx.commands.run('file.new')
+	},
 	{ id: 'tabs.close', title: 'Close tab', key: 'Mod+W', run: (tabs) => tabs.closeActive() },
 	{ id: 'tabs.next', title: 'Next tab', key: 'Ctrl+Tab', run: (tabs) => tabs.cycle(1) },
 	{
@@ -46,6 +51,9 @@ export default {
 		const attached = ctx.fileSession.info;
 		if (attached !== null) tabs.handleAttached(attached);
 		ctx.on('file/attached', (info) => tabs.handleAttached(info));
+		ctx.on('file/moved', (message) => {
+			tabs.handleMoved(message).catch((error: unknown) => ctx.logger.error('tabs', error));
+		});
 		ctx.on('file/open-request', (request) => tabs.handleOpenRequest(request));
 
 		for (const command of COMMANDS) {
@@ -54,7 +62,7 @@ export default {
 					ctx.commands.register({
 						id: command.id,
 						title: command.title,
-						run: () => command.run(tabs)
+						run: () => command.run(tabs, ctx)
 					}),
 				`command ${command.id}`
 			);

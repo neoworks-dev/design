@@ -94,8 +94,7 @@ async function open(): Promise<{ ctx: Context; recorded: Recorded }> {
 		createdAt: 0,
 		modifiedAt: 0,
 		recovered: false,
-		unsaved: false,
-		untitled: false
+		inLibrary: true
 	});
 	ctx.fileSession.openDocument = (path?: string): Promise<boolean> => {
 		if (path !== undefined) recorded.opened.push(path);

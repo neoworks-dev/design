@@ -89,9 +89,6 @@
 			}}
 		>
 			<span class="min-w-0 flex-1 truncate">{tabs.nameOf(tab)}</span>
-			{#if tabs.isDirty(tab)}
-				<span class="text-amber" role="img" aria-label="Unsaved changes" data-tab-dirty>•</span>
-			{/if}
 			<button
 				type="button"
 				data-tab-close

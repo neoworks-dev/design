@@ -88,8 +88,7 @@ const info: StoreInfo = {
 	createdAt: 0,
 	modifiedAt: 0,
 	recovered: false,
-	unsaved: false,
-	untitled: false
+	inLibrary: true
 };
 
 /** The plugin mounted over a real SQLite file that holds the same document. */
