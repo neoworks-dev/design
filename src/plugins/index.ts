@@ -24,6 +24,7 @@ import align from './align';
 import clipboard from './clipboard';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
+import inspectorLayoutSize from './inspector-layout-size';
 import inspectorPosition from './inspector-position';
 import selection from './selection';
 import spatial from './spatial';
@@ -101,6 +102,7 @@ export const builtinPlugins: Plugin[] = [
 	coreInspectors,
 	designPanel,
 	inspectorPosition,
+	inspectorLayoutSize,
 	coreTools,
 	canvasInput,
 	viewTools,
