@@ -12,6 +12,8 @@ import type { OverlayContribution } from '../../overlay/types';
 import { OverlayRegistry } from '../../services/overlay';
 import { buildDocument, frame, group, node, page, rectangle } from '../../document/fixtures';
 import { at, editingProviders } from '../../editing/fixtures/editingFixture';
+import { Registry } from '../../registries/registry.svelte';
+import type { PointerClaimant } from '../../tools/claim';
 import type { ToolPointerEvent } from '../../tools/protocol';
 
 const WHITE: Paint = {
@@ -121,11 +123,24 @@ const fakeOverlay: Plugin = {
 	}
 };
 
+// Stands in for the canvas input router: just the claimant registry.
+const fakeCanvasInput: Plugin = {
+	name: 'canvasInput',
+	apply(ctx: Context): void {
+		const claimants = new Registry<PointerClaimant>();
+		ctx.provide('canvasInput', {
+			claimants,
+			claim: (claimant: PointerClaimant) => claimants.register(claimant)
+		});
+	}
+};
+
 export function selectionProviders(document: DesignDocument = selectionScene()): Plugin[] {
 	return [
 		...editingProviders(document),
 		fakeViewport,
 		fakeOverlay,
+		fakeCanvasInput,
 		coreTools,
 		spatial,
 		hitTest,

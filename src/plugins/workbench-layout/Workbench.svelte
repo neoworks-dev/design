@@ -60,7 +60,11 @@
 			<div bind:this={canvasElement} class="absolute inset-0 flex" data-region="canvas">
 				<RegionHost region="canvas" />
 			</div>
-			<div class="pointer-events-none absolute inset-0 z-[5]" data-region="canvas-overlay">
+			<!-- Clipped to the canvas: overlay content scrolled out of view must not cover the sidebars. -->
+			<div
+				class="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
+				data-region="canvas-overlay"
+			>
 				<RegionHost region="canvas-overlay" />
 			</div>
 			{#if !layout.uiHidden}

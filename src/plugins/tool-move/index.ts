@@ -1,11 +1,10 @@
 import type { Context } from '@neoworks/extension-system';
 import CursorIcon from 'phosphor-svelte/lib/CursorIcon';
 import { createMoveTool, MoveToolState } from '../../lib/selecting/moveTool.svelte';
-import SelectionOverlay from '../../lib/selecting/SelectionOverlay.svelte';
+import { drawSelectionFeedback, trackSelectionFeedback } from '../../lib/selecting/selectionDraw';
 
 // The Move tool (V), the default tool: click, Shift, Ctrl/Cmd and double-click selection, hover
-// outline, marquee and the move gesture. The outlines are an interim DOM overlay in the
-// `canvas-overlay` region until the overlay layer (#38) exists.
+// outline, marquee and the move gesture. Outlines, marquee and snap guides draw on the overlay.
 export default {
 	name: 'tool-move',
 	inject: [
@@ -16,7 +15,7 @@ export default {
 		'history',
 		'viewport',
 		'snapping',
-		'regions'
+		'overlay'
 	],
 	apply(ctx: Context): void {
 		const state = new MoveToolState();
@@ -38,11 +37,11 @@ export default {
 
 		ctx.effect(
 			() =>
-				ctx.regions.register({
-					id: 'tool-move/selection-overlay',
-					region: 'canvas-overlay',
-					component: SelectionOverlay,
-					props: { state }
+				ctx.overlay.register({
+					id: 'tool-move/selection',
+					order: 50,
+					track: () => trackSelectionFeedback(ctx, state),
+					draw: (frame) => drawSelectionFeedback(ctx, frame, state)
 				}),
 			'selection overlay'
 		);

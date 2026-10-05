@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import { selectionProviders } from '../../lib/selecting/fixtures/selectionFixture';
 import { handleBox, handleWorldPoint } from '../../lib/selecting/handles';
+import { HandleInteraction } from '../../lib/selecting/handleInteraction';
 import type { ResizeGesture } from '../../lib/selecting/resizeGesture';
 import transformHandles from './index';
 
@@ -11,8 +12,9 @@ const NONE = { shiftKey: false, altKey: false, ctrlKey: true, metaKey: false };
 describePlugin('transform-handles', transformHandles, {
 	providers: selectionProviders(),
 	contributes: ({ ctx }) => {
-		const ids = ctx.regions.registry.list().map((entry) => entry.id);
-		expect(ids).toContain('transform-handles/overlay');
+		const ids = ctx.overlay.registry.list().map((entry) => entry.id);
+		expect(ids).toContain('transform-handles/handles');
+		expect(ctx.canvasInput.claimants.has('transform-handles/handles')).toBe(true);
 	}
 });
 
@@ -25,10 +27,8 @@ afterEach(async () => {
 
 async function mountHandles(): Promise<{ ctx: Context; gesture: ResizeGesture }> {
 	mounted = await mountPlugin(transformHandles, { providers: selectionProviders() });
-	const entry = mounted.ctx.regions.registry
-		.list()
-		.find((candidate) => candidate.id === 'transform-handles/overlay');
-	const gesture = entry?.props?.gesture as ResizeGesture;
+	const handles = mounted.ctx.canvasInput.claimants.get('transform-handles/handles');
+	const gesture = (handles as HandleInteraction).gesture;
 	return { ctx: mounted.ctx, gesture };
 }
 
@@ -109,10 +109,9 @@ describe('resize gesture', () => {
 	it('reports the size while it runs and clears it afterwards', async () => {
 		const { ctx, gesture } = await mountHandles();
 		ctx.selection.select(['L']);
-		const entry = ctx.regions.registry
-			.list()
-			.find((candidate) => candidate.id === 'transform-handles/overlay');
-		const feedback = entry?.props?.feedback as { size: { width: number; height: number } | null };
+		const handles: unknown = ctx.canvasInput.claimants.get('transform-handles/handles');
+		if (!(handles instanceof HandleInteraction)) throw new Error('handles not registered');
+		const feedback = handles.feedback;
 		gesture.begin('e', { x: 1000, y: 50 });
 		gesture.update({ x: 1030, y: 50 }, NONE);
 		expect(feedback.size).toEqual({ width: 130, height: 100 });
