@@ -33,6 +33,7 @@ import paintShaders from './paint-shaders';
 import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
+import textEdit from './text-edit';
 import textLayout from './text-layout';
 import toolText from './tool-text';
 import titlebar from './titlebar';
@@ -61,6 +62,7 @@ export const builtinPlugins: Plugin[] = [
 	imageCache,
 	paintShaders,
 	textLayout,
+	textEdit,
 	documentPlugin,
 	documentScene,
 	selection,

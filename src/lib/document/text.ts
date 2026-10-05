@@ -232,7 +232,7 @@ function mapRunsInRange(
 	return result;
 }
 
-function sliceRuns(runs: TextRun[], from: number, to: number): TextRun[] {
+export function sliceRuns(runs: TextRun[], from: number, to: number): TextRun[] {
 	const result: TextRun[] = [];
 	let runStart = 0;
 	for (const run of runs) {
