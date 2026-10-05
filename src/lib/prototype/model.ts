@@ -382,3 +382,6 @@ export function planSetSettings(
 	const pluginData = { ...page.pluginData, [PROTOTYPE_NAMESPACE]: namespace };
 	return planSetProps(reader, pageId, { pluginData });
 }
+
+/** How the player scales a frame into its window: fit both sides, fill the width, or 100%. */
+export type ScaleMode = 'fit' | 'fill' | 'actual';
