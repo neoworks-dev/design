@@ -4,20 +4,9 @@ import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kerne
 import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
 import coreKeymap from '../core-keymap';
-import { SHORTCUTS_STORAGE_KEY, type ShortcutStorage } from './persistence.svelte';
 import shortcuts from './index';
 
 const providers = [coreContextKeys, coreCommands, coreKeymap];
-
-function memoryStorage(initial?: string): ShortcutStorage & { values: Map<string, string> } {
-	const values = new Map<string, string>();
-	if (initial !== undefined) values.set(SHORTCUTS_STORAGE_KEY, initial);
-	return {
-		values,
-		getItem: (key) => values.get(key) ?? null,
-		setItem: (key, value) => void values.set(key, value)
-	};
-}
 
 let mounted: MountedPlugin | undefined;
 
@@ -26,8 +15,8 @@ afterEach(async () => {
 	mounted = undefined;
 });
 
-async function mountShortcuts(storage = memoryStorage()): Promise<MountedPlugin> {
-	mounted = await mountPlugin(shortcuts, { providers, config: { storage } });
+async function mountShortcuts(config: unknown = {}): Promise<MountedPlugin> {
+	mounted = await mountPlugin(shortcuts, { providers, config });
 	const { ctx } = mounted;
 	for (const id of ['tools.activate.frame', 'tools.activate.rectangle', 'tools.activate.image']) {
 		ctx.commands.register({ id, title: id, run: () => {} });
@@ -39,7 +28,6 @@ async function mountShortcuts(storage = memoryStorage()): Promise<MountedPlugin>
 
 describePlugin('shortcuts', shortcuts, {
 	providers,
-	config: { storage: memoryStorage() },
 	contributes: ({ ctx }) => {
 		expect(ctx.shortcuts.presets().map((preset) => preset.id)).toEqual(['figma', 'penpot']);
 		expect(ctx.commands.has('shortcuts.use-penpot-preset')).toBe(true);
@@ -115,17 +103,36 @@ describe('rebinding and conflicts', () => {
 	});
 });
 
-describe('persistence', () => {
-	it('overrides and preset survive a restart', async () => {
-		const storage = memoryStorage();
-		const first = await mountShortcuts(storage);
+describe('persistence through the plugin config', () => {
+	async function settleConfigUpdate(): Promise<void> {
+		flushSync();
+		for (let turn = 0; turn < 6; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0));
+	}
+
+	it('a change updates the plugin config, which the settings store persists', async () => {
+		const first = await mountShortcuts();
 		first.ctx.shortcuts.rebind('tools.activate.frame', 'G');
 		first.ctx.shortcuts.setPreset('penpot');
-		flushSync();
+		await settleConfigUpdate();
+		expect(first.fiber.config.preset).toBe('penpot');
+		expect(first.fiber.config.overrides).toEqual([
+			{ scope: 'global', command: 'tools.activate.frame', key: 'G' }
+		]);
+		// the restart that stored it applied it again
+		expect(first.ctx.shortcuts.preset).toBe('penpot');
+		expect(first.ctx.keymap.lookup('tools.activate.frame')).toBe('G');
+	});
+
+	it('overrides and preset survive a restart', async () => {
+		const first = await mountShortcuts();
+		first.ctx.shortcuts.rebind('tools.activate.frame', 'G');
+		first.ctx.shortcuts.setPreset('penpot');
+		await settleConfigUpdate();
+		const stored = first.fiber.config;
 		await first.cleanup();
 		mounted = undefined;
 
-		const second = await mountShortcuts(storage);
+		const second = await mountShortcuts(stored);
 		expect(second.ctx.shortcuts.preset).toBe('penpot');
 		expect(second.ctx.keymap.lookup('tools.activate.frame')).toBe('G');
 		expect(second.ctx.keymap.lookup('tools.activate.image')).toBe('K');
@@ -133,9 +140,18 @@ describe('persistence', () => {
 		expect(second.ctx.keymap.lookup('tools.activate.frame')).toBe('B');
 	});
 
-	it('ignores unreadable storage', async () => {
-		const { ctx } = await mountShortcuts(memoryStorage('not json'));
+	it('ignores malformed stored overrides and an unknown preset', async () => {
+		const { ctx } = await mountShortcuts({ preset: 'nope', overrides: ['junk', 3, { scope: 1 }] });
 		expect(ctx.shortcuts.preset).toBe('figma');
+		expect(ctx.shortcuts.overrides()).toEqual([]);
+	});
+
+	it('does not touch localStorage', async () => {
+		const before = globalThis.localStorage.length;
+		const { ctx } = await mountShortcuts();
+		ctx.shortcuts.rebind('tools.activate.frame', 'G');
+		await settleConfigUpdate();
+		expect(globalThis.localStorage.length).toBe(before);
 	});
 });
 

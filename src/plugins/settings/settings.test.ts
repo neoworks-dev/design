@@ -152,6 +152,33 @@ describe('settings store applied through plugin Config and fiber.update', () => 
 		await mounted.cleanup();
 	});
 
+	it('stores hidden and list values without offering them in the form', async () => {
+		const hidden = {
+			name: 'hidden',
+			inject: [],
+			Config: z
+				.object({
+					list: z.array(z.string()).default([]).meta({ hidden: true }),
+					label: z.string().default('x').meta({ hidden: true })
+				})
+				.prefault({}),
+			apply() {}
+		} as Plugin;
+		const { bridge, save } = bridgeWith(emptyStore);
+		const mounted = await mountPlugin(settings, {
+			providers: [...infrastructure],
+			desktop: bridge
+		});
+		await vi.waitFor(() => expect(mounted.ctx.settings.loaded).toBe(true));
+		const fiber = mounted.ctx.plugin(hidden);
+		await fiber;
+		fiber.update({ list: ['a'], label: 'x' });
+		await mounted.ctx.settings.settled();
+		expect(save).toHaveBeenLastCalledWith({ core: {}, plugins: { hidden: { list: ['a'] } } });
+		expect(mounted.ctx.settings.sections().map((section) => section.id)).not.toContain('hidden');
+		await mounted.cleanup();
+	});
+
 	it('generates a field per Config key, with the default and the bounds', async () => {
 		const sizes = probe('sizes');
 		const mounted = await mountPlugin(settings, {

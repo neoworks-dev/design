@@ -15,7 +15,13 @@ import {
 	type StandardSchemaV1
 } from '@neoworks/extension-system';
 import type { SettingsData } from '../../../electron/bridge';
-import { describeIssues, describeSchema, overridesOf, type SettingField } from '../settings/fields';
+import {
+	describeIssues,
+	describeSchema,
+	overridesOf,
+	visibleFields,
+	type SettingField
+} from '../settings/fields';
 import type { SettingsState } from './settingsState.svelte';
 
 declare module '@neoworks/extension-system' {
@@ -106,12 +112,12 @@ export class SettingsService extends Service {
 				id: CORE_SECTION,
 				title: 'General',
 				core: true,
-				fields: describeSchema(coreSchema)
+				fields: visibleFields(describeSchema(coreSchema))
 			});
 		}
 		const plugins: SettingsSection[] = [];
 		for (const runtime of this.pluginRuntimes()) {
-			const fields = describeSchema(runtime.schema);
+			const fields = visibleFields(describeSchema(runtime.schema));
 			if (fields.length === 0) continue;
 			plugins.push({ id: runtime.name, title: runtime.name, core: false, fields });
 		}

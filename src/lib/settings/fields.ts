@@ -6,7 +6,8 @@
 import type { StandardSchemaV1 } from '@neoworks/extension-system';
 import { z } from 'zod';
 
-export type SettingFieldKind = 'boolean' | 'number' | 'text' | 'choice';
+/** `data` is a stored value the form cannot edit (a list or an object): kept, never shown. */
+export type SettingFieldKind = 'boolean' | 'number' | 'text' | 'choice' | 'data';
 
 export interface SettingField {
 	key: string;
@@ -18,6 +19,8 @@ export interface SettingField {
 	min?: number;
 	max?: number;
 	integer?: boolean;
+	/** Stored with the settings but not offered in the form (`.meta({ hidden: true })`). */
+	hidden?: boolean;
 }
 
 type JsonObject = Record<string, unknown>;
@@ -46,6 +49,7 @@ function fieldKind(property: JsonObject): SettingFieldKind | undefined {
 	if (property.type === 'boolean') return 'boolean';
 	if (property.type === 'number' || property.type === 'integer') return 'number';
 	if (property.type === 'string') return 'text';
+	if (property.type === 'array' || property.type === 'object') return 'data';
 	return undefined;
 }
 
@@ -70,6 +74,7 @@ function buildField(key: string, property: JsonObject): SettingField | undefined
 		field.min = optionalNumber(property.exclusiveMinimum);
 	}
 	if (property.type === 'integer') field.integer = true;
+	if (property.hidden === true) field.hidden = true;
 	return field;
 }
 
@@ -92,6 +97,17 @@ export function describeSchema(schema: StandardSchemaV1): SettingField[] {
 	return fields;
 }
 
+function sameValue(left: unknown, right: unknown): boolean {
+	if (left === right) return true;
+	if (typeof left !== 'object' || typeof right !== 'object') return false;
+	return JSON.stringify(left) === JSON.stringify(right);
+}
+
+/** The fields the form shows. */
+export function visibleFields(fields: SettingField[]): SettingField[] {
+	return fields.filter((field) => field.kind !== 'data' && field.hidden !== true);
+}
+
 /** The entries of `config` that differ from the field defaults: what is worth storing. */
 export function overridesOf(config: unknown, fields: SettingField[]): Record<string, unknown> {
 	if (!isJsonObject(config)) return {};
@@ -99,7 +115,7 @@ export function overridesOf(config: unknown, fields: SettingField[]): Record<str
 	for (const field of fields) {
 		if (!(field.key in config)) continue;
 		const value = config[field.key];
-		if (value === field.defaultValue) continue;
+		if (sameValue(value, field.defaultValue)) continue;
 		overrides[field.key] = value;
 	}
 	return overrides;
