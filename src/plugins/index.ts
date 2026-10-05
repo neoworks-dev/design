@@ -27,6 +27,7 @@ import ai from './ai';
 import aiChat from './ai-chat';
 import aiContext from './ai-context';
 import aiHistory from './ai-history';
+import aiReview from './ai-review';
 import aiTools from './ai-tools';
 import align from './align';
 import autolayout from './autolayout';
@@ -219,5 +220,6 @@ export const builtinPlugins: Plugin[] = [
 	aiTools,
 	aiHistory,
 	aiContext,
+	aiReview,
 	aiChat
 ];
