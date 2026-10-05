@@ -22,7 +22,8 @@ export default {
 		'keymap',
 		'menus',
 		'colorPicker',
-		'variables'
+		'variables',
+		'styles'
 	],
 	apply(ctx: Context): void {
 		const state = new LayoutGridsState();

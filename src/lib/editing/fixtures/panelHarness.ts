@@ -11,6 +11,7 @@ import coreInspectors from '../../../plugins/core-inspectors';
 import corePanels from '../../../plugins/core-panels';
 import mask from '../../../plugins/mask';
 import nodeCommands from '../../../plugins/node-commands';
+import styles from '../../../plugins/styles';
 import variablesCore from '../../../plugins/variables-core';
 
 const storage = { getItem: (): null => null, setItem: (): void => {} };
@@ -36,6 +37,7 @@ export function panelProviders(): Plugin[] {
 	return [
 		...editingProviders(),
 		variablesCore,
+		styles,
 		nodeCommands,
 		align,
 		mask,

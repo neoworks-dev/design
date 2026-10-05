@@ -23,21 +23,33 @@ export function leafNameOf(name: string): string {
 	return name.slice(slash + 1);
 }
 
-/** Groups in order of first appearance, top level first; variables keep their order. */
-export function groupVariables(variables: readonly Variable[]): VariableGroup[] {
-	const groups = new Map<string, Variable[]>();
-	for (const variable of variables) {
-		const path = groupPathOf(variable.name);
+export interface PathGroup<Item> {
+	path: string;
+	items: Item[];
+}
+
+/** Anything named with slash paths (variables, styles) grouped; top level first, order kept. */
+export function groupByPath<Item extends { name: string }>(
+	items: readonly Item[]
+): PathGroup<Item>[] {
+	const groups = new Map<string, Item[]>();
+	for (const item of items) {
+		const path = groupPathOf(item.name);
 		const members = groups.get(path);
-		if (members === undefined) groups.set(path, [variable]);
-		else members.push(variable);
+		if (members === undefined) groups.set(path, [item]);
+		else members.push(item);
 	}
-	const ordered = [...groups.entries()].map(([path, members]) => ({ path, variables: members }));
+	const ordered = [...groups.entries()].map(([path, members]) => ({ path, items: members }));
 	return ordered.sort((left, right) => {
 		if (left.path === '') return -1;
 		if (right.path === '') return 1;
 		return 0;
 	});
+}
+
+/** Groups in order of first appearance, top level first; variables keep their order. */
+export function groupVariables(variables: readonly Variable[]): VariableGroup[] {
+	return groupByPath(variables).map((group) => ({ path: group.path, variables: group.items }));
 }
 
 export const SCOPES_BY_TYPE: Record<VariableType, string[]> = {

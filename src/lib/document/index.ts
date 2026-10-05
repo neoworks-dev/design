@@ -24,3 +24,4 @@ export * from './sceneIndex';
 export * from './hitTest';
 export * from './outline';
 export * from './scale';
+export * from './styleProps';

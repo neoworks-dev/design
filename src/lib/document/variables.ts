@@ -23,6 +23,7 @@
 // and the nodes that read a changed variable or collection (mode list / default mode only).
 
 import { InvalidChangeError } from './apply';
+import { styledNode } from './styleProps';
 import type { DocumentReader } from './store';
 import type {
 	BoundVariables,
@@ -189,6 +190,7 @@ function assertNoAliasCycle(overlay: VariableOverlay, startId: string): void {
 interface Dependencies {
 	variables: Set<string>;
 	collections: Set<string>;
+	styles: Set<string>;
 }
 
 interface CacheEntry {
@@ -219,7 +221,7 @@ function modeInChain(chain: Node[], collection: VariableCollection): string {
 
 /** Evaluates aliases for one node: its ancestor chain decides modes, reads are recorded. */
 class Evaluation {
-	readonly deps: Dependencies = { variables: new Set(), collections: new Set() };
+	readonly deps: Dependencies = { variables: new Set(), collections: new Set(), styles: new Set() };
 	private chain: Node[] | undefined;
 
 	constructor(
@@ -504,6 +506,7 @@ export class VariableResolver {
 	private readonly entries = new Map<NodeId, CacheEntry>();
 	private readonly variableDependents = new Map<string, Set<NodeId>>();
 	private readonly collectionDependents = new Map<string, Set<NodeId>>();
+	private readonly styleDependents = new Map<string, Set<NodeId>>();
 
 	constructor(private readonly store: DocumentReader) {}
 
@@ -591,14 +594,19 @@ export class VariableResolver {
 	private compute(node: Node): CacheEntry {
 		this.computeCount += 1;
 		const evaluation = new Evaluation(this.store, node.id);
+		// Styles first, so the paints and effects a style brings are resolved against variables too.
+		const styled = styledNode(node, (styleId) => {
+			evaluation.deps.styles.add(styleId);
+			return this.store.getEntity('style', styleId);
+		});
 		const overrides = {
-			...scalarOverrides(node, evaluation),
-			...nestedOverrides(node, evaluation)
+			...scalarOverrides(styled, evaluation),
+			...nestedOverrides(styled, evaluation)
 		};
 		if (Object.keys(overrides).length === 0) {
-			return { source: node, resolved: node, deps: evaluation.deps };
+			return { source: node, resolved: styled, deps: evaluation.deps };
 		}
-		return { source: node, resolved: { ...node, ...overrides } as Node, deps: evaluation.deps };
+		return { source: node, resolved: { ...styled, ...overrides } as Node, deps: evaluation.deps };
 	}
 
 	private indexEntry(id: NodeId, entry: CacheEntry): void {
@@ -606,6 +614,7 @@ export class VariableResolver {
 		for (const collectionId of entry.deps.collections) {
 			addTo(this.collectionDependents, collectionId, id);
 		}
+		for (const styleId of entry.deps.styles) addTo(this.styleDependents, styleId, id);
 	}
 
 	private dropEntry(id: NodeId): void {
@@ -617,6 +626,7 @@ export class VariableResolver {
 		for (const collectionId of entry.deps.collections) {
 			removeFrom(this.collectionDependents, collectionId, id);
 		}
+		for (const styleId of entry.deps.styles) removeFrom(this.styleDependents, styleId, id);
 	}
 
 	private dropSubtree(id: NodeId): void {
@@ -629,6 +639,10 @@ export class VariableResolver {
 		const id = change.t === 'entity-set' ? change.id : change.entity.id;
 		if (change.kind === 'variable') {
 			this.dropDependents(this.variableDependents, id);
+			return;
+		}
+		if (change.kind === 'style') {
+			this.dropDependents(this.styleDependents, id);
 			return;
 		}
 		if (change.kind !== 'collection') return;
