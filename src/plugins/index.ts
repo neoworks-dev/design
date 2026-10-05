@@ -30,6 +30,7 @@ import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
+import inspectorAutolayout from './inspector-autolayout';
 import inspectorEffects from './inspector-effects';
 import inspectorFill from './inspector-fill';
 import inspectorLayoutSize from './inspector-layout-size';
@@ -134,6 +135,7 @@ export const builtinPlugins: Plugin[] = [
 	designPanel,
 	inspectorPosition,
 	inspectorLayoutSize,
+	inspectorAutolayout,
 	inspectorAppearance,
 	colorPicker,
 	gradientEditor,

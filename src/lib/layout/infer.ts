@@ -88,9 +88,16 @@ function nonNegative(value: number): number {
 	return Math.max(0, Math.round(value));
 }
 
-/** Settings that keep `rects` (positions relative to the container) where they are. */
-export function inferLayout(rects: readonly Rect[], container: Size): InferredLayout {
-	const layoutMode = inferDirection(rects, container);
+/**
+ * Settings that keep `rects` (positions relative to the container) where they are; `direction`
+ * overrides the inferred one (the Flow buttons).
+ */
+export function inferLayout(
+	rects: readonly Rect[],
+	container: Size,
+	direction?: 'HORIZONTAL' | 'VERTICAL'
+): InferredLayout {
+	const layoutMode = direction === undefined ? inferDirection(rects, container) : direction;
 	if (rects.length === 0) {
 		return {
 			layoutMode,

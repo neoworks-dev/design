@@ -94,13 +94,33 @@ function planReorder(reader: DocumentReader, parentId: NodeId, order: readonly N
 	return changes;
 }
 
-function planFrame(reader: DocumentReader, frame: Node): Change[] {
+export interface EnableOptions {
+	/** Instead of the inferred direction. */
+	direction?: 'HORIZONTAL' | 'VERTICAL';
+	wrap?: boolean;
+}
+
+/** Turn auto layout on for a frame that has none, inferring everything `options` leaves open. */
+export function planEnableAutoLayout(
+	reader: DocumentReader,
+	frame: Node,
+	options: EnableOptions = {}
+): Change[] {
 	if (!isPositioned(frame)) return [];
 	const children = reader.childNodes(frame.id).filter((child) => child.type !== 'PAGE');
 	const rects = rectsOf(children.filter((child) => 'visible' in child && child.visible));
-	const layout = inferLayout([...rects.values()], { width: frame.width, height: frame.height });
+	const layout = inferLayout(
+		[...rects.values()],
+		{ width: frame.width, height: frame.height },
+		options.direction
+	);
 	const props: Record<string, unknown> = { ...layout };
 	if (children.length > 0) Object.assign(props, HUG_PROPERTIES);
+	if (options.wrap === true) {
+		props.layoutWrap = 'WRAP';
+		props.layoutSizingHorizontal = 'FIXED';
+		props.primaryAxisSizingMode = 'FIXED';
+	}
 	return [
 		...planSetProps(reader, frame.id, props),
 		...planReorder(reader, frame.id, stackingOrder(rects, layout))
@@ -151,7 +171,7 @@ export function planAddAutoLayout(
 		const node = reader.requireNode(id);
 		if (node.type === 'PAGE') continue;
 		if (canGainAutoLayout(node)) {
-			plan.changes.push(...planFrame(reader, node));
+			plan.changes.push(...planEnableAutoLayout(reader, node));
 			plan.selectIds.push(id);
 			continue;
 		}
