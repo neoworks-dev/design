@@ -42,6 +42,8 @@ export interface CreationToolSpec {
 	geometry: 'box' | 'line';
 	/** Node for `placement` inside its container; parent and index are filled in by the tool. */
 	build(placement: LocalPlacement, name: string): PositionedNode;
+	/** Where the node goes: the frame under the pointer (default) or always the page (sections). */
+	container?: 'nearest-frame' | 'page';
 	/** Size of a click-created box; defaults to 100 x 100. */
 	clickSize?: () => { width: number; height: number };
 	/** A name that replaces the auto name for the next node (a frame preset), if any. */
@@ -162,7 +164,10 @@ function prepare(
 	event: ToolPointerEvent
 ): Prepared {
 	const shape = worldShape(spec, result, start, event);
-	const container = findContainer(nestingSource(ctx), ctx.document.currentPageId, start);
+	let container = ctx.document.currentPageId;
+	if (spec.container !== 'page') {
+		container = findContainer(nestingSource(ctx), ctx.document.currentPageId, start);
+	}
 	return { shape, container, parentAbsolute: absoluteTransformOf(ctx, container) };
 }
 

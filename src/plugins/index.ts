@@ -39,6 +39,8 @@ import viewport from './viewport';
 import viewTools from './view-tools';
 import toolMove from './tool-move';
 import toolScale from './tool-scale';
+import toolSection from './tool-section';
+import toolSlice from './tool-slice';
 import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
 import workbenchLayout from './workbench-layout';
@@ -86,6 +88,8 @@ export const builtinPlugins: Plugin[] = [
 	transformHandles,
 	shapeHandles,
 	toolScale,
+	toolSection,
+	toolSlice,
 	toolShapes,
 	toolFrame,
 	workbenchLayout,
