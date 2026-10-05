@@ -23,6 +23,7 @@ import documentScene from './document-scene';
 import align from './align';
 import boolean from './boolean';
 import clipboard from './clipboard';
+import contextMenus from './context-menus';
 import duplicate from './duplicate';
 import selection from './selection';
 import spatial from './spatial';
@@ -129,5 +130,6 @@ export const builtinPlugins: Plugin[] = [
 	duplicate,
 	align,
 	boolean,
-	clipboard
+	clipboard,
+	contextMenus
 ];

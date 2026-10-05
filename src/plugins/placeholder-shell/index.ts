@@ -11,7 +11,7 @@ import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 // shrinks to nothing.
 export default {
 	name: 'placeholder-shell',
-	inject: ['menus', 'panels', 'tools'],
+	inject: ['panels', 'tools'],
 	apply(ctx: Context): void {
 		const tabs: PanelTabContribution[] = [
 			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1', component: FileTab },
@@ -71,9 +71,6 @@ export default {
 				`placeholder section ${title}`
 			);
 		});
-
-		// The canvas input router emits the request; this stand-in opens the empty-canvas menu.
-		ctx.on('canvas/contextmenu', (event) => ctx.menus.openFromEvent('canvas-empty', event));
 
 		const tools: ToolContribution[] = [
 			{
