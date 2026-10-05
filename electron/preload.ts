@@ -80,6 +80,10 @@ const bridge: DesktopBridge = {
 		commit: (transactions) => invoke('store:commit', { transactions }),
 		checkpoint: () => invoke('store:checkpoint')
 	},
+	settings: {
+		load: () => invoke('settings:load'),
+		save: (data) => invoke('settings:save', data)
+	},
 	assets: {
 		put: (request) => invoke('assets:put', request),
 		get: (hash) => invoke('assets:get', { hash }),

@@ -8,7 +8,8 @@ import type {
 	ClipboardContent,
 	DesktopBridge,
 	IpcEventChannel,
-	IpcEvents
+	IpcEvents,
+	SettingsData
 } from '../../../electron/bridge';
 
 export interface BrowserBridge extends DesktopBridge {
@@ -37,6 +38,8 @@ export function createBrowserBridge(): BrowserBridge {
 	let maximized = false;
 	// The browser has no OS clipboard access here: copies stay inside the page.
 	let clipboard: ClipboardContent = { text: null, html: null, png: null };
+	// Preferences live in memory in a plain browser; the desktop app writes them to disk.
+	let settings: SettingsData = { core: {}, plugins: {} };
 	const report: BootReport = { kernel: 'main', loaded: [], failed: [], pending: [] };
 
 	return {
@@ -82,6 +85,13 @@ export function createBrowserBridge(): BrowserBridge {
 			close: () => Promise.resolve(),
 			commit: () => unavailable('saving files'),
 			checkpoint: () => unavailable('saving files')
+		},
+		settings: {
+			load: () => Promise.resolve(structuredClone(settings)),
+			save: (data) => {
+				settings = structuredClone(data);
+				return Promise.resolve();
+			}
 		},
 		assets: {
 			put: () => unavailable('storing images'),

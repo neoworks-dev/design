@@ -293,7 +293,11 @@ export function createRealHost(): ElectronHost {
 				}
 			},
 			writeText: (name, text) => {
-				fs.writeFileSync(path.join(app.getPath('userData'), name), text);
+				// Temp file then rename: a crash mid-write never leaves a half-written file behind.
+				const target = path.join(app.getPath('userData'), name);
+				const temporary = `${target}.tmp`;
+				fs.writeFileSync(temporary, text);
+				fs.renameSync(temporary, target);
 			}
 		},
 		fonts: {

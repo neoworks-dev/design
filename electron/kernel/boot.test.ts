@@ -43,6 +43,7 @@ describe('bootMainKernel', () => {
 			'main-fonts',
 			'main-ipc',
 			'main-protocol',
+			'main-settings',
 			'main-store',
 			'main-window'
 		]);
@@ -53,7 +54,7 @@ describe('bootMainKernel', () => {
 		const root = createMainContext({ writeLine: () => {} });
 		const reversed = [...mainPlugins(testPluginOptions(host))].reverse();
 		const report = await bootMainKernel(root, reversed);
-		expect(report.loaded).toHaveLength(11);
+		expect(report.loaded).toHaveLength(12);
 		expect(report.pending).toEqual([]);
 	});
 
@@ -90,6 +91,7 @@ describe('bootMainKernel', () => {
 			'main-dialogs',
 			'main-files',
 			'main-fonts',
+			'main-settings',
 			'main-store',
 			'main-window'
 		]);

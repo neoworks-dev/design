@@ -37,6 +37,11 @@ const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
 /** More than this in one message is a bug in the sender, not a batch. */
 const MAX_TRANSACTIONS_PER_COMMIT = 5000;
 
+const settingsData = z.strictObject({
+	core: z.record(z.string(), z.unknown()),
+	plugins: z.record(z.string(), z.record(z.string(), z.unknown()))
+});
+
 export type PayloadSchemas = {
 	[Channel in IpcChannel]: z.ZodType<IpcContract[Channel]['payload']>;
 };
@@ -91,6 +96,8 @@ export const payloadSchemas: PayloadSchemas = {
 	}),
 	'assets:fontBytes': fontRef,
 	'assets:embeddedFonts': z.void(),
+	'settings:load': z.void(),
+	'settings:save': settingsData,
 	'files:recent': z.void(),
 	'files:clearRecent': z.void(),
 	'files:setThumbnail': z.strictObject({

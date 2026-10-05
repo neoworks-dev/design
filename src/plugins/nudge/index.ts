@@ -1,4 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
+import { z } from 'zod';
 import type { NodeId } from '../../lib/document';
 import { applyEdit, contributeCommand } from '../../lib/editing/contribute';
 import { planNudge } from '../../lib/editing/nudge';
@@ -10,12 +11,14 @@ declare module '@neoworks/extension-system' {
 	}
 }
 
-export interface NudgeConfig {
-	/** Pixels per arrow press. */
-	step?: number;
-	/** Pixels per Shift+arrow press. */
-	bigStep?: number;
-}
+// The plugin's settings (shown in Settings, stored by main).
+const nudgeConfigSchema = z
+	.object({
+		step: z.number().positive().default(1).describe('Pixels per arrow key press.'),
+		bigStep: z.number().positive().default(10).describe('Pixels per Shift+arrow key press.')
+	})
+	.prefault({});
+export type NudgeConfig = z.infer<typeof nudgeConfigSchema>;
 
 interface Direction {
 	name: string;
@@ -51,9 +54,10 @@ function nudge(ctx: Context, deltaX: number, deltaY: number): void {
 export default {
 	name: 'nudge',
 	inject: ['document', 'selection', 'commands', 'keymap'],
-	apply(ctx: Context, config?: NudgeConfig): void {
-		const step = stepOf(config?.step, 1);
-		const bigStep = stepOf(config?.bigStep, 10);
+	Config: nudgeConfigSchema,
+	apply(ctx: Context, config: NudgeConfig): void {
+		const step = stepOf(config.step, 1);
+		const bigStep = stepOf(config.bigStep, 10);
 		for (const direction of DIRECTIONS) {
 			contributeCommand(ctx, {
 				id: `nudge.${direction.name}`,

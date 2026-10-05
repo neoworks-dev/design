@@ -1,5 +1,5 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import snappingPlugin from '../../plugins/snapping';
 import spatialPlugin from '../../plugins/spatial';
 import { editingProviders } from '../editing/fixtures/editingFixture';
@@ -142,10 +142,10 @@ describe('snapping service', () => {
 		await mounted.ctx.commands.run('snapping.toggle');
 		expect(mounted.ctx.snapping.enabled).toBe(false);
 		await mounted.cleanup();
-		const off = await mountPlugin(
-			{ ...snappingPlugin, apply: (ctx: Context) => snappingPlugin.apply(ctx, { enabled: false }) },
-			{ providers: providers() }
-		);
+		const off = await mountPlugin(snappingPlugin, {
+			providers: providers(),
+			config: { enabled: false }
+		});
 		expect(off.ctx.snapping.enabled).toBe(false);
 		await off.cleanup();
 	});
@@ -171,10 +171,6 @@ function box(
 }
 
 describe('pixel grid snapping', () => {
-	const KEY = 'design.snapping.pixel';
-
-	afterEach(() => globalThis.localStorage.removeItem(KEY));
-
 	it('is off by default and registers a command in the View menu', async () => {
 		const mounted = await mountPlugin(snappingPlugin, { providers: providers() });
 		expect(mounted.ctx.snapping.pixelSnapEnabled).toBe(false);
@@ -247,19 +243,25 @@ describe('pixel grid snapping', () => {
 		await mounted.cleanup();
 	});
 
-	it('the toggle command flips the switch and the choice persists across mounts', async () => {
-		const first = await mountPlugin(snappingPlugin, { providers: providers() });
-		await first.ctx.commands.run('snapping.toggle-pixel');
-		expect(first.ctx.snapping.pixelSnapEnabled).toBe(true);
-		await first.cleanup();
-		const second = await mountPlugin(snappingPlugin, { providers: providers() });
-		expect(second.ctx.snapping.pixelSnapEnabled).toBe(true);
-		await second.ctx.commands.run('snapping.toggle-pixel');
-		expect(second.ctx.snapping.pixelSnapEnabled).toBe(false);
-		await second.cleanup();
-		const third = await mountPlugin(snappingPlugin, { providers: providers() });
-		expect(third.ctx.snapping.pixelSnapEnabled).toBe(false);
-		await third.cleanup();
+	it('the toggle command flips the switch by updating the plugin config', async () => {
+		const mounted = await mountPlugin(snappingPlugin, { providers: providers() });
+		await mounted.ctx.commands.run('snapping.toggle-pixel');
+		expect(mounted.ctx.snapping.pixelSnapEnabled).toBe(true);
+		expect(mounted.fiber.config.pixelSnap).toBe(true);
+		await mounted.ctx.commands.run('snapping.toggle-pixel');
+		expect(mounted.ctx.snapping.pixelSnapEnabled).toBe(false);
+		expect(mounted.fiber.config.pixelSnap).toBe(false);
+		await mounted.cleanup();
+	});
+
+	it('starts with pixel snap on when the config says so, and no storage is involved', async () => {
+		const mounted = await mountPlugin(snappingPlugin, {
+			providers: providers(),
+			config: { pixelSnap: true }
+		});
+		expect(mounted.ctx.snapping.pixelSnapEnabled).toBe(true);
+		expect(globalThis.localStorage.getItem('design.snapping.pixel')).toBeNull();
+		await mounted.cleanup();
 	});
 });
 

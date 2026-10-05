@@ -119,6 +119,15 @@ export interface ClipboardWrite {
 	png?: Uint8Array;
 }
 
+/**
+ * Everything the user changed in Settings. `core` holds the app's own keys (bare names),
+ * `plugins` one object per plugin id with that plugin's `Config` overrides.
+ */
+export interface SettingsData {
+	core: Record<string, unknown>;
+	plugins: Record<string, Record<string, unknown>>;
+}
+
 export interface BootFailure {
 	plugin: string;
 	message: string;
@@ -199,6 +208,10 @@ export interface IpcContract {
 	'files:clearRecent': { payload: void; result: void };
 	/** Store the open file's thumbnail (key `file`) so the recent list can show it. */
 	'files:setThumbnail': { payload: Thumbnail; result: void };
+	/** The stored preferences; an empty object pair when none were saved yet. */
+	'settings:load': { payload: void; result: SettingsData };
+	/** Replace the stored preferences; written to disk atomically. */
+	'settings:save': { payload: SettingsData; result: void };
 	/** Store image bytes by sha-256 in the open file; the same bytes are stored once. */
 	'assets:put': { payload: AssetPutRequest; result: AssetPutResult };
 	/** The bytes of a stored image; `null` when the file has none under that hash. */
@@ -283,6 +296,10 @@ export interface DesktopBridge {
 		commit(transactions: Transaction[]): Promise<CommitResult>;
 		/** Save: checkpoint the file and clear its unsaved marker. */
 		checkpoint(): Promise<StoreInfo>;
+	};
+	settings: {
+		load(): Promise<SettingsData>;
+		save(data: SettingsData): Promise<void>;
 	};
 	assets: {
 		put(request: AssetPutRequest): Promise<AssetPutResult>;

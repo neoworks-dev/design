@@ -25,6 +25,7 @@ import type {
 	PickedImage,
 	RecentFile,
 	SaveFileOptions,
+	SettingsData,
 	StoreInfo,
 	Thumbnail
 } from '../../../electron/bridge';
@@ -184,6 +185,18 @@ export class DesktopService extends Service {
 	/** Save: checkpoint the open file and clear its unsaved marker. */
 	storeCheckpoint(): Promise<StoreInfo> {
 		return typed(() => this.bridge.store.checkpoint());
+	}
+
+	// ---------- settings ----------
+
+	/** The stored preferences (empty when none were saved). */
+	settingsLoad(): Promise<SettingsData> {
+		return typed(() => this.bridge.settings.load());
+	}
+
+	/** Replace the stored preferences; main writes the file atomically. */
+	settingsSave(data: SettingsData): Promise<void> {
+		return typed(() => this.bridge.settings.save(data));
 	}
 
 	// ---------- assets and embedded fonts ----------

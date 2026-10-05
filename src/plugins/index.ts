@@ -49,6 +49,7 @@ import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import rulersGuides from './rulers-guides';
 import sceneFixture from './scene-fixture';
+import settings from './settings';
 import svgImport from './svg-import';
 import textEdit from './text-edit';
 import textFormat from './text-format';
@@ -94,6 +95,7 @@ export const builtinPlugins: Plugin[] = [
 	svgImport,
 	debug,
 	desktopBridge,
+	settings,
 	fonts,
 	assetsStore,
 	imageCache,

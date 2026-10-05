@@ -23,7 +23,8 @@ export interface EditingCommand {
 	title: string;
 	/** Context-key expression gating the command, its bindings and its menu items. */
 	when?: string;
-	run: (args?: unknown) => void;
+	/** May return a promise (a command that restarts its plugin): the caller awaits it. */
+	run: (args?: unknown) => unknown;
 	/** Written chords (`Mod+G`). */
 	keys?: string[];
 	scope?: KeyScope;
@@ -45,7 +46,9 @@ export function contributeCommand(ctx: Context, command: EditingCommand): void {
 				id: command.id,
 				title: command.title,
 				when: command.when,
-				run: command.run
+				run: async (args) => {
+					await command.run(args);
+				}
 			}),
 		`command ${command.id}`
 	);
