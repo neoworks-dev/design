@@ -21,6 +21,7 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
+import boolean from './boolean';
 import clipboard from './clipboard';
 import duplicate from './duplicate';
 import selection from './selection';
@@ -53,6 +54,9 @@ import toolSection from './tool-section';
 import toolSlice from './tool-slice';
 import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
+import toolPen from './tool-pen';
+import toolPencil from './tool-pencil';
+import vectorEdit from './vector-edit';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
 import mask from './mask';
@@ -112,6 +116,9 @@ export const builtinPlugins: Plugin[] = [
 	toolShapes,
 	toolFrame,
 	toolText,
+	toolPen,
+	toolPencil,
+	vectorEdit,
 	workbenchLayout,
 	titlebar,
 	placeholderShell,
@@ -123,5 +130,6 @@ export const builtinPlugins: Plugin[] = [
 	nodeCommands,
 	duplicate,
 	align,
+	boolean,
 	clipboard
 ];

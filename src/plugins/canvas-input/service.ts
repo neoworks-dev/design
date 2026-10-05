@@ -1,5 +1,5 @@
 import { Service, type Context } from '@neoworks/extension-system';
-import type { ToolKeyEvent, ToolPointerEvent } from '../../lib/tools/protocol';
+import type { Point, ToolKeyEvent, ToolPointerEvent } from '../../lib/tools/protocol';
 import { Registry } from '../../lib/registries/registry.svelte';
 import type { PointerClaimant, PointerGrab } from '../../lib/tools/claim';
 import { bindCanvasCursor, type CursorOverride } from './cursor.svelte';
@@ -210,8 +210,20 @@ export class CanvasInputService extends Service {
 			shiftKey: event.shiftKey,
 			altKey: event.altKey,
 			ctrlKey: event.ctrlKey,
-			metaKey: event.metaKey
+			metaKey: event.metaKey,
+			coalesced: this.coalescedWorldPoints(box, event)
 		};
+	}
+
+	private coalescedWorldPoints(box: DOMRect, event: PointerEvent): Point[] | undefined {
+		if (event.type !== 'pointermove' || typeof event.getCoalescedEvents !== 'function') {
+			return undefined;
+		}
+		const samples = event.getCoalescedEvents();
+		if (samples.length === 0) return undefined;
+		return samples.map((sample) =>
+			this.ctx.viewport.screenToWorld({ x: sample.clientX - box.left, y: sample.clientY - box.top })
+		);
 	}
 
 	// ---------- keyboard and focus ----------

@@ -6,8 +6,8 @@ import path from 'node:path';
 import { CdpSession } from './lib/cdp';
 import {
 	click,
-	drag,
-	modifierMask,
+	dragPath,
+	holdModifiers,
 	pressChord,
 	scroll,
 	typeText,
@@ -42,8 +42,8 @@ const HELP = `qa — debug the app on a virtual display, driven over CDP
   eval '<expression>'          runs in the renderer, awaited, printed as JSON
   logs [lines] [--renderer|--main]
 
-  click <target>   dblclick <target>   rightclick <target>   (--mods Alt+Control+Shift+Meta)
-  drag <from> <to> [--mods Alt+Shift]
+  click <target>   dblclick <target>   rightclick <target>   (--modifiers Control,Alt,Shift)
+  drag <from> <to> [<more> ...] [--modifiers Control,Alt,Shift]   (a path through every point)
   type <text>                  inserts text into the focused element
   press <chord> [chord ...]    Escape, Control+z, Shift+Tab, v
   scroll <deltaY> [--at <target>]
@@ -193,19 +193,29 @@ async function clickCommand(
 	button: MouseButton,
 	clickCount: number
 ): Promise<void> {
-	const { rest, value: mods } = takeOption(args, '--mods');
+	const { rest, value: modifiers } = takeOption(args, '--modifiers');
 	const point = await resolveTarget(cdp, requireArgument(rest, 0, 'target'), readRefs());
-	await click(cdp, point, button, clickCount, modifierMask(mods));
+	holdModifiers(parseModifiers(modifiers));
+	await click(cdp, point, button, clickCount);
+	holdModifiers([]);
 	print(`clicked ${point.x},${point.y}`);
 }
 
+function parseModifiers(value: string | undefined): string[] {
+	if (value === undefined) return [];
+	return value.split(',').filter((name) => name.length > 0);
+}
+
 async function dragCommand(cdp: CdpSession, args: string[]): Promise<void> {
-	const { rest, value: mods } = takeOption(args, '--mods');
 	const refs = readRefs();
-	const from = await resolveTarget(cdp, requireArgument(rest, 0, 'from'), refs);
-	const to = await resolveTarget(cdp, requireArgument(rest, 1, 'to'), refs);
-	await drag(cdp, from, to, 12, modifierMask(mods));
-	print(`dragged ${from.x},${from.y} -> ${to.x},${to.y}`);
+	const { rest, value: modifiers } = takeOption(args, '--modifiers');
+	requireArgument(rest, 1, 'to');
+	const points = [];
+	for (const target of rest) points.push(await resolveTarget(cdp, target, refs));
+	holdModifiers(parseModifiers(modifiers));
+	await dragPath(cdp, points);
+	holdModifiers([]);
+	print(`dragged ${points.map((point) => `${point.x},${point.y}`).join(' -> ')}`);
 }
 
 async function pressCommand(cdp: CdpSession, args: string[]): Promise<void> {

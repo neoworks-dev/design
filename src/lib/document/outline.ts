@@ -3,7 +3,8 @@
 // origin at its top-left corner. The vector network to path conversion lives here too
 // (issue #34: "vector network to SkPath conversion lives in the pure document lib").
 
-import type { SceneNode, VectorNetwork, VectorSegment } from './types';
+import { expandCornerRadii } from '../vector/cornerRadius';
+import type { Paint, SceneNode, VectorNetwork, VectorSegment } from './types';
 
 export type PathCommand =
 	| { op: 'move'; x: number; y: number }
@@ -23,6 +24,14 @@ export interface Outline {
 	/** True when the shape has an inside, so inside/outside stroke alignment is meaningful. */
 	closed: boolean;
 	fillRule: FillRule;
+	/** Vector regions with fills of their own; `fill` then holds only the regions without. */
+	regionFills?: RegionFill[];
+}
+
+export interface RegionFill {
+	commands: PathCommand[];
+	fillRule: FillRule;
+	fills: Paint[];
 }
 
 /** Top-left, top-right, bottom-right, bottom-left. */
@@ -476,16 +485,28 @@ function loopCommands(network: VectorNetwork, loop: number[]): PathCommand[] {
 	return commands;
 }
 
-export function vectorNetworkOutline(network: VectorNetwork): Outline {
+export function vectorNetworkOutline(source: VectorNetwork): Outline {
+	const network = expandCornerRadii(source);
 	const stroke = networkStrokeCommands(network);
-	const regions = network.regions ?? [];
 	const fill: PathCommand[] = [];
+	const regionFills: RegionFill[] = [];
 	let fillRule: FillRule = 'NONZERO';
-	for (const region of regions) {
-		if (region.windingRule === 'EVENODD') fillRule = 'EVENODD';
-		for (const loop of region.loops) fill.push(...loopCommands(network, loop));
+	let closed = false;
+	for (const region of network.regions ?? []) {
+		const commands = region.loops.flatMap((loop) => loopCommands(network, loop));
+		if (commands.length === 0) continue;
+		closed = true;
+		const rule: FillRule = region.windingRule;
+		if (region.fills && region.fills.length > 0) {
+			regionFills.push({ commands, fillRule: rule, fills: region.fills });
+			continue;
+		}
+		if (rule === 'EVENODD') fillRule = 'EVENODD';
+		fill.push(...commands);
 	}
-	return { fill, stroke, closed: fill.length > 0, fillRule };
+	const outline: Outline = { fill, stroke, closed, fillRule };
+	if (regionFills.length > 0) outline.regionFills = regionFills;
+	return outline;
 }
 
 // ---------- entry point ----------

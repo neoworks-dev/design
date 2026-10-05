@@ -172,6 +172,31 @@ describe('canvas input router', () => {
 		expect(details).toEqual([1, 2, 1]);
 	});
 
+	it('passes the coalesced samples of a move as world points', async () => {
+		const { ctx } = await mountRouter(false);
+		const received: ToolPointerEvent[] = [];
+		ctx.effect(
+			() =>
+				ctx.tools.register({
+					id: 'move',
+					title: 'Move',
+					onPointerMove: (event) => received.push(event)
+				}),
+			'test tool'
+		);
+		const move = pointer('pointermove', { x: 30, y: 30 });
+		const samples = [
+			{ clientX: 10, clientY: 10 },
+			{ clientX: 20, clientY: 25 },
+			{ clientX: 30, clientY: 30 }
+		];
+		Object.defineProperty(move, 'getCoalescedEvents', { value: () => samples });
+		canvas?.dispatchEvent(move);
+		expect(received[0].coalesced).toEqual(
+			samples.map((sample) => ctx.viewport.screenToWorld({ x: sample.clientX, y: sample.clientY }))
+		);
+	});
+
 	it('pushes the canvas keymap scope while the canvas has focus', async () => {
 		const { ctx } = await mountRouter(false);
 		expect(ctx.keymap.scopes.list()).toHaveLength(0);
