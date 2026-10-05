@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolCallMessage } from '../bridge';
-import { matchesFor, renamesFor, taskOf } from './qaTasks';
+import { designFor, matchesFor, renamesFor, taskOf } from './qaTasks';
 import { contentOf, McpServer } from './mcpServer';
 import { qaScript, ScriptedAgentHost } from './scriptedAgents';
 import { ToolBroker } from './toolBroker';
@@ -205,5 +205,27 @@ describe('QA task scripts', () => {
 			'- c | TEXT | Heading | Sign in to continue'
 		].join('\n');
 		expect(matchesFor(prompt).sort()).toEqual(['a', 'c']);
+	});
+
+	it('designs a frame of the template size, with the first component when the file has one', () => {
+		const prompt = [
+			'Task: generate-design',
+			'Template: Basic site (1440x1024)',
+			'Request: pricing page for a startup',
+			'Components of this file (use one with "component": "<name>" where it fits): Button, Card'
+		].join('\n');
+		const design = designFor(prompt);
+		expect(design).toMatchObject({
+			type: 'FRAME',
+			name: 'pricing page for a',
+			props: { width: 1440, height: 1024, layoutMode: 'VERTICAL' }
+		});
+		expect(design.children?.map((child) => child.name)).toEqual([
+			'Header',
+			'Hero image',
+			'Cards',
+			'Button',
+			'Made with pricing page for a startup'
+		]);
 	});
 });

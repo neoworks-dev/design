@@ -139,7 +139,116 @@ async function* searchLayers(prompt: string, tools: TaskTools): AsyncGenerator<A
 	yield { type: 'text', text: `Found ${ids.length} matches.` };
 }
 
+// ---------- generate-design ----------
+
+interface DesignSpec {
+	type: string;
+	name?: string;
+	props?: Record<string, unknown>;
+	component?: string;
+	children?: DesignSpec[];
+}
+
+function label(text: string, size: number, color = '#1a1a1a'): DesignSpec {
+	return {
+		type: 'TEXT',
+		name: text,
+		props: { characters: text, fontSize: size, textColor: color }
+	};
+}
+
+function card(title: string, body: string, wide: boolean): DesignSpec {
+	return {
+		type: 'FRAME',
+		name: `${title} card`,
+		props: {
+			layoutMode: 'VERTICAL',
+			itemSpacing: 8,
+			padding: 16,
+			cornerRadius: 12,
+			fill: '#ffffff',
+			stroke: '#e1e1e6',
+			layoutSizingHorizontal: wide ? 'FILL' : 'FIXED',
+			width: 240
+		},
+		children: [label(title, 18), label(body, 14, '#6b6b76')]
+	};
+}
+
+/** A small, predictable design for a generate prompt: header, hero, three cards, footer. */
+export function designFor(prompt: string): DesignSpec {
+	const request = /^Request: (.*)$/m.exec(prompt)?.[1] ?? 'Design';
+	const size = /^Template: .*\((\d+)x(\d+)\)/m.exec(prompt);
+	const width = size ? Number(size[1]) : 390;
+	const height = size ? Number(size[2]) : 844;
+	const wide = width > 600;
+	const component = /Components of this file \(.*?\): ([^,\n]+)/.exec(prompt)?.[1];
+	const title = request.split(/\s+/).slice(0, 4).join(' ');
+	const cards = ['Fast', 'Simple', 'Shared'].map((name) => card(name, `${name} by design`, !wide));
+	const children: DesignSpec[] = [
+		{
+			type: 'FRAME',
+			name: 'Header',
+			props: {
+				layoutMode: 'HORIZONTAL',
+				itemSpacing: 12,
+				counterAxisAlignItems: 'CENTER',
+				layoutSizingHorizontal: 'FILL',
+				height: 56
+			},
+			children: [label(title, 24), label('Menu', 14, '#6b6b76')]
+		},
+		{
+			type: 'RECTANGLE',
+			name: 'Hero image',
+			props: {
+				width: wide ? 800 : 340,
+				height: wide ? 320 : 200,
+				cornerRadius: 16,
+				fill: '#c9c4f5'
+			}
+		},
+		{
+			type: 'FRAME',
+			name: 'Cards',
+			props: {
+				layoutMode: wide ? 'HORIZONTAL' : 'VERTICAL',
+				itemSpacing: 16,
+				layoutSizingHorizontal: 'FILL'
+			},
+			children: cards
+		}
+	];
+	if (component !== undefined) children.push({ type: 'FRAME', name: component, component });
+	children.push(label(`Made with ${request}`, 12, '#8c8c8c'));
+	return {
+		type: 'FRAME',
+		name: title,
+		props: {
+			width,
+			height,
+			layoutMode: 'VERTICAL',
+			itemSpacing: 24,
+			padding: 24,
+			fill: '#f7f7fb'
+		},
+		children
+	};
+}
+
+async function* generateDesign(prompt: string, tools: TaskTools): AsyncGenerator<AiStreamEvent> {
+	yield { type: 'thought', text: 'Sketching the layout, then building it in one call.' };
+	const result: { value: AgentToolResult | undefined } = { value: undefined };
+	yield* callTool(tools, 'qa-generate', 'generate_design', { root: designFor(prompt) }, result);
+	if (result.value === undefined || !result.value.ok) {
+		yield { type: 'text', text: `That did not work: ${result.value?.text ?? 'no answer'}` };
+		return;
+	}
+	yield { type: 'text', text: 'Done: the design is beside your other frames.' };
+}
+
 export const TASK_SCRIPTS: Record<string, TaskScript> = {
 	'rename-layers': renameLayers,
-	'search-layers': searchLayers
+	'search-layers': searchLayers,
+	'generate-design': generateDesign
 };

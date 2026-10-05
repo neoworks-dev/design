@@ -6,6 +6,7 @@
 import { Service, type Context } from '@neoworks/extension-system';
 import type { AiProviderInfo } from '../../../electron/bridge';
 import { AiConsentRequiredError, type AiAttachment, type AiRunRecord } from '../ai/types';
+import { Registry, type RegistryEntry } from '../registries/registry.svelte';
 import type { AiRunHistoryState } from './aiHistory';
 import type { AiChatState } from './aiChatState.svelte';
 
@@ -49,7 +50,18 @@ export interface AiChatContext {
 	selectionAttachment(): AiAttachment | undefined;
 }
 
+/** A `/name text` action of the chat input, contributed by a plugin (for example `/generate`). */
+export interface ChatSlashAction extends RegistryEntry {
+	/** The word after the slash; also the registry id. */
+	id: string;
+	title: string;
+	run(argument: string): void | Promise<void>;
+}
+
 export class AiChatService extends Service {
+	/** Actions the input accepts as `/id argument` instead of sending a prompt. */
+	readonly slashActions = new Registry<ChatSlashAction>();
+
 	constructor(
 		ctx: Context,
 		private readonly ai: AiChatAi,
@@ -147,10 +159,23 @@ export class AiChatService extends Service {
 		this.state.expanded = [...this.state.expanded, key];
 	}
 
+	registerSlashAction(action: ChatSlashAction): () => void {
+		return this.slashActions.register(action);
+	}
+
+	/** The titles shown as a hint under the input, e.g. `/generate`. */
+	slashHints(): string[] {
+		return this.slashActions.list().map((action) => `/${action.id}`);
+	}
+
 	/** Send the draft. Without consent for this document nothing is sent and the panel asks. */
 	send(): boolean {
 		if (!this.canSend) return false;
 		const prompt = this.state.draft.trim();
+		if (this.runSlashAction(prompt)) {
+			this.state.draft = '';
+			return true;
+		}
 		if (!this.start(prompt, this.attachments())) return false;
 		this.state.draft = '';
 		return true;
@@ -195,6 +220,15 @@ export class AiChatService extends Service {
 	}
 
 	// ---------- internals ----------
+
+	private runSlashAction(prompt: string): boolean {
+		const match = /^\/(\w[\w-]*)\s*(.*)$/s.exec(prompt);
+		if (match === null) return false;
+		const action = this.slashActions.get(match[1]);
+		if (action === undefined) return false;
+		void Promise.resolve(action.run(match[2].trim()));
+		return true;
+	}
 
 	private start(prompt: string, attachments: AiAttachment[]): boolean {
 		try {

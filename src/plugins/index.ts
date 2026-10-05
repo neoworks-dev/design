@@ -26,6 +26,7 @@ import documentScene from './document-scene';
 import ai from './ai';
 import aiChat from './ai-chat';
 import aiContext from './ai-context';
+import aiGenerate from './ai-generate';
 import aiHistory from './ai-history';
 import aiRename from './ai-rename';
 import aiSearch from './ai-search';
@@ -235,5 +236,6 @@ export const builtinPlugins: Plugin[] = [
 	aiReview,
 	aiRename,
 	aiSearch,
+	aiGenerate,
 	aiChat
 ];
