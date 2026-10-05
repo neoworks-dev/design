@@ -217,15 +217,22 @@ export class TabsService extends Service {
 		const neighbour = this.neighbourOf(tab.id);
 		this.removeTab(tab.id);
 		if (neighbour === undefined) {
-			await this.session.closeDocument();
+			await this.session.closeDocument(this.discardPathOf(tab));
 			this.state.activeId = null;
 		} else {
 			await this.whileSwitching(() => this.session.openInTab(neighbour.path));
 			this.state.activeId = neighbour.id;
 			this.restoreView(neighbour);
+			const discardPath = this.discardPathOf(tab);
+			if (discardPath !== undefined) await this.session.discard(discardPath);
 		}
-		if (tab.untitled) await this.session.discard(tab.path);
-		else this.rememberClosed(tab);
+		this.rememberClosed(tab);
+	}
+
+	/** The temporary file to delete once an untitled tab is closed; saved files are never deleted. */
+	private discardPathOf(tab: Tab): string | undefined {
+		if (tab.untitled) return tab.path;
+		return undefined;
 	}
 
 	private neighbourOf(id: string): Tab | undefined {

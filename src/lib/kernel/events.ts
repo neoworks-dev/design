@@ -112,6 +112,12 @@ declare module '@neoworks/extension-system' {
 		'file/attached'(info: StoreInfo): void;
 
 		/**
+		 * Dispatch mode: emit. The open document was saved (Save, Save As): its file is checkpointed.
+		 * The file-thumbnails plugin draws the home screen preview then.
+		 */
+		'file/saved'(info: StoreInfo): void;
+
+		/**
 		 * Dispatch mode: serial. File > New or Open is about to replace the window's document. A
 		 * listener that handles it itself (the tabs plugin opens a tab) returns `true`, which stops
 		 * the default of replacing the current document. Call with `ctx.serial`.

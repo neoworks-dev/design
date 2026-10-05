@@ -4,7 +4,14 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { planSetProps } from '../../src/lib/document/changes';
 import type { DesignDocument } from '../../src/lib/document/types';
-import type { CommitResult, IpcResult, LoadedDocument, RecentFile, StoreInfo } from '../bridge';
+import type {
+	CommitResult,
+	DraftFile,
+	IpcResult,
+	LoadedDocument,
+	RecentFile,
+	StoreInfo
+} from '../bridge';
 import type { FakeWindow } from '../kernel/fakeHost';
 import { bootMinimalKernel, settle, type TestKernel } from '../kernel/testing';
 import { DocumentFile } from '../store/documentFile';
@@ -98,6 +105,9 @@ describe('main-files plugin', () => {
 				'files:clearRecent',
 				'files:setThumbnail',
 				'files:flushed',
+				'files:drafts',
+				'files:removeRecent',
+				'files:reveal',
 				'files:openInTab',
 				'files:newInTab',
 				'files:confirmClose',
@@ -635,5 +645,41 @@ describe('recent files', () => {
 		value(await call(kernel, 'files:setThumbnail', thumbnail));
 		const [entry] = value(await call<RecentFile[]>(kernel, 'files:recent'));
 		expect(entry.thumbnail).toEqual(thumbnail);
+	});
+});
+
+describe('home screen: drafts, removing and revealing', () => {
+	it('lists untitled documents with edits, open ones included, and leaves them untouched', async () => {
+		const kernel = await boot();
+		const first = loaded(await call(kernel, 'files:newUntitled'));
+		expect(value(await call<DraftFile[]>(kernel, 'files:drafts'))).toEqual([]);
+		await editUntitled(kernel, first.document);
+		value(await call(kernel, 'files:newInTab'));
+		const drafts = value(await call<DraftFile[]>(kernel, 'files:drafts'));
+		expect(drafts.map((draft) => draft.path)).toEqual([first.info.path]);
+		expect(drafts[0]).toMatchObject({ name: 'Untitled', thumbnail: null });
+		expect(untitledFiles()).toHaveLength(2);
+	});
+
+	it('removeRecent forgets one file and keeps the file on disk', async () => {
+		const first = path.join(directory, 'a.ndesign');
+		const second = path.join(directory, 'b.ndesign');
+		DocumentFile.create(first, richDocument()).close();
+		DocumentFile.create(second, richDocument()).close();
+		const kernel = await boot();
+		loaded(await call(kernel, 'files:open', { path: first }));
+		loaded(await call(kernel, 'files:open', { path: second }));
+		value(await call(kernel, 'files:removeRecent', { path: first }));
+		const listed = value(await call<RecentFile[]>(kernel, 'files:recent')).map(
+			(entry) => entry.path
+		);
+		expect(listed).toEqual([second]);
+		expect(existsSync(first)).toBe(true);
+	});
+
+	it('reveal shows the file in the OS file manager', async () => {
+		const kernel = await boot();
+		value(await call(kernel, 'files:reveal', { path: '/x/a.ndesign' }));
+		expect(kernel.host.revealed).toEqual([path.resolve('/x/a.ndesign')]);
 	});
 });

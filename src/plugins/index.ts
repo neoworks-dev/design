@@ -39,6 +39,8 @@ import spatial from './spatial';
 import hitTest from './hit-test';
 import snapping from './snapping';
 import fileSession from './file-session';
+import fileThumbnails from './file-thumbnails';
+import home from './home';
 import flatten from './flatten';
 import history from './history';
 import imageCache from './image-cache';
@@ -121,6 +123,8 @@ export const builtinPlugins: Plugin[] = [
 	history,
 	fileSession,
 	recentFiles,
+	fileThumbnails,
+	home,
 	tabs,
 	variablesCore,
 	coreContextKeys,

@@ -213,10 +213,14 @@ export class FileSessionService extends Service {
 		return this.desktop.filesConfirmClose();
 	}
 
-	/** Close the live document and show no document (the home screen). Confirm first. */
-	async closeDocument(): Promise<void> {
+	/**
+	 * Close the live document and show no document (the home screen). Confirm first. An untitled
+	 * document's temporary file named in `discardPath` is deleted before the home screen lists drafts.
+	 */
+	async closeDocument(discardPath?: string): Promise<void> {
 		await this.detach();
 		await this.desktop.storeClose();
+		if (discardPath !== undefined) await this.desktop.filesDiscard(discardPath);
 		this.state.closed = true;
 		this.publishKeys();
 	}
@@ -235,6 +239,7 @@ export class FileSessionService extends Service {
 		this.state.info = await this.desktop.storeCheckpoint();
 		this.state.savedRevision = revision;
 		this.publishKeys();
+		this.ctx.emit('file/saved', this.state.info);
 		return true;
 	}
 
@@ -251,6 +256,7 @@ export class FileSessionService extends Service {
 		this.state.savedRevision = revision;
 		this.publishKeys();
 		this.ctx.emit('file/attached', saved);
+		this.ctx.emit('file/saved', saved);
 		return true;
 	}
 

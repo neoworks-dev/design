@@ -7,9 +7,6 @@
 	const ctx = getKernel();
 	const tabs = ctx.tabs;
 
-	// macOS draws its traffic lights over the top-left corner of the window.
-	const insetForTrafficLights = ctx.desktop.platform === 'darwin';
-
 	const DRAG_THRESHOLD_PIXELS = 4;
 
 	let strip: HTMLElement | undefined = $state();
@@ -62,7 +59,6 @@
 <div
 	bind:this={strip}
 	class="app-no-drag flex min-w-0 items-end gap-0.5 self-end overflow-x-auto px-1"
-	class:pl-20={insetForTrafficLights}
 	role="tablist"
 	aria-label="Documents"
 	data-tabs

@@ -313,6 +313,17 @@ describe('closing', () => {
 		await mounted.cleanup();
 	});
 
+	it('closing the last, untitled tab deletes its file before the home screen lists drafts', async () => {
+		const backend = new FakeBackend();
+		const mounted = await mount(backend);
+		await mounted.ctx.fileSession.newDocument();
+		backend.calls.length = 0;
+		await mounted.ctx.tabs.closeActive();
+		expect(backend.calls).toEqual(['confirmClose', 'storeClose', 'discard:/untitled/u1.ndesign']);
+		expect(mounted.ctx.contextKeys.get('document.closed')).toBe(true);
+		await mounted.cleanup();
+	});
+
 	it('reopen closed tab brings back the last closed saved document', async () => {
 		const backend = new FakeBackend();
 		const mounted = await mount(backend);
