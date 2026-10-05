@@ -1,63 +1,72 @@
 <script lang="ts">
 	import { Button, Select } from '@neoworks-dev/ui';
-	import ClockIcon from 'phosphor-svelte/lib/ClockIcon';
-	import FilesIcon from 'phosphor-svelte/lib/FilesIcon';
-	import FolderOpenIcon from 'phosphor-svelte/lib/FolderOpenIcon';
-	import FolderSimpleIcon from 'phosphor-svelte/lib/FolderSimpleIcon';
+	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
 	import ListIcon from 'phosphor-svelte/lib/ListIcon';
-	import MagnifyingGlassIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import SquaresFourIcon from 'phosphor-svelte/lib/SquaresFourIcon';
-	import XIcon from 'phosphor-svelte/lib/XIcon';
-	import type { Component } from 'svelte';
-	import type { HomeEntry, HomeSection, HomeSort } from '../../lib/home/entries';
-	import { relativeTime } from '../../lib/home/format';
+	import type { LibraryFile } from '../../../electron/bridge';
+	import { locationLabel, relativeAge, type HomeSort } from '../../lib/home/library';
 	import { getKernel } from '../../lib/kernel/context';
 	import ToggleGroup from '../../lib/ui/ToggleGroup.svelte';
-	import Thumbnail from './Thumbnail.svelte';
+	import FileCard from './FileCard.svelte';
+	import FolderCard from './FolderCard.svelte';
+	import HomeSidebar from './HomeSidebar.svelte';
 
 	const ctx = getKernel();
 	const home = ctx.home;
 
-	interface SectionLink {
-		id: HomeSection;
-		label: string;
-		// oxlint-disable-next-line typescript/no-explicit-any
-		icon: Component<any>;
-	}
-	const SECTIONS: SectionLink[] = [
-		{ id: 'recents', label: 'Recents', icon: ClockIcon },
-		{ id: 'drafts', label: 'Drafts', icon: FolderSimpleIcon },
-		{ id: 'all', label: 'All files', icon: FilesIcon }
-	];
 	const SORTS: { value: HomeSort; label: string }[] = [
-		{ value: 'recent', label: 'Last opened' },
+		{ value: 'edited', label: 'Last edited' },
+		{ value: 'opened', label: 'Last opened' },
 		{ value: 'name', label: 'Name' }
 	];
+
+	let now = $state(Date.now());
 
 	// Reload whenever the screen appears, so a file saved or removed meanwhile is current.
 	$effect(() => {
 		if (!home.visible) return;
-		home.refresh().catch((error: unknown) => ctx.logger.error('home', error));
+		now = Date.now();
+		void home.refresh();
 	});
 
-	const entries = $derived(home.entries());
-	const sectionLabel = $derived(SECTIONS.find((link) => link.id === home.section)?.label);
-	const now = Date.now();
+	const files = $derived(home.files());
+	const folders = $derived(home.folders());
+	const crumbs = $derived(home.breadcrumbs);
+	const nothingToShow = $derived(files.length === 0 && folders.length === 0);
 
-	function report(action: Promise<void>): void {
-		action.catch((error: unknown) => ctx.logger.error('home', error));
+	function subtitleOf(file: LibraryFile): string {
+		if (home.inRecents && !home.searching) {
+			const opened = file.openedAt === null ? file.modifiedAt : file.openedAt;
+			return `Opened ${relativeAge(opened, now)}`;
+		}
+		return `Edited ${relativeAge(file.modifiedAt, now)}`;
 	}
 
-	function emptyMessage(): string {
-		if (home.query.trim() !== '') return `No files match "${home.query.trim()}".`;
-		if (home.section === 'drafts') return 'No drafts. Unsaved documents with edits show up here.';
-		return 'No files yet. Create a design file or open one from disk.';
+	function placeOf(file: LibraryFile): string {
+		if (home.view === 'list' || home.searching || home.inRecents) {
+			return locationLabel(file, home.overview);
+		}
+		return '';
 	}
 
-	function subtitle(entry: HomeEntry): string {
-		if (entry.kind === 'draft') return `Draft, edited ${relativeTime(entry.timestamp, now)}`;
-		return `Opened ${relativeTime(entry.timestamp, now)}`;
+	function emptyTitle(): string {
+		if (home.searching) return `No files match "${home.query.trim()}"`;
+		if (home.inRecents) return 'No recent files';
+		if (home.inLinkedFolder) return 'This folder has no design files';
+		const crumb = crumbs[crumbs.length - 1];
+		if (crumb !== undefined && crumb.label === 'Drafts') return 'No files yet';
+		return 'This folder is empty';
+	}
+
+	function emptyHint(): string {
+		if (home.searching) return 'Try another name.';
+		if (home.inRecents) return 'Files you open show up here.';
+		return 'Create a design file to get started.';
+	}
+
+	function showCreateButton(): boolean {
+		return !home.searching && !home.inRecents;
 	}
 </script>
 
@@ -68,54 +77,42 @@
 		role="region"
 		aria-label="Home"
 	>
-		<nav class="border-line-faint bg-elevated w-56 shrink-0 border-r p-3" aria-label="Files">
-			<div class="mb-3">
-				<Button full variant="primary" icon={PlusIcon} onclick={() => report(home.newFile())}>
-					New design file
-				</Button>
-			</div>
-			<div class="mb-4">
-				<Button full icon={FolderOpenIcon} onclick={() => report(home.openFromDisk())}>
-					Open file...
-				</Button>
-			</div>
-			{#each SECTIONS as link (link.id)}
-				{@const Icon = link.icon}
-				<button
-					type="button"
-					class="hover:bg-hover flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs"
-					class:bg-raised={home.section === link.id}
-					aria-current={home.section === link.id}
-					onclick={() => home.setSection(link.id)}
-				>
-					<Icon size={14} />
-					<span class="flex-1">{link.label}</span>
-					<span class="text-faint">{home.countIn(link.id)}</span>
-				</button>
-			{/each}
-		</nav>
+		<HomeSidebar />
 
 		<div class="flex min-w-0 flex-1 flex-col">
 			<header class="border-line-faint flex h-14 shrink-0 items-center gap-3 border-b px-6">
-				<h1 class="text-sm font-semibold">{sectionLabel}</h1>
+				<h1 class="flex min-w-0 items-center gap-1.5 text-sm font-semibold" data-home-title>
+					{#if home.searching}
+						<span class="truncate">Results for "{home.query.trim()}"</span>
+					{:else if home.inRecents}
+						<span>Recents</span>
+					{:else}
+						{#each crumbs as crumb, position (crumb.path)}
+							{#if position > 0}
+								<CaretRightIcon size={10} class="text-faint shrink-0" />
+							{/if}
+							{#if position < crumbs.length - 1}
+								<button
+									type="button"
+									class="text-muted hover:text-default truncate"
+									onclick={() => void home.showDirectory(crumb.path)}
+								>
+									{crumb.label}
+								</button>
+							{:else}
+								<span class="truncate">{crumb.label}</span>
+							{/if}
+						{/each}
+					{/if}
+				</h1>
 				<div class="flex-1"></div>
-				<label class="bg-input border-line flex h-7 w-56 items-center gap-1.5 rounded border px-2">
-					<MagnifyingGlassIcon size={12} class="text-faint" />
-					<input
-						class="text-default w-full bg-transparent text-xs outline-none"
-						placeholder="Search by name"
-						aria-label="Search files"
-						value={home.query}
-						oninput={(event) => home.setQuery(event.currentTarget.value)}
-					/>
-				</label>
 				<div class="w-36">
 					<Select
 						size="sm"
 						value={home.sort}
 						options={SORTS}
 						onChange={(next) => {
-							if (next === 'recent' || next === 'name') home.setSort(next);
+							if (next === 'edited' || next === 'opened' || next === 'name') home.setSort(next);
 						}}
 					/>
 				</div>
@@ -130,109 +127,80 @@
 						if (next === 'grid' || next === 'list') home.setView(next);
 					}}
 				/>
+				<Button variant="primary" icon={PlusIcon} onclick={() => void home.newFile()}>
+					New design file
+				</Button>
 			</header>
 
 			<div class="min-h-0 flex-1 overflow-y-auto p-6">
-				{#if entries.length === 0}
+				{#if nothingToShow}
 					<div
-						class="text-muted flex h-full flex-col items-center justify-center gap-3 text-sm"
+						class="text-muted flex h-full flex-col items-center justify-center gap-2 text-sm"
 						data-home-empty
 					>
-						<p>{emptyMessage()}</p>
-						{#if home.query.trim() === ''}
-							<Button variant="primary" icon={PlusIcon} onclick={() => report(home.newFile())}>
-								New design file
-							</Button>
+						<p class="text-default font-medium">{emptyTitle()}</p>
+						<p>{emptyHint()}</p>
+						{#if showCreateButton()}
+							<div class="mt-2">
+								<Button variant="primary" icon={PlusIcon} onclick={() => void home.newFile()}>
+									New design file
+								</Button>
+							</div>
 						{/if}
 					</div>
 				{:else if home.view === 'grid'}
-					<ul class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4" data-home-grid>
-						{#each entries as entry (entry.path)}
-							<li class="group relative" data-home-entry={entry.path}>
-								<button
-									type="button"
-									class="hover:border-line-strong border-line-faint bg-elevated block w-full overflow-hidden rounded-lg border text-left"
-									onclick={() => report(home.open(entry))}
-								>
-									<div class="bg-input aspect-[16/10] w-full">
-										<Thumbnail thumbnail={entry.thumbnail} name={entry.name} />
-									</div>
-									<div class="px-3 py-2">
-										<div class="truncate text-xs font-medium">{entry.name}</div>
-										<div class="text-faint truncate text-xs">{subtitle(entry)}</div>
-									</div>
-								</button>
-								<div
-									class="absolute top-2 right-2 hidden gap-1 group-focus-within:flex group-hover:flex"
-								>
-									<button
-										type="button"
-										class="bg-elevated border-line text-muted hover:text-default rounded border px-1.5 py-0.5 text-xs"
-										aria-label="Show {entry.name} in folder"
-										onclick={() => report(home.reveal(entry))}
-									>
-										Show in folder
-									</button>
-									{#if entry.kind === 'recent'}
-										<button
-											type="button"
-											class="bg-elevated border-line text-muted hover:text-default inline-flex items-center rounded border px-1"
-											aria-label="Remove {entry.name} from recents"
-											onclick={() => report(home.removeRecent(entry))}
-										>
-											<XIcon size={10} weight="bold" />
-										</button>
-									{/if}
-								</div>
-							</li>
+					<ul
+						class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4"
+						role="list"
+						data-home-grid
+					>
+						{#each folders as folder (folder.path)}
+							<FolderCard {folder} layout="grid" />
+						{/each}
+						{#each files as file (file.path)}
+							<FileCard {file} layout="grid" subtitle={subtitleOf(file)} location={placeOf(file)} />
 						{/each}
 					</ul>
 				{:else}
-					<ul class="flex flex-col" data-home-list>
-						{#each entries as entry (entry.path)}
-							<li
-								class="group border-line-faint hover:bg-hover flex items-center gap-3 border-b px-2 py-2"
-								data-home-entry={entry.path}
-							>
-								<button
-									type="button"
-									class="flex min-w-0 flex-1 items-center gap-3 text-left"
-									onclick={() => report(home.open(entry))}
-								>
-									<div
-										class="bg-input border-line-faint h-10 w-16 shrink-0 overflow-hidden rounded border"
-									>
-										<Thumbnail thumbnail={entry.thumbnail} name={entry.name} />
-									</div>
-									<div class="min-w-0">
-										<div class="truncate text-xs font-medium">{entry.name}</div>
-										<div class="text-faint truncate text-xs">{entry.path}</div>
-									</div>
-								</button>
-								<span class="text-faint shrink-0 text-xs">{subtitle(entry)}</span>
-								<button
-									type="button"
-									class="text-muted hover:text-default shrink-0 text-xs"
-									aria-label="Show {entry.name} in folder"
-									onclick={() => report(home.reveal(entry))}
-								>
-									Show in folder
-								</button>
-								{#if entry.kind === 'recent'}
-									<button
-										type="button"
-										class="text-muted hover:text-default shrink-0"
-										aria-label="Remove {entry.name} from recents"
-										onclick={() => report(home.removeRecent(entry))}
-									>
-										<XIcon size={12} weight="bold" />
-									</button>
-								{/if}
-							</li>
+					<ul class="flex flex-col" role="list" data-home-list>
+						{#each folders as folder (folder.path)}
+							<FolderCard {folder} layout="list" />
+						{/each}
+						{#each files as file (file.path)}
+							<FileCard {file} layout="list" subtitle={subtitleOf(file)} location={placeOf(file)} />
 						{/each}
 					</ul>
 				{/if}
 			</div>
 		</div>
+
+		{#if home.pendingTrash !== null}
+			{@const pending = home.pendingTrash}
+			<div
+				class="absolute inset-0 z-10 flex items-center justify-center bg-black/50"
+				role="presentation"
+				data-home-trash-backdrop
+			>
+				<div
+					class="bg-elevated border-line w-96 rounded-lg border p-5 shadow-lg"
+					role="alertdialog"
+					aria-modal="true"
+					aria-label="Move to trash"
+				>
+					<h2 class="mb-1 text-sm font-semibold">Move "{pending.name}" to the trash?</h2>
+					<p class="text-muted mb-4 text-xs">
+						{#if pending.kind === 'folder'}
+							The folder and every file in it go to the trash. You can restore them from there.
+						{:else}
+							You can restore the file from the trash.
+						{/if}
+					</p>
+					<div class="flex justify-end gap-2">
+						<Button onclick={() => home.cancelTrash()}>Cancel</Button>
+						<Button variant="danger" onclick={() => void home.confirmTrash()}>Move to trash</Button>
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 {/if}

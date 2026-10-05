@@ -20,7 +20,7 @@
 {#if popup}
 	<!-- The backdrop swallows the click that dismisses the menu, like a native popup. -->
 	<div
-		class="pointer-events-auto fixed inset-0"
+		class="pointer-events-auto fixed inset-0 z-50"
 		role="presentation"
 		data-menu-backdrop
 		onpointerdown={() => ctx.menus.close()}
@@ -32,7 +32,7 @@
 	{#key popup}
 		<div
 			use:placeWithinViewport={'popup'}
-			class="pointer-events-auto fixed"
+			class="pointer-events-auto fixed z-50"
 			style:left="{popup.point.x}px"
 			style:top={popup.placement === 'below' ? `${popup.point.y}px` : undefined}
 			style:bottom={popup.placement === 'above'
