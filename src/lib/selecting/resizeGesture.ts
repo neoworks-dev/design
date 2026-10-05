@@ -131,7 +131,11 @@ export class ResizeGesture {
 		};
 		const plan = active.session.plan({ handle: active.handle, delta, modifiers: resizeModifiers });
 		if (plan.changes.length > 0) {
-			this.ctx.document.apply(plan.changes, { origin: 'user', label: this.options.label });
+			this.ctx.document.apply(plan.changes, {
+				origin: 'user',
+				label: this.options.label,
+				ignoreConstraints: modifiers.ctrlKey || modifiers.metaKey
+			});
 		}
 		return plan;
 	}

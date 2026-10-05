@@ -66,3 +66,20 @@ export const CONSTRAINT_OPTIONS: Record<Axis, Array<{ value: string; label: stri
 	horizontal: options(CONSTRAINT_LABELS),
 	vertical: options(VERTICAL_LABELS)
 };
+
+export type ConstraintSide = 'start' | 'end';
+
+/**
+ * The constraint after clicking a bar of the widget. Left/top and right/bottom bars combine into
+ * "stretch" when both are on; clicking the only active bar keeps it (an axis always has one).
+ */
+export function toggleConstraintSide(current: string, side: ConstraintSide): string {
+	let start = current === 'MIN' || current === 'STRETCH';
+	let end = current === 'MAX' || current === 'STRETCH';
+	if (side === 'start') start = !start;
+	if (side === 'end') end = !end;
+	if (start && end) return 'STRETCH';
+	if (start) return 'MIN';
+	if (end) return 'MAX';
+	return current;
+}

@@ -11,6 +11,8 @@ export interface ApplyMeta {
 	runId?: string;
 	/** Coalesces consecutive transactions with the same key (nudges, typing). */
 	mergeKey?: string;
+	/** Resize with Ctrl held: frames do not apply their children constraints. */
+	ignoreConstraints?: boolean;
 	/** Set by history when it replays a transaction, so it does not record its own replay. */
 	replay?: 'undo' | 'redo';
 }

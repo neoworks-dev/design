@@ -28,6 +28,7 @@ import boolean from './boolean';
 import clipboard from './clipboard';
 import colorPicker from './color-picker';
 import comments from './comments';
+import constraints from './constraints';
 import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
@@ -123,6 +124,7 @@ export const builtinPlugins: Plugin[] = [
 	effects,
 	textLayout,
 	autolayout,
+	constraints,
 	textEdit,
 	textFormat,
 	documentPlugin,
