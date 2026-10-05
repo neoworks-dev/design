@@ -466,6 +466,7 @@ export interface PageNode extends IdentityProps {
 	backgrounds: Paint[];
 	guides: Guide[];
 	flowStartingPoints: { nodeId: NodeId; name: string }[];
+	exportSettings?: ExportSetting[];
 	explicitVariableModes?: Record<string, string>;
 }
 export type FrameNode = FrameLikeProps & { type: 'FRAME' };

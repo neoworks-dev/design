@@ -10,7 +10,7 @@ import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 // shrinks to nothing.
 export default {
 	name: 'placeholder-shell',
-	inject: ['panels', 'tools', 'inspectors'],
+	inject: ['panels', 'tools'],
 	apply(ctx: Context): void {
 		const tabs: PanelTabContribution[] = [
 			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1' },
@@ -46,24 +46,6 @@ export default {
 		for (const tab of tabs) {
 			ctx.effect(() => ctx.panels.registerTab(tab), `placeholder tab ${tab.id}`);
 		}
-
-		// What the design panel shows while nothing is selected (its Page section is a real plugin).
-		const sections = ['Variables', 'Styles', 'Export'];
-		sections.forEach((title, index) => {
-			ctx.effect(
-				() =>
-					ctx.inspectors.register({
-						tab: 'design',
-						id: title.toLowerCase(),
-						title,
-						order: index + 1,
-						applies: (selection) => selection.count === 0,
-						component: PlaceholderText,
-						props: { text: `Placeholder: the ${title.toLowerCase()} section replaces this.` }
-					}),
-				`placeholder section ${title}`
-			);
-		});
 
 		const tools: ToolContribution[] = [
 			{

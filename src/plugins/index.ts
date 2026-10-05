@@ -32,6 +32,7 @@ import inspectorEffects from './inspector-effects';
 import inspectorFill from './inspector-fill';
 import inspectorLayoutSize from './inspector-layout-size';
 import inspectorStroke from './inspector-stroke';
+import inspectorPage from './inspector-page';
 import inspectorPosition from './inspector-position';
 import inspectorSelectionColors from './inspector-selection-colors';
 import inspectorTypography from './inspector-typography';
@@ -122,6 +123,7 @@ export const builtinPlugins: Plugin[] = [
 	corePanels,
 	coreInspectors,
 	designPanel,
+	inspectorPage,
 	inspectorPosition,
 	inspectorLayoutSize,
 	inspectorAppearance,
