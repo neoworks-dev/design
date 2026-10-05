@@ -1,3 +1,4 @@
+import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Paint } from '../../lib/document';
 import { convertPaint, newPaint } from '../../lib/editing/paints';
@@ -147,5 +148,38 @@ describe('fill section', () => {
 		panel.setProps('a', { fills: [newPaint('fill'), newPaint('stroke')] });
 		await panel.ctx.commands.run('fill.remove');
 		expect(fillsOf(panel, 'a')).toHaveLength(1);
+	});
+});
+
+describe('style button', () => {
+	function setName(name: string): void {
+		const input = document.body.querySelector<HTMLInputElement>('input[aria-label="Style name"]');
+		if (input === null) throw new Error('no name input');
+		input.value = name;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+	}
+
+	it('creates a style from the fills, applies it elsewhere and detaches', async () => {
+		const panel = await open();
+		panel.select(['a']);
+		panel.setProps('a', { fills: [newPaint('fill')] });
+		panel.click('[data-style-button="fill"]');
+		panel.click('[data-create-style]');
+		setName('Brand/Grey');
+		panel.click('[data-confirm-create-style]');
+		const [style] = panel.ctx.styles.list('PAINT');
+		expect(style).toMatchObject({ name: 'Brand/Grey' });
+		expect(panel.ctx.document.require('a')).toMatchObject({ fillStyleId: style.id });
+
+		panel.select(['b']);
+		panel.click('[data-style-button="fill"]');
+		panel.click(`[data-style-option="${style.id}"]`);
+		expect(panel.ctx.document.require('b')).toMatchObject({ fillStyleId: style.id });
+
+		panel.click('[data-style-button="fill"]');
+		panel.click('[data-detach-style]');
+		expect(panel.ctx.document.require('b')).not.toHaveProperty('fillStyleId');
+		expect(fillsOf(panel, 'b')).toEqual(fillsOf(panel, 'a'));
 	});
 });

@@ -15,6 +15,7 @@
 	} from '../../lib/editing/effects';
 	import { removeAt, reorder, replaceAt } from '../../lib/editing/paints';
 	import { startRowDrag } from '../../lib/inspector-inputs/rowReorder';
+	import StyleButton from '../../lib/inspector-inputs/StyleButton.svelte';
 	import { editSelection, selectedNodes } from '../../lib/inspector-inputs/selectionEdit';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
@@ -129,7 +130,10 @@
 			{:else}
 				<span></span>
 			{/if}
-			<IconToggleButton icon={PlusIcon} label="Add effect" onclick={addEffect} />
+			<div class="flex items-center">
+				<StyleButton target="effect" {nodes} />
+				<IconToggleButton icon={PlusIcon} label="Add effect" onclick={addEffect} />
+			</div>
 		</div>
 
 		{#if !effects.mixed}

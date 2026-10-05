@@ -5,6 +5,7 @@
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import type { LayoutGrid } from '../../lib/document';
 	import { selectedNodes, setSelectionProps } from '../../lib/inspector-inputs/selectionEdit';
+	import StyleButton from '../../lib/inspector-inputs/StyleButton.svelte';
 	import { cssColor } from '../../lib/layout-grids/draw';
 	import { defaultGrid } from '../../lib/layout-grids/grids';
 	import { getKernel } from '../../lib/kernel/context';
@@ -126,6 +127,7 @@
 {#if frame !== undefined}
 	<div class="flex flex-col gap-2 px-3 pb-3" data-layout-grid-section>
 		<div class="flex justify-end">
+			<StyleButton target="grid" nodes={[frame]} />
 			<IconToggleButton icon={PlusIcon} label="Add layout grid" onclick={add} />
 		</div>
 		{#each grids as grid, index (index)}

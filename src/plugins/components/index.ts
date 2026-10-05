@@ -10,7 +10,8 @@ import {
 } from '../../lib/components/actions';
 import { publishComponentContextKeys } from '../../lib/components/contextKeys';
 import { drawComponentLabels, LabelIndex, trackComponentLabels } from '../../lib/components/labels';
-import { contributeCommand } from '../../lib/editing/contribute';
+import { swapInstance } from '../../lib/components/swap';
+import { contributeCommand, objectArguments } from '../../lib/editing/contribute';
 import ComponentSection from './ComponentSection.svelte';
 import InstanceSection from './InstanceSection.svelte';
 
@@ -94,8 +95,21 @@ export default {
 			title: 'Create instance',
 			when: 'selectionHasMain || selectionHasInstance',
 			run: () => createInstances(ctx),
-			keys: ['Shift+I'],
 			menus: placements(1)
+		});
+		// `{ mainId, instanceId? }`: the Alt+drag drop of the assets panel and the swap dropdown of the
+		// Instance section run this; `instanceId` defaults to the selected instance.
+		contributeCommand(ctx, {
+			id: 'components.swap',
+			title: 'Swap instance',
+			run: (args) => {
+				const { mainId, instanceId } = objectArguments(args);
+				if (typeof mainId !== 'string') return;
+				let target = ctx.selection.primaryId;
+				if (typeof instanceId === 'string') target = instanceId;
+				if (target === null) return;
+				swapInstance(ctx, target, mainId);
+			}
 		});
 		contributeCommand(ctx, {
 			id: 'components.detach',

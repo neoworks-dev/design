@@ -394,7 +394,8 @@ const autoLayoutShape = {
 	gridColumns: z.array(gridTrackSchema),
 	gridRowGap: z.number(),
 	gridColumnGap: z.number(),
-	layoutGrids: z.array(layoutGridSchema)
+	layoutGrids: z.array(layoutGridSchema),
+	gridStyleId: z.string().optional()
 };
 const variableModes = z.record(z.string(), z.string()).optional();
 

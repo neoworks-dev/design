@@ -23,7 +23,7 @@ const SECTIONS: PageSectionEntry[] = [
 // styles and the page's export settings.
 export default {
 	name: 'inspector-page',
-	inject: ['inspectors', 'document', 'variables', 'colorPicker', 'commands'],
+	inject: ['inspectors', 'document', 'variables', 'colorPicker', 'commands', 'styles'],
 	apply(ctx: Context): void {
 		for (const section of SECTIONS) {
 			ctx.effect(

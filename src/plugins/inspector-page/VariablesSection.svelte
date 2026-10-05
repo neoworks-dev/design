@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import { getKernel } from '../../lib/kernel/context';
+	import VariableModeRows from '../../lib/inspector-inputs/VariableModeRows.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 
 	const ctx = getKernel();
@@ -37,4 +38,5 @@
 	{:else}
 		<p class="text-faint text-xs">No variables yet</p>
 	{/each}
+	<VariableModeRows nodeId={ctx.document.currentPageId} />
 </div>

@@ -5,7 +5,7 @@
 	import HashIcon from 'phosphor-svelte/lib/HashIcon';
 	import MinusIcon from 'phosphor-svelte/lib/MinusIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
-	import type { NodeId, Paint } from '../document';
+	import type { Node, NodeId, Paint } from '../document';
 	import {
 		convertPaint,
 		newPaint,
@@ -19,6 +19,7 @@
 		type PaintKind
 	} from '../editing/paints';
 	import { getKernel } from '../kernel/context';
+	import StyleButton from './StyleButton.svelte';
 	import { startRowDrag } from './rowReorder';
 	import { parseHex, rgbToHex } from '../ui/colorMath';
 	import DropdownField from '../ui/DropdownField.svelte';
@@ -36,6 +37,7 @@
 		stored,
 		nodeId,
 		mixed = false,
+		nodes,
 		onedit
 	}: {
 		role: 'fill' | 'stroke';
@@ -47,6 +49,8 @@
 		nodeId: NodeId;
 		/** The selected nodes have different paints. */
 		mixed?: boolean;
+		/** The selected nodes, for the style button. */
+		nodes: readonly Node[];
 		onedit: (update: (paints: Paint[]) => Paint[], gesture: NumberGesture, label: string) => void;
 	} = $props();
 
@@ -251,7 +255,10 @@
 		{:else}
 			<span></span>
 		{/if}
-		<IconToggleButton icon={PlusIcon} label="Add {role}" onclick={addPaint} />
+		<div class="flex items-center">
+			<StyleButton target={role} {nodes} />
+			<IconToggleButton icon={PlusIcon} label="Add {role}" onclick={addPaint} />
+		</div>
 	</div>
 
 	{#if !mixed}

@@ -16,6 +16,7 @@ import {
 	type ApplyMeta,
 	type BindingInspection,
 	type BoundVariables,
+	type CodeSyntaxPlatform,
 	type Change,
 	type DocumentChangeEvent,
 	type Node,
@@ -304,6 +305,65 @@ export class VariablesService extends Service {
 			'Delete variable',
 			meta
 		);
+	}
+
+	/** A copy in the same collection with the same values, scopes and code syntax. */
+	duplicateVariable(variableId: string, meta?: Partial<ApplyMeta>): string {
+		const source = this.requireVariable(variableId);
+		const collection = this.requireCollection(source.collectionId);
+		const copy: Variable = {
+			...source,
+			id: generateNodeId(),
+			name: `${source.name} copy`,
+			valuesByMode: { ...source.valuesByMode },
+			scopes: [...source.scopes],
+			codeSyntax: { ...source.codeSyntax }
+		};
+		this.commit(
+			[
+				...this.document.addEntity('variable', copy),
+				...this.document.setEntityProps('collection', collection.id, {
+					variableIds: [...collection.variableIds, copy.id]
+				})
+			],
+			'Duplicate variable',
+			meta
+		);
+		return copy.id;
+	}
+
+	setVariableScopes(variableId: string, scopes: string[], meta?: Partial<ApplyMeta>): void {
+		this.commit(
+			this.document.setEntityProps('variable', variableId, { scopes }),
+			'Change variable scopes',
+			meta
+		);
+	}
+
+	setCodeSyntax(
+		variableId: string,
+		platform: CodeSyntaxPlatform,
+		syntax: string,
+		meta?: Partial<ApplyMeta>
+	): void {
+		const variable = this.requireVariable(variableId);
+		const codeSyntax = { ...variable.codeSyntax, [platform]: syntax };
+		this.commit(
+			this.document.setEntityProps('variable', variableId, { codeSyntax }),
+			'Change code syntax',
+			{ mergeKey: `variable-syntax:${variableId}:${platform}`, ...meta }
+		);
+	}
+
+	/** Deletes a collection with its variables; bindings to them keep their raw values. */
+	removeCollection(collectionId: string, meta?: Partial<ApplyMeta>): void {
+		const collection = this.requireCollection(collectionId);
+		const changes: Change[] = [];
+		for (const variable of this.variables(collectionId)) {
+			changes.push(...this.document.removeEntity('variable', variable.id));
+		}
+		changes.push(...this.document.removeEntity('collection', collection.id));
+		this.commit(changes, 'Delete variable collection', meta);
 	}
 
 	// ---------- bindings ----------

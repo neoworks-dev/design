@@ -1,7 +1,9 @@
 <script lang="ts">
-	import type { Style, StyleType } from '../../lib/document';
+	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
+	import type { StyleType } from '../../lib/document';
+	import StylePreview from '../../lib/inspector-inputs/StylePreview.svelte';
 	import { getKernel } from '../../lib/kernel/context';
-	import { colorToHex } from '../../lib/ui/color';
+	import { groupByPath, leafNameOf } from '../../lib/variables/organize';
 
 	const ctx = getKernel();
 
@@ -12,30 +14,52 @@
 		GRID: 'Grid'
 	};
 
-	const styles = $derived(Object.values(ctx.document.reader.document.styles));
+	const groups = $derived(groupByPath(ctx.styles.list()));
+	let error = $state('');
 
-	function swatch(style: Style): string | null {
-		if (style.type !== 'PAINT' || !Array.isArray(style.value)) return null;
-		const [first] = style.value;
-		if (typeof first !== 'object' || first === null) return null;
-		const color: unknown = Reflect.get(first, 'color');
-		if (typeof color !== 'object' || color === null) return null;
-		const { r, g, b } = color as { r: number; g: number; b: number };
-		return colorToHex({ r, g, b });
+	function rename(styleId: string, name: string): void {
+		const trimmed = name.trim();
+		if (trimmed === '') return;
+		try {
+			ctx.styles.rename(styleId, trimmed);
+			error = '';
+		} catch (failure) {
+			if (failure instanceof Error) error = failure.message;
+		}
 	}
 </script>
 
 <div class="flex flex-col gap-1 px-3 pb-3" data-styles-section>
-	{#each styles as style (style.id)}
-		{@const color = swatch(style)}
-		<div class="flex items-center gap-2 text-xs" data-style-row={style.id}>
-			{#if color !== null}
-				<span class="border-line size-4 shrink-0 rounded border" style:background={color}></span>
-			{/if}
-			<span class="text-default min-w-0 flex-1 truncate">{style.name}</span>
-			<span class="text-faint">{TYPE_LABELS[style.type]}</span>
-		</div>
+	{#each groups as group (group.path)}
+		{#if group.path !== ''}
+			<div class="text-faint pt-1 text-xs" data-style-group={group.path}>{group.path}</div>
+		{/if}
+		{#each group.items as style (style.id)}
+			<div class="group flex items-center gap-2 text-xs" data-style-row={style.id}>
+				<StylePreview {style} />
+				<input
+					class="text-default hover:border-line focus:border-action min-w-0 flex-1 truncate rounded border border-transparent bg-transparent px-1 py-0.5"
+					aria-label="Style name {style.name}"
+					value={style.name}
+					title={leafNameOf(style.name)}
+					onchange={(event) => rename(style.id, event.currentTarget.value)}
+				/>
+				<span class="text-faint">{TYPE_LABELS[style.type]}</span>
+				<button
+					type="button"
+					class="text-muted hover:text-default hidden group-hover:block"
+					aria-label="Delete style {style.name}"
+					title="Delete style (consumers keep their values)"
+					onclick={() => ctx.styles.remove(style.id)}
+				>
+					<TrashIcon size={12} />
+				</button>
+			</div>
+		{/each}
 	{:else}
 		<p class="text-faint text-xs">No local styles</p>
 	{/each}
+	{#if error !== ''}
+		<p class="text-red text-xs" role="alert">{error}</p>
+	{/if}
 </div>

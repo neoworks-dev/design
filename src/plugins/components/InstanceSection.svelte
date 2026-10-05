@@ -12,8 +12,10 @@
 		restoreMainComponent
 	} from '../../lib/components/actions';
 	import { GROUP_TITLES } from '../../lib/components/groupTitles';
+	import { swapInstance } from '../../lib/components/swap';
 	import { instanceOf, overriddenBelow, touchedOf } from '../../lib/document';
 	import { getKernel } from '../../lib/kernel/context';
+	import DropdownField from '../../lib/ui/DropdownField.svelte';
 
 	// The Design tab section of an instance, or of a layer inside one: which main component it
 	// is a copy of, the lifecycle actions, and the overrides of the selection with a way to reset
@@ -43,6 +45,30 @@
 		selectedId !== null && instanceOf(ctx.document.reader, selectedId)?.id === selectedId
 	);
 
+	let swapError = $state('');
+
+	// Every other main component, a variant under its set's name.
+	const swapOptions = $derived(
+		ctx.componentSync
+			.components()
+			.filter((component) => main === undefined || component.id !== main.id)
+			.map((component) => {
+				let label = component.name;
+				if (component.setName !== null) label = `${component.setName} / ${component.name}`;
+				return { value: component.id, label };
+			})
+	);
+
+	function swap(mainId: string): void {
+		if (instance === undefined) return;
+		try {
+			swapInstance(ctx, instance.id, mainId);
+			swapError = '';
+		} catch (failure) {
+			if (failure instanceof Error) swapError = failure.message;
+		}
+	}
+
 	function compareWithMain(): void {
 		ctx.panels.activateTab('inspect');
 	}
@@ -63,6 +89,20 @@
 			{/if}
 			<Button size="sm" onclick={() => detachInstances(ctx)}>Detach instance</Button>
 		</div>
+
+		{#if swapOptions.length > 0}
+			<div class="flex flex-col gap-1" data-swap-instance>
+				<DropdownField
+					options={swapOptions}
+					value={null}
+					placeholder="Swap instance"
+					onchange={swap}
+				/>
+				{#if swapError !== ''}
+					<p class="text-red text-xs" role="alert">{swapError}</p>
+				{/if}
+			</div>
+		{/if}
 
 		{#if hasOverrides || selectedGroups.length > 0}
 			<div class="flex flex-col gap-2" data-overrides>

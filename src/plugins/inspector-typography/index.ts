@@ -6,7 +6,7 @@ import TypographySection from './TypographySection.svelte';
 // settings (resize, vertical alignment, truncation) go through the one document path.
 export default {
 	name: 'inspector-typography',
-	inject: ['inspectors', 'document', 'selection', 'variables', 'fonts', 'textFormat'],
+	inject: ['inspectors', 'document', 'selection', 'variables', 'fonts', 'textFormat', 'styles'],
 	apply(ctx: Context): void {
 		ctx.effect(
 			() =>

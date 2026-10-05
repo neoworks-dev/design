@@ -14,15 +14,6 @@ export default {
 		const tabs: PanelTabContribution[] = [
 			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1' },
 			{
-				id: 'assets',
-				side: 'left',
-				title: 'Assets',
-				order: 1,
-				shortcut: 'Alt+2',
-				component: PlaceholderText,
-				props: { text: 'Placeholder: the assets panel replaces this.' }
-			},
-			{
 				id: 'prototype',
 				side: 'right',
 				title: 'Prototype',

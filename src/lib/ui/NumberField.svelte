@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import {
 		clampValue,
 		formatNumber,
@@ -24,6 +25,7 @@
 		boundTo = undefined,
 		placeholder = '',
 		onclear = undefined,
+		trailing = undefined,
 		onchange
 	}: {
 		/** Short glyph in front of the input (`X`, `W`, an angle sign). Dragging it scrubs. */
@@ -51,6 +53,8 @@
 		placeholder?: string;
 		/** Makes the value optional: committing an empty text calls this instead of reverting. */
 		onclear?: () => void;
+		/** Content after the value (the variable binding button). Shown on hover or focus. */
+		trailing?: Snippet;
 		onchange: (value: number, gesture: NumberGesture) => void;
 	} = $props();
 
@@ -145,7 +149,7 @@
 
 <div
 	class={[
-		'bg-input border-line hover:border-line-strong focus-within:border-action flex h-7 min-w-0 items-center rounded-md border text-xs',
+		'group bg-input border-line hover:border-line-strong focus-within:border-action flex h-7 min-w-0 items-center rounded-md border text-xs',
 		disabled && 'opacity-50',
 		boundTo !== undefined && 'border-action'
 	]}
@@ -182,5 +186,8 @@
 	/>
 	{#if unit !== ''}
 		<span class="text-faint pr-2 select-none">{unit}</span>
+	{/if}
+	{#if trailing !== undefined}
+		<span class="flex shrink-0 items-center pr-1" data-number-trailing>{@render trailing()}</span>
 	{/if}
 </div>
