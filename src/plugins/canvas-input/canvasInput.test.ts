@@ -150,6 +150,28 @@ describe('canvas input router', () => {
 		expect(received[0].world).toEqual(ctx.viewport.screenToWorld({ x: 100, y: 50 }));
 	});
 
+	it('counts presses close in time and place, because pointer events carry no click count', async () => {
+		const { ctx } = await mountRouter(false);
+		const details: number[] = [];
+		ctx.effect(
+			() =>
+				ctx.tools.register({
+					id: 'move',
+					title: 'Move',
+					onPointerDown: (event) => details.push(event.detail)
+				}),
+			'test tool'
+		);
+		const press = (x: number): void => {
+			canvas?.dispatchEvent(pointer('pointerdown', { x, y: 50 }));
+			canvas?.dispatchEvent(pointer('pointerup', { x, y: 50 }));
+		};
+		press(100);
+		press(102);
+		press(300);
+		expect(details).toEqual([1, 2, 1]);
+	});
+
 	it('pushes the canvas keymap scope while the canvas has focus', async () => {
 		const { ctx } = await mountRouter(false);
 		expect(ctx.keymap.scopes.list()).toHaveLength(0);

@@ -11,6 +11,8 @@ declare module '@neoworks/extension-system' {
 
 const MIDDLE_BUTTON = 1;
 const SECONDARY_BUTTON = 2;
+const DOUBLE_CLICK_MILLISECONDS = 500;
+const DOUBLE_CLICK_DISTANCE = 5;
 export const MIDDLE_DRAG_TOOL_ID = 'hand';
 
 /**
@@ -22,6 +24,7 @@ export const MIDDLE_DRAG_TOOL_ID = 'hand';
 export class CanvasInputService extends Service {
 	private pointerId: number | undefined;
 	private middleDragActive = false;
+	private lastPress: { time: number; x: number; y: number; count: number } | undefined;
 
 	constructor(
 		ctx: Context,
@@ -79,7 +82,28 @@ export class CanvasInputService extends Service {
 		element.setPointerCapture(event.pointerId);
 		event.preventDefault();
 		if (event.button === MIDDLE_BUTTON) this.beginMiddleDrag();
-		this.ctx.tools.pointerDown(this.toolEvent(element, event));
+		this.ctx.tools.pointerDown({
+			...this.toolEvent(element, event),
+			detail: this.clickCount(event)
+		});
+	}
+
+	/**
+	 * Pointer events carry no click count (`detail` is 0 for them), so count presses close in time
+	 * and space here: 2 is a double click.
+	 */
+	private clickCount(event: PointerEvent): number {
+		const previous = this.lastPress;
+		let count = 1;
+		if (previous !== undefined) {
+			const close =
+				Math.hypot(event.clientX - previous.x, event.clientY - previous.y) <= DOUBLE_CLICK_DISTANCE;
+			if (close && event.timeStamp - previous.time <= DOUBLE_CLICK_MILLISECONDS) {
+				count = previous.count + 1;
+			}
+		}
+		this.lastPress = { time: event.timeStamp, x: event.clientX, y: event.clientY, count };
+		return Math.max(event.detail, count);
 	}
 
 	private onPointerMove(element: HTMLCanvasElement, event: PointerEvent): void {

@@ -4,7 +4,7 @@
 // neighbouring lines; it is skipped for rotated nodes (the lines are axis-aligned) and with Ctrl.
 
 import type { Context } from '@neoworks/extension-system';
-import type { NodeId } from '../document';
+import type { DocumentReader, NodeId } from '../document';
 import { unionBounds } from '../editing/selectionOps';
 import type { Modifiers, Point } from '../tools/protocol';
 import {
@@ -48,12 +48,27 @@ function snapAxes(handle: HandleId): 'both' | 'x' | 'y' {
 	return 'both';
 }
 
+type SessionFactory = (reader: DocumentReader, ids: readonly NodeId[]) => ResizeSession;
+
+export interface ResizeGestureOptions {
+	/** History label; "Resize" by default. */
+	label: string;
+	/** The maths that plans each move; a `ResizeSession` by default (the Scale tool swaps it). */
+	createSession: SessionFactory;
+}
+
+const RESIZE: ResizeGestureOptions = {
+	label: 'Resize',
+	createSession: (reader, ids) => new ResizeSession(reader, ids)
+};
+
 export class ResizeGesture {
 	private active: ActiveResize | undefined;
 
 	constructor(
 		private readonly ctx: Context,
-		private readonly feedback: ResizeFeedback
+		private readonly feedback: ResizeFeedback,
+		private readonly options: ResizeGestureOptions = RESIZE
 	) {}
 
 	get isActive(): boolean {
@@ -61,9 +76,9 @@ export class ResizeGesture {
 	}
 
 	begin(handle: HandleId, world: Point): boolean {
-		const session = new ResizeSession(this.ctx.document.reader, this.ctx.selection.ids);
+		const session = this.options.createSession(this.ctx.document.reader, this.ctx.selection.ids);
 		if (session.isEmpty) return false;
-		const group = this.ctx.history.beginGroup({ label: 'Resize' });
+		const group = this.ctx.history.beginGroup({ label: this.options.label });
 		this.active = { session, handle, startWorld: world, group, lastWorld: world };
 		return true;
 	}
@@ -116,7 +131,7 @@ export class ResizeGesture {
 		};
 		const plan = active.session.plan({ handle: active.handle, delta, modifiers: resizeModifiers });
 		if (plan.changes.length > 0) {
-			this.ctx.document.apply(plan.changes, { origin: 'user', label: 'Resize' });
+			this.ctx.document.apply(plan.changes, { origin: 'user', label: this.options.label });
 		}
 		return plan;
 	}

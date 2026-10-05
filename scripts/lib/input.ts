@@ -30,32 +30,45 @@ const NAMED_KEYS: Record<string, { code: string; keyCode: number; text?: string 
 	Shift: { code: 'ShiftLeft', keyCode: 16 }
 };
 
+/** Bitmask of CDP modifiers for names such as "Alt+Control"; empty for none. */
+export function modifierMask(names: string | undefined): number {
+	if (names === undefined || names === '') return 0;
+	return names.split('+').reduce((bits, name) => bits | modifierBit(name), 0);
+}
+
 export async function click(
 	cdp: CdpSession,
 	point: Point,
 	button: MouseButton = 'left',
-	clickCount = 1
+	clickCount = 1,
+	modifiers = 0
 ): Promise<void> {
-	await mouse(cdp, 'mouseMoved', point, 'none', 0);
+	await mouse(cdp, 'mouseMoved', point, 'none', 0, 0, modifiers);
 	for (let count = 1; count <= clickCount; count += 1) {
-		await mouse(cdp, 'mousePressed', point, button, count);
-		await mouse(cdp, 'mouseReleased', point, button, count);
+		await mouse(cdp, 'mousePressed', point, button, count, 0, modifiers);
+		await mouse(cdp, 'mouseReleased', point, button, count, 0, modifiers);
 	}
 }
 
 // Stepped so pointermove handlers that accumulate deltas see the whole drag.
-export async function drag(cdp: CdpSession, from: Point, to: Point, steps = 12): Promise<void> {
-	await mouse(cdp, 'mouseMoved', from, 'none', 0);
-	await mouse(cdp, 'mousePressed', from, 'left', 1);
+export async function drag(
+	cdp: CdpSession,
+	from: Point,
+	to: Point,
+	steps = 12,
+	modifiers = 0
+): Promise<void> {
+	await mouse(cdp, 'mouseMoved', from, 'none', 0, 0, modifiers);
+	await mouse(cdp, 'mousePressed', from, 'left', 1, 0, modifiers);
 	for (let step = 1; step <= steps; step += 1) {
 		const progress = step / steps;
 		const point = {
 			x: from.x + (to.x - from.x) * progress,
 			y: from.y + (to.y - from.y) * progress
 		};
-		await mouse(cdp, 'mouseMoved', point, 'left', 0, 1);
+		await mouse(cdp, 'mouseMoved', point, 'left', 0, 1, modifiers);
 	}
-	await mouse(cdp, 'mouseReleased', to, 'left', 1);
+	await mouse(cdp, 'mouseReleased', to, 'left', 1, 0, modifiers);
 }
 
 export async function scroll(
@@ -107,7 +120,8 @@ async function mouse(
 	point: Point,
 	button: MouseButton | 'none',
 	clickCount: number,
-	buttons = 0
+	buttons = 0,
+	modifiers = 0
 ): Promise<void> {
 	await cdp.send('Input.dispatchMouseEvent', {
 		type,
@@ -115,7 +129,8 @@ async function mouse(
 		y: point.y,
 		button,
 		buttons,
-		clickCount
+		clickCount,
+		modifiers
 	});
 }
 

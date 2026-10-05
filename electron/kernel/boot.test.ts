@@ -137,6 +137,7 @@ describe('killing a plugin', () => {
 
 		expect(host.handlers.has('dialogs:openFile')).toBe(false);
 		expect(host.handlers.has('dialogs:saveFile')).toBe(false);
+		expect(host.handlers.has('dialogs:openImages')).toBe(false);
 		expect(await host.invoke('app:version')).toEqual({ ok: true, value: '1.2.3' });
 		expect(host.openWindows).toHaveLength(1);
 	});

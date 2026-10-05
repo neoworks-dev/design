@@ -411,7 +411,10 @@ export interface PastedImage {
 	height: number;
 }
 
-function fittedSize(image: PastedImage, viewport: Rect | null): { width: number; height: number } {
+export function fittedSize(
+	image: PastedImage,
+	viewport: Rect | null
+): { width: number; height: number } {
 	if (viewport === null) return { width: image.width, height: image.height };
 	const scale = Math.min(
 		1,

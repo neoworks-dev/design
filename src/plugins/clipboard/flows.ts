@@ -2,6 +2,7 @@
 // `ctx`; the system clipboard is reached through `ctx.desktop` (main process), never directly.
 
 import type { Context } from '@neoworks/extension-system';
+import { looksLikeSvg, rasterizeSvg } from '../../lib/assets/svgRaster';
 import type { Rect, Vec2 } from '../../lib/document';
 import { applyEdit, objectArguments } from '../../lib/editing/contribute';
 import {
@@ -90,6 +91,9 @@ async function planFromClipboard(
 	if (payload !== null)
 		return planPaste(ctx.document.reader, payload, settingsFor(ctx, mode, args));
 	if (content.png !== null) return planImage(ctx, content.png, mode, args);
+	if (content.text !== null && looksLikeSvg(new TextEncoder().encode(content.text))) {
+		return planSvgImage(ctx, content.text, mode, args);
+	}
 	if (content.text !== null && content.text.trim() !== '') {
 		return planPasteNode(
 			ctx.document.reader,
@@ -98,6 +102,17 @@ async function planFromClipboard(
 		);
 	}
 	return null;
+}
+
+/** SVG markup on the clipboard is pasted as an image (rasterised once), not as text. */
+async function planSvgImage(
+	ctx: Context,
+	markup: string,
+	mode: PasteMode,
+	args: unknown
+): Promise<PastePlan> {
+	const png = await rasterizeSvg(new TextEncoder().encode(markup));
+	return planImage(ctx, png, mode, args);
 }
 
 async function planImage(
