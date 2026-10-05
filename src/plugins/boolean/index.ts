@@ -25,7 +25,13 @@ const OPERATIONS: OperationCommand[] = [
 	{ id: 'exclude', operation: 'EXCLUDE', key: 'X' }
 ];
 
-function menus(order: number): MenuPlacement[] {
+const BOOLEAN_MENU = 'context/boolean';
+
+function operationMenus(order: number): MenuPlacement[] {
+	return [{ menu: BOOLEAN_MENU, group: '1', order }];
+}
+
+function flattenMenus(order: number): MenuPlacement[] {
 	return [
 		{ menu: 'context/canvas', group: '4_boolean', order },
 		{ menu: 'context/layer', group: '4_boolean', order }
@@ -119,7 +125,7 @@ export default {
 				when: 'hasSelection',
 				run: () => combine(ctx, entry.operation, false),
 				keys: [`Mod+Alt+${entry.key}`],
-				menus: menus(position)
+				menus: operationMenus(position)
 			});
 			contributeCommand(ctx, {
 				id: `boolean.${entry.id}-flatten`,
@@ -135,7 +141,7 @@ export default {
 			when: 'hasSelection',
 			run: () => flattenSelection(ctx),
 			keys: ['Mod+E'],
-			menus: menus(10)
+			menus: flattenMenus(10)
 		});
 	}
 };

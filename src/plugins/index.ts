@@ -24,6 +24,7 @@ import align from './align';
 import boolean from './boolean';
 import clipboard from './clipboard';
 import colorPicker from './color-picker';
+import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
@@ -67,7 +68,9 @@ import vectorEdit from './vector-edit';
 import workbenchLayout from './workbench-layout';
 import gradientEditor from './gradient-editor';
 import grouping from './grouping';
+import layersPanel from './layers-panel';
 import mask from './mask';
+import pagesPanel from './pages-panel';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import selectionCommands from './selection-commands';
@@ -147,5 +150,8 @@ export const builtinPlugins: Plugin[] = [
 	duplicate,
 	align,
 	boolean,
-	clipboard
+	clipboard,
+	contextMenus,
+	layersPanel,
+	pagesPanel
 ];

@@ -63,8 +63,12 @@ export interface PanelSectionContribution {
 	visible?: () => boolean;
 	component: AnyComponent;
 	props?: Record<string, unknown>;
+	/** Rendered at the right end of the section header (an add button), with the owner's context. */
+	actions?: AnyComponent;
 	/** Start collapsed until the user chooses otherwise. */
 	collapsed?: boolean;
+	/** Take the height left in the tab and scroll inside (the layers list). */
+	fill?: boolean;
 	/**
 	 * Context the component renders with. Defaults to the plugin calling `registerSection`;
 	 * services that register on behalf of a plugin (inspectors) pass that plugin's context.
@@ -88,7 +92,9 @@ export interface PanelSection extends RegistryEntry {
 	when?: string;
 	visible?: () => boolean;
 	collapsedByDefault: boolean;
+	fill: boolean;
 	content: RegionEntry;
+	actions?: RegionEntry;
 }
 
 export interface PanelStorage {
@@ -290,7 +296,9 @@ export class PanelsService extends Service {
 			when: section.when,
 			visible: section.visible,
 			collapsedByDefault: section.collapsed === true,
-			content
+			fill: section.fill === true,
+			content,
+			actions: contentEntry(`${id}/actions`, section.tab, section.actions, undefined, owner)
 		});
 	}
 

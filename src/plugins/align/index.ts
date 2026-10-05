@@ -35,11 +35,11 @@ const DISTRIBUTE_COMMANDS: DistributeCommand[] = [
 	{ axis: 'vertical', title: 'Distribute vertical spacing', key: 'Alt+Shift+V' }
 ];
 
+const ALIGN_MENU = 'context/align';
+
 function menus(order: number): MenuPlacement[] {
-	return [
-		{ menu: 'context/canvas', group: '2_align', order },
-		{ menu: 'context/layer', group: '2_align', order }
-	];
+	// The context menus show these as the Align submenu (see the context-menus plugin).
+	return [{ menu: ALIGN_MENU, group: '1', order }];
 }
 
 function edit(ctx: Context, plan: (ids: readonly NodeId[]) => Change[], label: string): void {
