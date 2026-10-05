@@ -210,3 +210,114 @@ describe('text children', () => {
 		expect(geometry(ctx, 'af').height).toBe(180);
 	});
 });
+
+function rowDocument(): ReturnType<typeof buildDocument> {
+	return buildDocument([
+		page(
+			'Page',
+			[
+				frame({ id: 'row', name: 'Row', transform: at(50, 50), width: 175, height: 80 }, [
+					rect('r1', 40, 30, 10, 20),
+					rect('r2', 40, 30, 60, 20),
+					rect('r3', 40, 30, 115, 20)
+				]),
+				rect('loose1', 30, 30, 400, 10),
+				rect('loose2', 30, 30, 450, 20)
+			],
+			{ id: 'p0' }
+		)
+	]);
+}
+
+async function openRow(): Promise<Context> {
+	mounted = await mountPlugin(autolayout, { providers: autolayoutProviders(rowDocument()) });
+	return mounted.ctx;
+}
+
+function snapshotNodes(ctx: Context): Record<string, Node> {
+	return structuredClone(ctx.document.snapshot.nodes);
+}
+
+describe('add and remove auto layout', () => {
+	it('infers direction, gap and padding for a frame and keeps its children in place', async () => {
+		const ctx = await openRow();
+		ctx.selection.select(['row']);
+		await ctx.commands.run('autolayout.add');
+		expect(ctx.document.require('row')).toMatchObject({
+			layoutMode: 'HORIZONTAL',
+			itemSpacing: 13,
+			paddingLeft: 10,
+			paddingTop: 20,
+			paddingRight: 20,
+			paddingBottom: 30,
+			layoutSizingHorizontal: 'HUG',
+			layoutSizingVertical: 'HUG'
+		});
+		expect(geometry(ctx, 'row')).toMatchObject({ x: 50, y: 50, width: 176, height: 80 });
+		expect(geometry(ctx, 'r1')).toMatchObject({ x: 10, y: 20 });
+		expect(geometry(ctx, 'r2')).toMatchObject({ x: 63, y: 20 });
+		expect(ctx.selection.ids).toEqual(['row']);
+	});
+
+	it('adding and undoing is exact', async () => {
+		const ctx = await openRow();
+		const before = snapshotNodes(ctx);
+		ctx.selection.select(['row', 'loose1', 'loose2']);
+		await ctx.commands.run('autolayout.add');
+		expect(ctx.history.entries).toHaveLength(1);
+		expect(ctx.history.undo()).toBe(true);
+		expect(snapshotNodes(ctx)).toEqual(before);
+	});
+
+	it('wraps non-frame selections in an auto layout frame at the same position', async () => {
+		const ctx = await openRow();
+		ctx.selection.select(['loose1', 'loose2']);
+		await ctx.commands.run('autolayout.add');
+		const [wrapperId] = ctx.selection.ids;
+		const wrapper = ctx.document.require(wrapperId);
+		expect(wrapper).toMatchObject({ type: 'FRAME', layoutMode: 'HORIZONTAL', parentId: 'p0' });
+		expect(geometry(ctx, wrapperId)).toMatchObject({ x: 400, y: 10, width: 80, height: 30 });
+		expect(ctx.document.require('loose1').parentId).toBe(wrapperId);
+		expect(geometry(ctx, 'loose1')).toMatchObject({ x: 0, y: 0 });
+		expect(geometry(ctx, 'loose2')).toMatchObject({ x: 50, y: 0 });
+	});
+
+	it('puts children in stacking order by position', async () => {
+		const ctx = await openRow();
+		const reversed = ctx.document.moveNode('r3', 'row', 0);
+		ctx.document.apply(reversed, { origin: 'user', label: 'Reorder' });
+		ctx.selection.select(['row']);
+		await ctx.commands.run('autolayout.add');
+		expect(ctx.document.children('row')).toEqual(['r1', 'r2', 'r3']);
+	});
+
+	it('removes auto layout and leaves the children where the layout put them', async () => {
+		const ctx = await openRow();
+		ctx.selection.select(['row']);
+		await ctx.commands.run('autolayout.add');
+		const laidOut = ['r1', 'r2', 'r3'].map((id) => geometry(ctx, id));
+		ctx.document.apply(ctx.document.setProps('r2', { layoutSizingHorizontal: 'FILL' }), {
+			origin: 'user',
+			label: 'Fill'
+		});
+		const filled = geometry(ctx, 'r2');
+		await ctx.commands.run('autolayout.remove');
+		expect(ctx.document.require('row')).toMatchObject({
+			layoutMode: 'NONE',
+			layoutSizingHorizontal: 'FIXED'
+		});
+		expect(ctx.document.require('r2')).toMatchObject({ layoutSizingHorizontal: 'FIXED' });
+		expect(geometry(ctx, 'r2')).toEqual(filled);
+		expect(geometry(ctx, 'r1')).toEqual(laidOut[0]);
+		ctx.document.apply(ctx.document.setProps('r1', { width: 5 }), { origin: 'user', label: 'x' });
+		expect(geometry(ctx, 'r2')).toEqual(filled);
+	});
+
+	it('offers remove only where the selection has auto layout', async () => {
+		const ctx = await openRow();
+		ctx.selection.select(['row']);
+		expect(ctx.contextKeys.get('selectionHasAutoLayout')).toBe(false);
+		await ctx.commands.run('autolayout.add');
+		expect(ctx.contextKeys.get('selectionHasAutoLayout')).toBe(true);
+	});
+});
