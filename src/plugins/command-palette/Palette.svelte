@@ -152,6 +152,14 @@
 									<span class="text-faint pl-2">{row.item.subtitle}</span>
 								{/if}
 							</span>
+							{#if row.item.actionLabel && position === palette.index}
+								<span
+									class="bg-action text-action-fg shrink-0 rounded-md px-2 py-0.5 font-medium"
+									data-palette-action
+								>
+									{row.item.actionLabel}
+								</span>
+							{/if}
 							{#if row.item.accelerator}
 								<span class="text-faint shrink-0" data-palette-accelerator>
 									{row.item.accelerator}

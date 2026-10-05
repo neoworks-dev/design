@@ -405,8 +405,42 @@ export class FakeHost implements ElectronHost {
 			return () => {
 				this.pluginWatchers.delete(watcher);
 			};
+		},
+		install: (source, destination) => {
+			const files = this.installable(source);
+			if (files === undefined) return Promise.reject(new Error(`no plugin at ${source}`));
+			for (const file of this.pluginTree.keys()) {
+				if (file.startsWith(`${destination}/`)) {
+					return Promise.reject(new Error(`"${destination}" already exists`));
+				}
+			}
+			for (const [name, text] of Object.entries(files)) {
+				this.setPluginFile(`${destination}/${name}`, text);
+			}
+			return Promise.resolve();
+		},
+		remove: (directory) => {
+			for (const file of this.pluginTree.keys()) {
+				if (file.startsWith(`${directory}/`)) this.setPluginFile(file, undefined);
+			}
+			return Promise.resolve();
 		}
 	};
+
+	/** Archives tests can install, by path: file name to text. */
+	readonly pluginArchives = new Map<string, Record<string, string>>();
+
+	/** The files a folder or a registered archive holds, by relative path. */
+	private installable(source: string): Record<string, string> | undefined {
+		const archive = this.pluginArchives.get(source);
+		if (archive !== undefined) return archive;
+		const files: Record<string, string> = {};
+		for (const [file, text] of this.pluginTree) {
+			if (file.startsWith(`${source}/`)) files[file.slice(source.length + 1)] = text;
+		}
+		if (Object.keys(files).length === 0) return undefined;
+		return files;
+	}
 
 	/** Test driver: create, edit or (with `undefined`) delete a plugin file; watchers above it fire. */
 	setPluginFile(file: string, text: string | undefined): void {

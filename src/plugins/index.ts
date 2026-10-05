@@ -84,6 +84,7 @@ import pixelGrid from './pixel-grid';
 import pluginApi from './plugin-api';
 import pluginFigmaCompat from './plugin-figma-compat';
 import pluginHost from './plugin-host';
+import pluginManager from './plugin-manager';
 import pluginManifests from './plugin-manifests';
 import pluginPermissions from './plugin-permissions';
 import pluginStorage from './plugin-storage';
@@ -273,5 +274,6 @@ export const builtinPlugins: Plugin[] = [
 	pluginPermissions,
 	pluginStorage,
 	pluginFigmaCompat,
+	pluginManager,
 	pluginUi
 ];

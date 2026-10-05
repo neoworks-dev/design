@@ -9,6 +9,8 @@ export interface PaletteItem {
 	title: string;
 	subtitle?: string;
 	accelerator?: string;
+	/** A button shown at the end of the highlighted row (Enter or a click does the same). */
+	actionLabel?: string;
 	/** Shown dimmed and not runnable while false. */
 	enabled?: boolean;
 	run: () => void | Promise<void>;

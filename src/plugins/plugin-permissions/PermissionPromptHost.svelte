@@ -3,7 +3,7 @@
 	// question is shown; Escape denies it.
 	import { Button } from '@neoworks-dev/ui';
 	import { getKernel } from '../../lib/kernel/context';
-	import { describePermission } from './describePermission';
+	import { describePermission } from '../../lib/plugins/describePermission';
 
 	const ctx = getKernel();
 	const prompt = $derived(ctx.pluginPermissions.prompts.list()[0]);

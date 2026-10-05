@@ -167,6 +167,13 @@ export interface PluginFilesHost {
 	 * function that closes the watcher; a directory that does not exist is not watched.
 	 */
 	watch(directory: string, onChange: () => void): () => void;
+	/**
+	 * Copy the plugin folder `source`, or unpack the `.zip` `source`, into the new directory
+	 * `destination`. Rejects when `destination` exists or the archive is unsafe.
+	 */
+	install(source: string, destination: string): Promise<void>;
+	/** Delete `directory` and everything in it. */
+	remove(directory: string): Promise<void>;
 }
 
 export interface ElectronHost {

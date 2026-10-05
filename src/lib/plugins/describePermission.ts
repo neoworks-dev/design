@@ -1,4 +1,4 @@
-import type { PluginPermission } from '../../lib/plugins/manifest';
+import type { PluginPermission } from './manifest';
 
 const DESCRIPTIONS: Record<PluginPermission, string> = {
 	'document:read': 'Read the document',

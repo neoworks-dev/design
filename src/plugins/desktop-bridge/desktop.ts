@@ -267,6 +267,23 @@ export class DesktopService extends Service {
 		return typed(() => this.bridge.plugins.readFile(source, directoryName, file));
 	}
 
+	pluginsInstall(path: string): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.install(path));
+	}
+
+	/** A native dialog for a plugin folder or `.zip`, then install; `null` when cancelled. */
+	pluginsInstallFromDialog(kind: 'folder' | 'zip'): Promise<PluginList | null> {
+		return typed(() => this.bridge.plugins.installFromDialog(kind));
+	}
+
+	pluginsRemove(directoryName: string): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.remove(directoryName));
+	}
+
+	pluginsReveal(source: PluginSourceKind, directoryName: string): Promise<void> {
+		return typed(() => this.bridge.plugins.reveal(source, directoryName));
+	}
+
 	/** What the user allowed or denied each plugin. */
 	pluginsPermissions(): Promise<PluginPermissionDecisions> {
 		return typed(() => this.bridge.plugins.permissions());

@@ -19,7 +19,14 @@ declare module '@neoworks/extension-system' {
 	interface Context {
 		pluginPermissions: PluginPermissionsService;
 	}
+	interface Events {
+		/** Dispatch mode: emit. The stored decisions (permissions, enabled) were read or changed. */
+		'plugins/decisions-changed'(): void;
+	}
 }
+
+/** Stored next to the permissions: `false` means the user turned the plugin off. */
+export const ENABLED_KEY = 'enabled';
 
 export type PermissionDecision = 'granted' | 'denied' | 'undecided';
 
@@ -82,6 +89,22 @@ export class PluginPermissionsService extends Service {
 		for (const [pluginId, decisions] of Object.entries(all)) {
 			this.stored.set(pluginId, this.decisions.register({ id: pluginId, decisions }));
 		}
+		this.ctx.emit('plugins/decisions-changed');
+	}
+
+	/** Ids of the plugins the user turned off. */
+	disabledIds(): string[] {
+		return this.decisions
+			.listAll()
+			.filter((entry) => entry.decisions[ENABLED_KEY] === false)
+			.map((entry) => entry.id);
+	}
+
+	/** Turn a plugin on or off; remembered across sessions. */
+	async setEnabled(pluginId: string, enabled: boolean): Promise<void> {
+		let decision: boolean | null = false;
+		if (enabled) decision = null;
+		await this.set(pluginId, ENABLED_KEY, decision);
 	}
 
 	/** Reactive: the decision for one permission of a plugin. */

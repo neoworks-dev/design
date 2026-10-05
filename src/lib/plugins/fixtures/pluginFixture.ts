@@ -135,6 +135,10 @@ export function fakePluginsSection(
 	state: FakePluginState = newFakePluginState()
 ): DesktopBridge['plugins'] {
 	return {
+		install: () => Promise.resolve(list()),
+		installFromDialog: () => Promise.resolve(null),
+		remove: () => Promise.resolve(list()),
+		reveal: () => Promise.resolve(),
 		permissions: () => Promise.resolve(structuredClone(state.decisions)),
 		setPermission: (pluginId, permission, granted) => {
 			const own = { ...state.decisions[pluginId] };

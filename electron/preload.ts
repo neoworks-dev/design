@@ -132,6 +132,10 @@ const bridge: DesktopBridge = {
 		setTrust: (trusted) => invoke('plugins:setTrust', { trusted }),
 		readFile: (source, directoryName, file) =>
 			invoke('plugins:readFile', { source, directoryName, file }),
+		install: (path) => invoke('plugins:install', { path }),
+		installFromDialog: (kind) => invoke('plugins:installFromDialog', { kind }),
+		remove: (directoryName) => invoke('plugins:remove', { directoryName }),
+		reveal: (source, directoryName) => invoke('plugins:reveal', { source, directoryName }),
 		permissions: () => invoke('plugins:permissions'),
 		setPermission: (pluginId, permission, granted) =>
 			invoke('plugins:setPermission', { pluginId, permission, granted }),

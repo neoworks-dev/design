@@ -21,6 +21,7 @@ import type { ClipboardContent, ClipboardWrite } from '../bridge';
 import { HarnessAgentHost } from '../ai/harnessAgents';
 import { qaScript, ScriptedAgentHost } from '../ai/scriptedAgents';
 import { fontDirectories, scanFonts } from '../fonts/scan';
+import { readZip, stripCommonRoot } from '../plugins/zipExtract';
 import type { AgentHost } from './agentHost';
 import type {
 	ElectronHost,
@@ -65,6 +66,23 @@ function createPluginFilesHost(): ElectronHost['pluginFiles'] {
 			} catch {
 				return () => {};
 			}
+		},
+		install: async (source, destination) => {
+			if (fs.existsSync(destination)) throw new Error(`"${destination}" already exists`);
+			const stat = await fs.promises.stat(source);
+			if (stat.isDirectory()) {
+				await fs.promises.cp(source, destination, { recursive: true });
+				return;
+			}
+			const entries = stripCommonRoot(readZip(await fs.promises.readFile(source)));
+			for (const entry of entries) {
+				const target = path.join(destination, entry.path);
+				await fs.promises.mkdir(path.dirname(target), { recursive: true });
+				await fs.promises.writeFile(target, entry.bytes);
+			}
+		},
+		remove: async (directory) => {
+			await fs.promises.rm(directory, { recursive: true, force: true });
 		}
 	};
 }

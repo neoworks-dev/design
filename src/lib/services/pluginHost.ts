@@ -264,6 +264,9 @@ export class PluginHostService extends Service {
 		if (record === undefined || record.manifest === null) {
 			return Promise.reject(new Error(`no plugin "${pluginId}" is loaded`));
 		}
+		if (record.status === 'disabled') {
+			return Promise.reject(new Error(`plugin "${pluginId}" is disabled`));
+		}
 		if (record.status === 'failed') {
 			return Promise.reject(new Error(`plugin "${pluginId}" failed: ${record.error ?? 'unknown'}`));
 		}

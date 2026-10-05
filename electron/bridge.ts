@@ -420,6 +420,17 @@ export interface IpcContract {
 		payload: { source: PluginSourceKind; directoryName: string; file: string };
 		result: string;
 	};
+	/** Copy a plugin folder, or unpack a plugin `.zip`, into the user plugins directory. */
+	'plugins:install': { payload: { path: string }; result: PluginList };
+	/** Ask for a plugin folder or `.zip` with a native dialog and install it; `null` when cancelled. */
+	'plugins:installFromDialog': { payload: { kind: 'folder' | 'zip' }; result: PluginList | null };
+	/** Delete an installed plugin of the user plugins directory. */
+	'plugins:remove': { payload: { directoryName: string }; result: PluginList };
+	/** Show a plugin's folder in the OS file manager. */
+	'plugins:reveal': {
+		payload: { source: PluginSourceKind; directoryName: string };
+		result: void;
+	};
 	/** What the user allowed or denied each plugin of the sender's window (project plugins per project). */
 	'plugins:permissions': { payload: void; result: PluginPermissionDecisions };
 	/** Allow (`true`), deny (`false`) or forget (`null`) one permission of a plugin. */
@@ -579,6 +590,10 @@ export interface DesktopBridge {
 		list(): Promise<PluginList>;
 		setTrust(trusted: boolean): Promise<PluginList>;
 		readFile(source: PluginSourceKind, directoryName: string, file: string): Promise<string>;
+		install(path: string): Promise<PluginList>;
+		installFromDialog(kind: 'folder' | 'zip'): Promise<PluginList | null>;
+		remove(directoryName: string): Promise<PluginList>;
+		reveal(source: PluginSourceKind, directoryName: string): Promise<void>;
 		permissions(): Promise<PluginPermissionDecisions>;
 		setPermission(
 			pluginId: string,

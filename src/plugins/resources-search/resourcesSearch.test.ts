@@ -39,6 +39,21 @@ function titles(ctx: Context): string[] {
 }
 
 describe('the Resources quick search', () => {
+	it('lists what other plugins offer through resource providers, and drops it with them', async () => {
+		const ctx = await open();
+		const dispose = ctx.resourceSearch.registerProvider({
+			id: 'demo',
+			items: () => [{ id: 'demo-plugin', title: 'Demo plugin', actionLabel: 'Run', run: () => {} }]
+		});
+		await ctx.commands.run('resources.search');
+		expect(titles(ctx)).toContain('Demo plugin');
+		expect(
+			ctx.palette.rows().find((row) => row.item.title === 'Demo plugin')?.item.actionLabel
+		).toBe('Run');
+		dispose();
+		expect(titles(ctx)).not.toContain('Demo plugin');
+	});
+
 	it('Shift+I opens the palette on the Resources tab listing every component', async () => {
 		const ctx = await open();
 		await ctx.commands.run('resources.search');

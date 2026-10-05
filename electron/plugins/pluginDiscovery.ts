@@ -64,6 +64,14 @@ function describeError(error: unknown): string {
 	return String(error);
 }
 
+/** The directory name an installed plugin gets: the folder or archive name, made safe. */
+export function installName(source: string): string {
+	const base = path.basename(source).replace(/\.zip$/i, '');
+	const safe = base.replace(/[^A-Za-z0-9._-]/g, '-').replace(/^\.+/, '');
+	if (safe === '') throw new IpcError('HANDLER_FAILED', `"${source}" cannot be installed`);
+	return safe;
+}
+
 /** True when `candidate` is `directory` itself or below it, after resolving `..` segments. */
 export function isInside(directory: string, candidate: string): boolean {
 	const relative = path.relative(directory, candidate);
@@ -285,6 +293,75 @@ export class PluginDiscoveryService extends Service {
 		}, 'plugins:rescan');
 	}
 
+	// ---------- installing and removing ----------
+
+	/** Copy a plugin folder, or unpack a `.zip`, into the user plugins directory. */
+	async install(sender: SenderHandle, source: string): Promise<PluginList> {
+		const name = installName(source);
+		const destination = path.join(this.userDirectory, name);
+		await this.ctx.electron.pluginFiles.ensureDirectory(this.userDirectory);
+		const installed = await this.ctx.electron.pluginFiles.listDirectories(this.userDirectory);
+		if (installed.includes(name)) {
+			throw new IpcError('HANDLER_FAILED', `a plugin folder named "${name}" is already installed`);
+		}
+		try {
+			await this.ctx.electron.pluginFiles.install(source, destination);
+			const manifest = await this.ctx.electron.pluginFiles.readText(
+				path.join(destination, MANIFEST_FILE)
+			);
+			if (manifest === undefined) {
+				throw new IpcError('HANDLER_FAILED', `"${path.basename(source)}" has no manifest.json`);
+			}
+		} catch (error) {
+			await this.ctx.electron.pluginFiles.remove(destination);
+			if (error instanceof IpcError) throw error;
+			throw new IpcError('HANDLER_FAILED', `could not install: ${describeError(error)}`);
+		}
+		const list = await this.list(sender);
+		this.publish(sender, list);
+		return list;
+	}
+
+	/** Pick a folder or a `.zip` with a native dialog and install it; `null` when cancelled. */
+	async installFromDialog(
+		sender: SenderHandle,
+		kind: 'folder' | 'zip'
+	): Promise<PluginList | null> {
+		const picked = await this.ctx.electron.dialog.showOpenDialog({
+			title: kind === 'folder' ? 'Install plugin from folder' : 'Install plugin from .zip',
+			multiple: false,
+			directory: kind === 'folder',
+			filters: kind === 'zip' ? [{ name: 'Plugin archive', extensions: ['zip'] }] : undefined
+		});
+		if (picked === null || picked.length === 0) return null;
+		return this.install(sender, picked[0]);
+	}
+
+	/** Delete a plugin of the user plugins directory (bundled and project plugins are not ours to delete). */
+	async remove(sender: SenderHandle, directoryName: string): Promise<PluginList> {
+		const directory = path.join(this.userDirectory, directoryName);
+		if (!isInside(this.userDirectory, directory) || directory === this.userDirectory) {
+			throw new IpcError('HANDLER_FAILED', `"${directoryName}" is not an installed plugin`);
+		}
+		await this.ctx.electron.pluginFiles.remove(directory);
+		const list = await this.list(sender);
+		this.publish(sender, list);
+		return list;
+	}
+
+	async reveal(
+		sender: SenderHandle,
+		source: PluginSourceKind,
+		directoryName: string
+	): Promise<void> {
+		const list = await this.list(sender);
+		const plugin = list.plugins.find(
+			(candidate) => candidate.source === source && candidate.directoryName === directoryName
+		);
+		if (!plugin) throw new IpcError('HANDLER_FAILED', `no ${source} plugin "${directoryName}"`);
+		this.ctx.electron.shell.showItemInFolder(path.join(plugin.directory, MANIFEST_FILE));
+	}
+
 	// ---------- reading plugin files ----------
 
 	async readFile(
@@ -336,6 +413,18 @@ export const mainPluginsPlugin: Plugin.Object<PluginDiscoveryConfig> = {
 		route(ctx, 'plugins:list', (_payload, event) => discovery.list(event.sender));
 		route(ctx, 'plugins:setTrust', (request, event) =>
 			discovery.setTrustFor(event.sender, request.trusted)
+		);
+		route(ctx, 'plugins:install', (request, event) =>
+			discovery.install(event.sender, request.path)
+		);
+		route(ctx, 'plugins:installFromDialog', (request, event) =>
+			discovery.installFromDialog(event.sender, request.kind)
+		);
+		route(ctx, 'plugins:remove', (request, event) =>
+			discovery.remove(event.sender, request.directoryName)
+		);
+		route(ctx, 'plugins:reveal', (request, event) =>
+			discovery.reveal(event.sender, request.source, request.directoryName)
 		);
 		route(ctx, 'plugins:readFile', (request, event) =>
 			discovery.readFile(event.sender, request.source, request.directoryName, request.file)
