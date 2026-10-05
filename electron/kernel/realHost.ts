@@ -237,7 +237,10 @@ export function createRealHost(): ElectronHost {
 			unhandle: (scheme) => protocol.unhandle(scheme)
 		},
 		net: { fetch: (url) => net.fetch(url) },
-		shell: { openExternal: (url) => shell.openExternal(url) },
+		shell: {
+			openExternal: (url) => shell.openExternal(url),
+			showItemInFolder: (file) => shell.showItemInFolder(file)
+		},
 		dialog: {
 			showOpenDialog: async (request) => {
 				const answer = qaAnswer('DESIGN_QA_OPEN_PATH');
@@ -299,7 +302,11 @@ export function createRealHost(): ElectronHost {
 				}
 			},
 			writeText: (name, text) => {
-				fs.writeFileSync(path.join(app.getPath('userData'), name), text);
+				// Temp file then rename: a crash mid-write never leaves a half-written file behind.
+				const target = path.join(app.getPath('userData'), name);
+				const temporary = `${target}.tmp`;
+				fs.writeFileSync(temporary, text);
+				fs.renameSync(temporary, target);
 			}
 		},
 		fonts: {

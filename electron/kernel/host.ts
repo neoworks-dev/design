@@ -159,7 +159,11 @@ export interface ElectronHost {
 		unhandle(scheme: string): void;
 	};
 	net: { fetch(url: string): Promise<Response> };
-	shell: { openExternal(url: string): Promise<void> };
+	shell: {
+		openExternal(url: string): Promise<void>;
+		/** Show a file selected in the OS file manager. */
+		showItemInFolder(file: string): void;
+	};
 	dialog: {
 		showOpenDialog(request: OpenDialogRequest): Promise<string[] | null>;
 		showSaveDialog(request: SaveDialogRequest): Promise<string | null>;

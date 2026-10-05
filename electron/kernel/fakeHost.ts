@@ -290,10 +290,15 @@ export class FakeHost implements ElectronHost {
 		}
 	};
 
+	readonly revealed: string[] = [];
+
 	readonly shell: ElectronHost['shell'] = {
 		openExternal: (url) => {
 			this.openedExternal.push(url);
 			return Promise.resolve();
+		},
+		showItemInFolder: (file) => {
+			this.revealed.push(file);
 		}
 	};
 

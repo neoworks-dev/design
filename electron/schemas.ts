@@ -50,6 +50,11 @@ const nativeMenuItem: z.ZodType<NativeMenuItem> = z.lazy(() =>
 /** More than this in one message is a bug in the sender, not a batch. */
 const MAX_TRANSACTIONS_PER_COMMIT = 5000;
 
+const settingsData = z.strictObject({
+	core: z.record(z.string(), z.unknown()),
+	plugins: z.record(z.string(), z.record(z.string(), z.unknown()))
+});
+
 export type PayloadSchemas = {
 	[Channel in IpcChannel]: z.ZodType<IpcContract[Channel]['payload']>;
 };
@@ -83,6 +88,10 @@ export const payloadSchemas: PayloadSchemas = {
 		transactions: z.array(transactionSchema).max(MAX_TRANSACTIONS_PER_COMMIT)
 	}),
 	'store:checkpoint': z.void(),
+	'files:openInTab': z.strictObject({ path: storePath }),
+	'files:newInTab': z.void(),
+	'files:confirmClose': z.void(),
+	'files:discard': z.strictObject({ path: storePath }),
 	'files:newUntitled': z.void(),
 	'files:open': z.strictObject({ path: storePath }),
 	'files:openDialog': z.void(),
@@ -105,7 +114,12 @@ export const payloadSchemas: PayloadSchemas = {
 	}),
 	'assets:fontBytes': fontRef,
 	'assets:embeddedFonts': z.void(),
+	'settings:load': z.void(),
+	'settings:save': settingsData,
 	'files:recent': z.void(),
+	'files:drafts': z.void(),
+	'files:removeRecent': z.strictObject({ path: storePath }),
+	'files:reveal': z.strictObject({ path: storePath }),
 	'files:clearRecent': z.void(),
 	'files:setThumbnail': z.strictObject({
 		mime: z.string().min(1),

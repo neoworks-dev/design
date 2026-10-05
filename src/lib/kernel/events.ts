@@ -27,6 +27,9 @@ import type { Point } from '../tools/protocol';
 import type { Size } from './types';
 import type { StoreInfo } from '../../../electron/bridge';
 
+/** What File > New / Open asks for: a blank document, or the design file at `path`. */
+export type FileOpenRequest = { kind: 'new' } | { kind: 'open'; path: string };
+
 declare module '@neoworks/extension-system' {
 	interface Events {
 		/**
@@ -107,6 +110,21 @@ declare module '@neoworks/extension-system' {
 
 		/** Dispatch mode: emit. The window's document file changed (open, new, Save As). */
 		'file/attached'(info: StoreInfo): void;
+
+		/**
+		 * Dispatch mode: emit. The open document was saved (Save, Save As): its file is checkpointed.
+		 * The file-thumbnails plugin draws the home screen preview then.
+		 */
+		'file/saved'(info: StoreInfo): void;
+
+		/**
+		 * Dispatch mode: serial. File > New or Open is about to replace the window's document. A
+		 * listener that handles it itself (the tabs plugin opens a tab) returns `true`, which stops
+		 * the default of replacing the current document. Call with `ctx.serial`.
+		 */
+		'file/open-request'(
+			request: FileOpenRequest
+		): boolean | undefined | Promise<boolean | undefined>;
 
 		/**
 		 * Dispatch mode: emit. The canvas region changed size, in CSS pixels (viewport listens).

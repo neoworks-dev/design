@@ -1,18 +1,25 @@
 import type { Context } from '@neoworks/extension-system';
+import { z } from 'zod';
 import { contributeCommand } from '../../lib/editing/contribute';
 import { DEFAULT_SNAP_THRESHOLD_PIXELS, SnappingService } from '../../lib/services/snapping';
 import { SnappingState } from '../../lib/services/snappingState.svelte';
+import { updateConfig } from '../../lib/settings/updateConfig';
 import { drawSnapOverlay } from '../../lib/snapping/overlayDraw';
-import { readStoredFlag, writeStoredFlag } from '../../lib/snapping/storedFlag';
 
-const PIXEL_SNAP_KEY = 'design.snapping.pixel';
-
-export interface SnappingConfig {
-	/** Start with snapping on (default) or off. */
-	enabled?: boolean;
-	/** Screen pixels within which an edge snaps. */
-	thresholdPixels?: number;
-}
+// The plugin's settings (shown in Settings, stored by main). The two toggle commands update this
+// config with `fiber.update`, so what the user last chose survives a restart.
+const snappingConfigSchema = z
+	.object({
+		enabled: z.boolean().default(true).describe('Snap to objects while moving and resizing.'),
+		thresholdPixels: z
+			.number()
+			.positive()
+			.default(DEFAULT_SNAP_THRESHOLD_PIXELS)
+			.describe('Screen pixels within which an edge snaps.'),
+		pixelSnap: z.boolean().default(false).describe('Round positions to whole pixels.')
+	})
+	.prefault({});
+export type SnappingConfig = z.infer<typeof snappingConfigSchema>;
 
 function thresholdOf(value: number | undefined): number {
 	if (value === undefined) return DEFAULT_SNAP_THRESHOLD_PIXELS;
@@ -28,16 +35,17 @@ function thresholdOf(value: number | undefined): number {
 export default {
 	name: 'snapping',
 	inject: ['document', 'spatial', 'viewport', 'commands', 'keymap', 'menus', 'overlay'],
-	apply(ctx: Context, config?: SnappingConfig): void {
+	Config: snappingConfigSchema,
+	apply(ctx: Context, config: SnappingConfig): void {
 		const state = new SnappingState();
-		if (config && config.enabled === false) state.enabled = false;
+		state.enabled = config.enabled;
 		const snapping = new SnappingService(
 			ctx,
 			ctx.document,
 			ctx.spatial,
 			ctx.viewport,
 			state,
-			thresholdOf(config?.thresholdPixels)
+			thresholdOf(config.thresholdPixels)
 		);
 		// Creation tools snap the corner they place; guides go when the tool finishes or changes.
 		ctx.on('tools/snap-point', (point, next) => {
@@ -50,13 +58,13 @@ export default {
 		contributeCommand(ctx, {
 			id: 'snapping.toggle',
 			title: 'Snap to objects',
-			run: () => snapping.setEnabled(!snapping.enabled),
+			run: () => updateConfig(ctx.fiber, { ...config, enabled: !snapping.enabled }),
 			menus: [{ menu: 'app/view', group: '4_snapping' }]
 		});
-		// Snap to pixel grid (#71): off by default, remembered across sessions. Applies to move,
-		// resize and draw through `snap`, and to nudges through this waterfall.
+		// Snap to pixel grid (#71): off by default, remembered through the settings. Applies to
+		// move, resize and draw through `snap`, and to nudges through this waterfall.
 		ctx.effect(() => {
-			snapping.setPixelSnap(readStoredFlag(PIXEL_SNAP_KEY, false));
+			snapping.setPixelSnap(config.pixelSnap);
 			return () => snapping.setPixelSnap(false);
 		}, 'snapping/restore pixel snap');
 		ctx.on('nudge/pixel-snap', (enabled, next) => enabled || next() || snapping.pixelSnapEnabled);
@@ -64,10 +72,7 @@ export default {
 			id: 'snapping.toggle-pixel',
 			title: 'Snap to pixel grid',
 			keys: ["Mod+Shift+'"],
-			run: () => {
-				snapping.setPixelSnap(!snapping.pixelSnapEnabled);
-				writeStoredFlag(PIXEL_SNAP_KEY, snapping.pixelSnapEnabled);
-			},
+			run: () => updateConfig(ctx.fiber, { ...config, pixelSnap: !snapping.pixelSnapEnabled }),
 			menus: [{ menu: 'app/view', group: '4_snapping', order: 1 }]
 		});
 		ctx.effect(

@@ -1,4 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
+import { z } from 'zod';
 import type { Rect } from '../../lib/document';
 import { contributeCommand } from '../../lib/editing/contribute';
 import { drawGuides, drawRulers } from '../../lib/rulers/draw';
@@ -6,7 +7,18 @@ import { GuideLineClaimant, RulerClaimant } from '../../lib/rulers/guideInteract
 import { placedGuides, type PlacedGuide } from '../../lib/rulers/guides';
 import { RulersGuidesService } from '../../lib/services/rulersGuides';
 import { RulersGuidesState } from '../../lib/services/rulersGuidesState.svelte';
+import { updateConfig } from '../../lib/settings/updateConfig';
 import type { SnapLine } from '../../lib/snapping/lineSnap';
+
+// The plugin's settings (shown in Settings, stored by main). The toggle commands update this
+// config with `fiber.update`, so the last choice is remembered across sessions.
+const rulersGuidesConfigSchema = z
+	.object({
+		rulersVisible: z.boolean().default(false).describe('Show rulers along the canvas edges.'),
+		guidesVisible: z.boolean().default(true).describe('Show guides and snap objects to them.')
+	})
+	.prefault({});
+export type RulersGuidesConfig = z.infer<typeof rulersGuidesConfigSchema>;
 
 function selectionBounds(ctx: Context): Rect | undefined {
 	let union: Rect | undefined;
@@ -45,8 +57,11 @@ export default {
 		'keymap',
 		'menus'
 	],
-	apply(ctx: Context): void {
+	Config: rulersGuidesConfigSchema,
+	apply(ctx: Context, config: RulersGuidesConfig): void {
 		const state = new RulersGuidesState();
+		state.rulersVisible = config.rulersVisible;
+		state.guidesVisible = config.guidesVisible;
 		const service = new RulersGuidesService(ctx, state);
 
 		ctx.effect(
@@ -105,14 +120,14 @@ export default {
 			id: 'view.toggle-rulers',
 			title: 'Rulers',
 			keys: ['Shift+R'],
-			run: () => service.setRulersVisible(!service.rulersVisible),
+			run: () => updateConfig(ctx.fiber, { ...config, rulersVisible: !service.rulersVisible }),
 			menus: [{ menu: 'app/view', group: '6_guides', order: 1 }]
 		});
 		contributeCommand(ctx, {
 			id: 'view.toggle-guides',
 			title: 'Guides',
 			keys: ['Mod+;'],
-			run: () => service.setGuidesVisible(!service.guidesVisible),
+			run: () => updateConfig(ctx.fiber, { ...config, guidesVisible: !service.guidesVisible }),
 			menus: [{ menu: 'app/view', group: '6_guides', order: 2 }]
 		});
 	}

@@ -145,7 +145,7 @@ Native dialogs can't be clicked on the virtual display. A waiting message box lo
 for an untitled file a killed session left in `.qa/profile/untitled/`: no file is open, and saving
 or `blobs.put` fail with "no document file open"). Start with `--fresh`, or answer dialogs through
 the environment: `DESIGN_QA_MESSAGE_BOX=<button index>`, `DESIGN_QA_OPEN_PATH`,
-`DESIGN_QA_SAVE_PATH`.
+`DESIGN_QA_SAVE_PATH`. `DESIGN_QA_FIXTURE=0` starts without the fixture scene (a real, editable blank file).
 
 ## Raw CDP
 

@@ -46,6 +46,12 @@ export class RecentFilesStore {
 		return present;
 	}
 
+	/** Forget one file (not the file itself). */
+	remove(file: string): void {
+		const resolved = path.resolve(file);
+		this.write(this.read().filter((entry) => entry.path !== resolved));
+	}
+
 	clear(): void {
 		this.write([]);
 	}
