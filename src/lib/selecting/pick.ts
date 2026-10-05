@@ -6,6 +6,7 @@
 
 import type { Context } from '@neoworks/extension-system';
 import type { NodeId } from '../document';
+import { hasImageFill } from '../editing/imageCrop';
 import type { Modifiers, Point } from '../tools/protocol';
 
 /** Screen pixels of slack around the pointer when hit testing. */
@@ -40,16 +41,22 @@ export function childUnder(ctx: Context, containerId: NodeId, world: Point): Nod
 
 export type EnterResult =
 	| { kind: 'entered'; id: NodeId }
-	| { kind: 'edit'; id: NodeId; editor: 'text' | 'vector' }
+	| { kind: 'edit'; id: NodeId; editor: 'text' | 'vector' | 'crop' }
 	| { kind: 'none' };
 
-/** Double click: select the child under the pointer, or ask to edit text and vector nodes. */
-export function enterAt(ctx: Context, world: Point): EnterResult {
+/**
+ * Double click: select the child under the pointer, or ask to edit text and vector nodes.
+ * Alt+double click on an image crops it.
+ */
+export function enterAt(ctx: Context, world: Point, modifiers?: Modifiers): EnterResult {
 	const selectedId = ctx.selection.primaryId;
 	if (selectedId === null) return { kind: 'none' };
 	const selected = ctx.document.require(selectedId);
 	if (selected.type === 'TEXT') return { kind: 'edit', id: selectedId, editor: 'text' };
 	if (selected.type === 'VECTOR') return { kind: 'edit', id: selectedId, editor: 'vector' };
+	if (modifiers?.altKey === true && hasImageFill(selected)) {
+		return { kind: 'edit', id: selectedId, editor: 'crop' };
+	}
 	const childId = childUnder(ctx, selectedId, world);
 	if (childId === undefined) return { kind: 'none' };
 	return { kind: 'entered', id: childId };

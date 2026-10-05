@@ -26,6 +26,7 @@ import {
 	type NodeId,
 	type Rect
 } from '../document';
+import { clampToImage, cropToRect, imageSizeOf } from '../editing/imageCrop';
 import {
 	isPositioned,
 	topLevelIds,
@@ -363,11 +364,40 @@ export class ResizeSession {
 			request.modifiers,
 			node.constrainProportions
 		);
+		if (this.cropsImage(request.modifiers, node)) return this.planCrop(node, box);
 		const transform = composeMatrices(node.transform, boxAffine(box));
 		const edits = new Map<NodeId, Record<string, unknown>>();
 		this.resizeSubtree(id, transform, box.width, box.height, request, edits);
 		this.applyRootRules(node, box, request.handle, edits);
 		return { changes: this.toChanges(edits), size: { width: box.width, height: box.height } };
+	}
+
+	// ---------- cropping an image ----------
+
+	/** Ctrl+resize crops a node with an image fill (the crop mode crops with every resize). */
+	protected cropsImage(modifiers: ResizeModifiers, node: PositionedNode): boolean {
+		if (!this.alwaysCrops && !(modifiers.ctrlKey || modifiers.metaKey)) return false;
+		return imageSizeOf(this.reader, node) !== undefined;
+	}
+
+	protected get alwaysCrops(): boolean {
+		return false;
+	}
+
+	private planCrop(node: PositionedNode, box: BoxResize): ResizePlan {
+		const unchanged = { changes: [], size: { width: node.width, height: node.height } };
+		const image = imageSizeOf(this.reader, node);
+		if (image === undefined || box.flipX || box.flipY) return unchanged;
+		const rect = clampToImage(node, image, {
+			x: box.originX,
+			y: box.originY,
+			width: box.width,
+			height: box.height
+		});
+		const props = cropToRect(node, image, rect);
+		if (props === null) return unchanged;
+		const changes = planSetProps(this.reader, node.id, { ...props });
+		return { changes, size: { width: props.width, height: props.height } };
 	}
 
 	// ---------- several nodes: scale the combined bounds ----------

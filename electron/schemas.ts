@@ -52,6 +52,7 @@ export const payloadSchemas: PayloadSchemas = {
 	'app:bootReport': z.void(),
 	'dialogs:openFile': openFileOptions,
 	'dialogs:saveFile': saveFileOptions,
+	'dialogs:openImages': z.void(),
 	'clipboard:read': z.void(),
 	'clipboard:write': z.strictObject({
 		text: z.string().optional(),

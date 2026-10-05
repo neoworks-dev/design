@@ -38,6 +38,7 @@ import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
 import toolMove from './tool-move';
+import toolImage from './tool-image';
 import toolScale from './tool-scale';
 import toolSection from './tool-section';
 import toolSlice from './tool-slice';
@@ -87,6 +88,7 @@ export const builtinPlugins: Plugin[] = [
 	toolMove,
 	transformHandles,
 	shapeHandles,
+	toolImage,
 	toolScale,
 	toolSection,
 	toolSlice,
