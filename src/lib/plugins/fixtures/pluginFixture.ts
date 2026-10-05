@@ -5,7 +5,9 @@ import type { Context, Plugin } from '@neoworks/extension-system';
 import type {
 	DesktopBridge,
 	DiscoveredPlugin,
+	PluginFetchRequest,
 	PluginList,
+	PluginPermissionDecisions,
 	PluginSourceKind
 } from '../../../../electron/bridge';
 import coreInspectors from '../../../plugins/core-inspectors';
@@ -115,12 +117,48 @@ export function listOf(...plugins: DiscoveredPlugin[]): PluginList {
 	return { plugins, project: null, projectTrust: null };
 }
 
+/** What a fake `window.desktop.plugins` remembers: main's decisions, storage and requests. */
+export interface FakePluginState {
+	decisions: PluginPermissionDecisions;
+	storage: Record<string, Record<string, unknown>>;
+	fetched: PluginFetchRequest[];
+}
+
+export function newFakePluginState(decisions: PluginPermissionDecisions = {}): FakePluginState {
+	return { decisions, storage: {}, fetched: [] };
+}
+
 /** A `window.desktop.plugins` section serving `list` and the given plugin files by `file`. */
 export function fakePluginsSection(
 	list: () => PluginList,
-	files: Record<string, string> = {}
+	files: Record<string, string> = {},
+	state: FakePluginState = newFakePluginState()
 ): DesktopBridge['plugins'] {
 	return {
+		permissions: () => Promise.resolve(structuredClone(state.decisions)),
+		setPermission: (pluginId, permission, granted) => {
+			const own = { ...state.decisions[pluginId] };
+			if (granted === null) delete own[permission];
+			else own[permission] = granted;
+			state.decisions = { ...state.decisions, [pluginId]: own };
+			return Promise.resolve(structuredClone(state.decisions));
+		},
+		fetch: (request) => {
+			state.fetched.push(request);
+			return Promise.resolve({ status: 200, statusText: 'OK', headers: {}, body: 'ok' });
+		},
+		storageGet: (pluginId, key) => Promise.resolve(state.storage[pluginId]?.[key] ?? null),
+		storageSet: (pluginId, key, value) => {
+			state.storage[pluginId] = { ...state.storage[pluginId], [key]: value };
+			return Promise.resolve();
+		},
+		storageDelete: (pluginId, key) => {
+			const own = { ...state.storage[pluginId] };
+			delete own[key];
+			state.storage[pluginId] = own;
+			return Promise.resolve();
+		},
+		storageKeys: (pluginId) => Promise.resolve(Object.keys(state.storage[pluginId] ?? {})),
 		list: () => Promise.resolve(list()),
 		setTrust: () => Promise.resolve(list()),
 		readFile: (source, directoryName, file) => {

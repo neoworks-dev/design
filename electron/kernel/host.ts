@@ -176,7 +176,17 @@ export interface ElectronHost {
 		handle(scheme: string, handler: (request: { url: string }) => Promise<Response>): void;
 		unhandle(scheme: string): void;
 	};
-	net: { fetch(url: string): Promise<Response> };
+	net: {
+		fetch(
+			url: string,
+			init?: {
+				method?: string;
+				headers?: Record<string, string>;
+				body?: string;
+				signal?: AbortSignal;
+			}
+		): Promise<Response>;
+	};
 	shell: {
 		openExternal(url: string): Promise<void>;
 		/** Show a file selected in the OS file manager. */

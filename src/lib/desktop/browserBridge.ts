@@ -135,7 +135,14 @@ export function createBrowserBridge(): BrowserBridge {
 		plugins: {
 			list: () => Promise.resolve({ plugins: [], project: null, projectTrust: null }),
 			setTrust: () => unavailable('trusting a project'),
-			readFile: () => unavailable('reading plugin files')
+			readFile: () => unavailable('reading plugin files'),
+			permissions: () => Promise.resolve({}),
+			setPermission: () => unavailable('changing plugin permissions'),
+			fetch: () => unavailable('plugin network access'),
+			storageGet: () => Promise.resolve(null),
+			storageSet: () => unavailable('plugin storage'),
+			storageDelete: () => unavailable('plugin storage'),
+			storageKeys: () => Promise.resolve([])
 		},
 		events: {
 			on: (channel, listener) => {

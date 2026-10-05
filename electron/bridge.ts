@@ -274,6 +274,24 @@ export interface PluginList {
 	projectTrust: ProjectTrust | null;
 }
 
+/** A user's decisions on what plugins may do: by plugin id, permission to granted (true) or denied. */
+export type PluginPermissionDecisions = Record<string, Record<string, boolean>>;
+
+export interface PluginFetchRequest {
+	pluginId: string;
+	url: string;
+	method?: string;
+	headers?: Record<string, string>;
+	body?: string;
+}
+
+export interface PluginFetchResponse {
+	status: number;
+	statusText: string;
+	headers: Record<string, string>;
+	body: string;
+}
+
 // ---------- errors ----------
 
 export type IpcErrorCode =
@@ -402,6 +420,23 @@ export interface IpcContract {
 		payload: { source: PluginSourceKind; directoryName: string; file: string };
 		result: string;
 	};
+	/** What the user allowed or denied each plugin of the sender's window (project plugins per project). */
+	'plugins:permissions': { payload: void; result: PluginPermissionDecisions };
+	/** Allow (`true`), deny (`false`) or forget (`null`) one permission of a plugin. */
+	'plugins:setPermission': {
+		payload: { pluginId: string; permission: string; granted: boolean | null };
+		result: PluginPermissionDecisions;
+	};
+	/** An HTTP request on behalf of a plugin; refused unless it may use `network` and the host is allowed. */
+	'plugins:fetch': { payload: PluginFetchRequest; result: PluginFetchResponse };
+	/** `clientStorage` of a plugin: JSON values in a file of its own, outside the document. */
+	'plugins:storageGet': { payload: { pluginId: string; key: string }; result: unknown };
+	'plugins:storageSet': {
+		payload: { pluginId: string; key: string; value: unknown };
+		result: void;
+	};
+	'plugins:storageDelete': { payload: { pluginId: string; key: string }; result: void };
+	'plugins:storageKeys': { payload: { pluginId: string }; result: string[] };
 }
 export type IpcChannel = keyof IpcContract;
 
@@ -544,6 +579,17 @@ export interface DesktopBridge {
 		list(): Promise<PluginList>;
 		setTrust(trusted: boolean): Promise<PluginList>;
 		readFile(source: PluginSourceKind, directoryName: string, file: string): Promise<string>;
+		permissions(): Promise<PluginPermissionDecisions>;
+		setPermission(
+			pluginId: string,
+			permission: string,
+			granted: boolean | null
+		): Promise<PluginPermissionDecisions>;
+		fetch(request: PluginFetchRequest): Promise<PluginFetchResponse>;
+		storageGet(pluginId: string, key: string): Promise<unknown>;
+		storageSet(pluginId: string, key: string, value: unknown): Promise<void>;
+		storageDelete(pluginId: string, key: string): Promise<void>;
+		storageKeys(pluginId: string): Promise<string[]>;
 	};
 	system: {
 		platform: NodeJS.Platform;

@@ -131,7 +131,15 @@ const bridge: DesktopBridge = {
 		list: () => invoke('plugins:list'),
 		setTrust: (trusted) => invoke('plugins:setTrust', { trusted }),
 		readFile: (source, directoryName, file) =>
-			invoke('plugins:readFile', { source, directoryName, file })
+			invoke('plugins:readFile', { source, directoryName, file }),
+		permissions: () => invoke('plugins:permissions'),
+		setPermission: (pluginId, permission, granted) =>
+			invoke('plugins:setPermission', { pluginId, permission, granted }),
+		fetch: (request) => invoke('plugins:fetch', request),
+		storageGet: (pluginId, key) => invoke('plugins:storageGet', { pluginId, key }),
+		storageSet: (pluginId, key, value) => invoke('plugins:storageSet', { pluginId, key, value }),
+		storageDelete: (pluginId, key) => invoke('plugins:storageDelete', { pluginId, key }),
+		storageKeys: (pluginId) => invoke('plugins:storageKeys', { pluginId })
 	},
 	events: { on: subscribe },
 	system: {

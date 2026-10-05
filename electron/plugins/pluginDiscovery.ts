@@ -51,6 +51,14 @@ function parseJson(text: string): unknown {
 	return JSON.parse(text);
 }
 
+/** The id a plugin's manifest declares, or `null` when it has none that is usable. */
+export function manifestId(plugin: DiscoveredPlugin): string | null {
+	if (typeof plugin.manifest !== 'object' || plugin.manifest === null) return null;
+	const id: unknown = Reflect.get(plugin.manifest, 'id');
+	if (typeof id !== 'string') return null;
+	return id;
+}
+
 function describeError(error: unknown): string {
 	if (error instanceof Error) return error.message;
 	return String(error);
@@ -143,6 +151,14 @@ export class PluginDiscoveryService extends Service {
 				error: `manifest.json is not valid JSON: ${describeError(error)}`
 			};
 		}
+	}
+
+	/** The plugin of the sender's window whose manifest declares `pluginId`; the first root wins. */
+	async findById(sender: SenderHandle, pluginId: string): Promise<DiscoveredPlugin> {
+		const list = await this.list(sender);
+		const found = list.plugins.find((plugin) => manifestId(plugin) === pluginId);
+		if (found === undefined) throw new IpcError('HANDLER_FAILED', `no plugin "${pluginId}"`);
+		return found;
 	}
 
 	// ---------- trust ----------

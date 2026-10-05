@@ -22,7 +22,12 @@ export interface WorkerEventLike {
 	message?: string;
 }
 
-export type WorkerFactory = (pluginId: string) => WorkerLike;
+export interface WorkerOptions {
+	/** Hosts the worker may reach (`networkAccess.allowedDomains` of a plugin with `network`). */
+	allowedDomains: string[];
+}
+
+export type WorkerFactory = (pluginId: string, options: WorkerOptions) => WorkerLike;
 
 /** A stretch of plugin work that is one undo step: a command, a UI event. */
 export interface PluginRun {

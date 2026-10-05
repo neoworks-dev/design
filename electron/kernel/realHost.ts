@@ -291,7 +291,7 @@ export function createRealHost(): ElectronHost {
 			handle: (scheme, handler) => protocol.handle(scheme, handler),
 			unhandle: (scheme) => protocol.unhandle(scheme)
 		},
-		net: { fetch: (url) => net.fetch(url) },
+		net: { fetch: (url, init) => net.fetch(url, init) },
 		shell: {
 			openExternal: (url) => shell.openExternal(url),
 			showItemInFolder: (file) => shell.showItemInFolder(file)

@@ -205,6 +205,7 @@ export class FakeHost implements ElectronHost {
 	readCount = 0;
 	displays: Rect[] = [{ x: 0, y: 0, width: 1920, height: 1080 }];
 	readonly fetched: string[] = [];
+	readonly fetchInits: unknown[] = [];
 	paths: Partial<Record<AppPathName, string>> = {};
 	quitCount = 0;
 	version = '1.2.3';
@@ -290,8 +291,9 @@ export class FakeHost implements ElectronHost {
 	};
 
 	readonly net: ElectronHost['net'] = {
-		fetch: (url) => {
+		fetch: (url, init) => {
 			this.fetched.push(url);
+			this.fetchInits.push(init);
 			return Promise.resolve(new Response('ok'));
 		}
 	};

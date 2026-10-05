@@ -29,6 +29,11 @@ const MAX_BLOB_BYTES = 512 * 1024 * 1024;
 const blobBytes = z.instanceof(Uint8Array).refine((bytes) => bytes.byteLength <= MAX_BLOB_BYTES);
 const pixelSize = z.number().int().positive();
 const storePath = z.string().min(1);
+const pluginIdSchema = z
+	.string()
+	.regex(/^[a-z][a-z0-9-]*$/)
+	.max(64);
+const storageKeySchema = z.string().min(1).max(256);
 const createStoreRequest: z.ZodType<CreateStoreRequest> = z.strictObject({
 	path: storePath,
 	document: designDocumentSchema.optional()
@@ -156,6 +161,27 @@ export const payloadSchemas: PayloadSchemas = {
 		directoryName: z.string().min(1).max(255),
 		file: z.string().min(1).max(1024)
 	}),
+	'plugins:permissions': z.void(),
+	'plugins:setPermission': z.strictObject({
+		pluginId: pluginIdSchema,
+		permission: z.string().min(1).max(50),
+		granted: z.boolean().nullable()
+	}),
+	'plugins:fetch': z.strictObject({
+		pluginId: pluginIdSchema,
+		url: z.string().min(1).max(4096),
+		method: z.string().min(1).max(10).optional(),
+		headers: z.record(z.string(), z.string()).optional(),
+		body: z.string().max(5_000_000).optional()
+	}),
+	'plugins:storageGet': z.strictObject({ pluginId: pluginIdSchema, key: storageKeySchema }),
+	'plugins:storageSet': z.strictObject({
+		pluginId: pluginIdSchema,
+		key: storageKeySchema,
+		value: z.unknown()
+	}),
+	'plugins:storageDelete': z.strictObject({ pluginId: pluginIdSchema, key: storageKeySchema }),
+	'plugins:storageKeys': z.strictObject({ pluginId: pluginIdSchema }),
 	'files:recent': z.void(),
 	'files:drafts': z.void(),
 	'files:removeRecent': z.strictObject({ path: storePath }),

@@ -23,7 +23,8 @@ import {
 	type RunScope,
 	type WorkerFactory
 } from '../plugins/connection';
-import type { PluginPermission } from '../plugins/manifest';
+import type { PluginManifest, PluginPermission } from '../plugins/manifest';
+import { normalizeAllowedDomains } from '../plugins/network';
 import { RegistrationBook } from '../plugins/registrations';
 import type { PluginRecord, PluginRuntime } from '../plugins/types';
 import type { PluginRegistryService } from './pluginRegistry';
@@ -86,6 +87,21 @@ export class PluginRefusedError extends Error {
 	}
 }
 
+/**
+ * A call needed a permission the plugin lacks: it never declared it, or the user denied it. The
+ * name crosses the RPC boundary, so a plugin can tell it from other failures
+ * (`error.remoteName === 'PermissionDeniedError'`).
+ */
+export class PermissionDeniedError extends PluginRefusedError {
+	constructor(
+		readonly permission: PluginPermission,
+		reason: string
+	) {
+		super(reason);
+		this.name = 'PermissionDeniedError';
+	}
+}
+
 export interface PluginHostLimits {
 	/** Longest a request to or from a worker may wait for its answer. */
 	requestTimeoutMs: number;
@@ -121,6 +137,12 @@ function describeError(error: unknown): string {
 function runLabel(pluginName: string, title: string | undefined, commandId: string): string {
 	if (title === undefined) return `${pluginName}: ${commandId}`;
 	return title;
+}
+
+function allowedDomainsOf(manifest: PluginManifest): string[] {
+	if (!manifest.permissions.includes('network')) return [];
+	if (manifest.networkAccess === undefined) return [];
+	return normalizeAllowedDomains(manifest.networkAccess.allowedDomains);
 }
 
 function normalize(method: ApiMethod | ApiHandler): ApiMethod {
@@ -317,7 +339,7 @@ export class PluginHostService extends Service {
 			timeoutMs: limits.requestTimeoutMs
 		};
 		const apply = async (ctx: Context): Promise<void> => {
-			const worker = createWorker(record.id);
+			const worker = createWorker(record.id, { allowedDomains: allowedDomainsOf(manifest) });
 			ctx.effect(() => () => worker.terminate(), `plugin ${record.id} worker`);
 			const connection = new PluginConnection({
 				pluginId: record.id,
@@ -414,7 +436,8 @@ export class PluginHostService extends Service {
 		permission: PluginPermission
 	): Promise<void> {
 		if (!connection.manifest.permissions.includes(permission)) {
-			throw new PluginRefusedError(
+			throw new PermissionDeniedError(
+				permission,
 				`plugin "${connection.pluginId}" did not declare the "${permission}" permission needed by ${method}`
 			);
 		}
@@ -423,7 +446,7 @@ export class PluginHostService extends Service {
 			method,
 			permission
 		});
-		if (typeof refusal === 'string') throw new PluginRefusedError(refusal);
+		if (typeof refusal === 'string') throw new PermissionDeniedError(permission, refusal);
 	}
 
 	snapshotState(): Record<string, unknown> {

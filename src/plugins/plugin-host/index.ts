@@ -1,6 +1,8 @@
 import type { Context } from '@neoworks/extension-system';
 import { z } from 'zod';
-import type { WorkerFactory } from '../../lib/plugins/connection';
+import type { WorkerFactory, WorkerOptions } from '../../lib/plugins/connection';
+import { WORKER_HOSTS_PARAMETER, WORKER_MARKER_PARAMETER } from '../../lib/plugins/network';
+import bootstrapUrl from '../../lib/plugins/worker/bootstrap.ts?worker&url';
 import { PluginHostService } from '../../lib/services/pluginHost';
 
 const pluginHostConfigSchema = z
@@ -45,11 +47,13 @@ function isWorkerFactory(value: unknown): value is WorkerFactory {
 	return typeof value === 'function';
 }
 
-function moduleWorker(pluginId: string): ReturnType<WorkerFactory> {
-	return new Worker(new URL('../../lib/plugins/worker/bootstrap.ts', import.meta.url), {
-		type: 'module',
-		name: `plugin:${pluginId}`
-	});
+// The script URL carries the network allowlist: main's protocol handler turns it into the worker's
+// Content-Security-Policy, which is what stops `import('https://...')` (see network.ts).
+function moduleWorker(pluginId: string, options: WorkerOptions): ReturnType<WorkerFactory> {
+	const url = new URL(bootstrapUrl, location.href);
+	url.searchParams.set(WORKER_MARKER_PARAMETER, '1');
+	url.searchParams.set(WORKER_HOSTS_PARAMETER, options.allowedDomains.join(','));
+	return new Worker(url, { type: 'module', name: `plugin:${pluginId}` });
 }
 
 // Third-party plugins, part three (#155): provides `pluginHost`, which runs each plugin in its own
