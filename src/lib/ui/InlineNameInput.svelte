@@ -3,10 +3,12 @@
 
 	let {
 		value,
+		ariaLabel = 'Name',
 		oncommit,
 		oncancel
 	}: {
 		value: string;
+		ariaLabel?: string;
 		/** `step` is 1 for Tab, -1 for Shift+Tab, 0 for Enter and blur. */
 		oncommit: (name: string, step: -1 | 0 | 1) => void;
 		oncancel: () => void;
@@ -51,8 +53,8 @@
 	bind:this={input}
 	bind:value={draft}
 	type="text"
-	aria-label="Layer name"
-	data-layer-rename
+	aria-label={ariaLabel}
+	data-inline-rename
 	class="bg-input border-accent text-default min-w-0 flex-1 rounded-sm border px-1 text-xs outline-none"
 	{onkeydown}
 	onblur={() => commit(0)}

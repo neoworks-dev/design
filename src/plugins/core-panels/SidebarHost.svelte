@@ -58,7 +58,7 @@
 						<button
 							type="button"
 							aria-expanded={!collapsed}
-							class="text-muted hover:text-default flex h-full w-full items-center gap-1.5 px-3 text-left text-xs font-semibold"
+							class="text-muted hover:text-default flex h-full min-w-0 flex-1 items-center gap-1.5 px-3 text-left text-xs font-semibold"
 							onclick={() => ctx.panels.toggleSection(section)}
 						>
 							{#if collapsed}
@@ -68,6 +68,11 @@
 							{/if}
 							{section.title}
 						</button>
+						{#if section.actions}
+							<div class="flex shrink-0 items-center pr-2" data-panel-section-actions={section.id}>
+								<Contribution entry={section.actions} />
+							</div>
+						{/if}
 					</h2>
 					{#if !collapsed}
 						<div

@@ -9,7 +9,7 @@
 	import { isComponentLike, layerIcon } from '../../lib/layers/layerIcon';
 	import type { LayerFlag } from '../../lib/layers/rowActions';
 	import type { LayerRow } from '../../lib/layers/tree';
-	import LayerNameInput from './LayerNameInput.svelte';
+	import InlineNameInput from '../../lib/ui/InlineNameInput.svelte';
 
 	let { row, top }: { row: LayerRow; top: number } = $props();
 
@@ -93,8 +93,9 @@
 			{#if Icon}<Icon size={13} />{/if}
 		</span>
 		{#if renaming}
-			<LayerNameInput
+			<InlineNameInput
 				value={node.name}
+				ariaLabel="Layer name"
 				oncommit={(name, step) => ctx.layers.commitRename(name, step)}
 				oncancel={() => ctx.layers.stopRename()}
 			/>
