@@ -32,11 +32,16 @@ import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
 import inspectorAutolayout from './inspector-autolayout';
+import layoutGrids from './layout-grids';
+import inspectPanel from './inspect-panel';
 import inspectorEffects from './inspector-effects';
 import inspectorFill from './inspector-fill';
 import inspectorLayoutSize from './inspector-layout-size';
 import inspectorStroke from './inspector-stroke';
+import inspectorPage from './inspector-page';
 import inspectorPosition from './inspector-position';
+import inspectorSelectionColors from './inspector-selection-colors';
+import inspectorTypography from './inspector-typography';
 import selection from './selection';
 import spatial from './spatial';
 import hitTest from './hit-test';
@@ -134,10 +139,15 @@ export const builtinPlugins: Plugin[] = [
 	corePanels,
 	coreInspectors,
 	designPanel,
+	inspectorPage,
 	inspectorPosition,
 	inspectorLayoutSize,
 	inspectorAutolayout,
 	inspectorAppearance,
+	inspectorTypography,
+	inspectorSelectionColors,
+	layoutGrids,
+	inspectPanel,
 	colorPicker,
 	gradientEditor,
 	inspectorFill,
