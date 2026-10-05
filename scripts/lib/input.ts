@@ -45,17 +45,27 @@ export async function click(
 
 // Stepped so pointermove handlers that accumulate deltas see the whole drag.
 export async function drag(cdp: CdpSession, from: Point, to: Point, steps = 12): Promise<void> {
-	await mouse(cdp, 'mouseMoved', from, 'none', 0);
-	await mouse(cdp, 'mousePressed', from, 'left', 1);
-	for (let step = 1; step <= steps; step += 1) {
-		const progress = step / steps;
-		const point = {
-			x: from.x + (to.x - from.x) * progress,
-			y: from.y + (to.y - from.y) * progress
-		};
-		await mouse(cdp, 'mouseMoved', point, 'left', 0, 1);
+	await dragPath(cdp, [from, to], steps);
+}
+
+/** Press at the first point, move through every following point (stepped per leg), release. */
+export async function dragPath(cdp: CdpSession, points: Point[], steps = 12): Promise<void> {
+	const [first, ...rest] = points;
+	await mouse(cdp, 'mouseMoved', first, 'none', 0);
+	await mouse(cdp, 'mousePressed', first, 'left', 1);
+	let from = first;
+	for (const to of rest) {
+		for (let step = 1; step <= steps; step += 1) {
+			const progress = step / steps;
+			const point = {
+				x: from.x + (to.x - from.x) * progress,
+				y: from.y + (to.y - from.y) * progress
+			};
+			await mouse(cdp, 'mouseMoved', point, 'left', 0, 1);
+		}
+		from = to;
 	}
-	await mouse(cdp, 'mouseReleased', to, 'left', 1);
+	await mouse(cdp, 'mouseReleased', from, 'left', 1);
 }
 
 export async function scroll(

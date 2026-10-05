@@ -6,7 +6,7 @@ import path from 'node:path';
 import { CdpSession } from './lib/cdp';
 import {
 	click,
-	drag,
+	dragPath,
 	holdModifiers,
 	pressChord,
 	scroll,
@@ -43,7 +43,7 @@ const HELP = `qa — debug the app on a virtual display, driven over CDP
   logs [lines] [--renderer|--main]
 
   click <target>   dblclick <target>   rightclick <target>   (--modifiers Control,Alt,Shift)
-  drag <from> <to> [--modifiers Control,Alt,Shift]
+  drag <from> <to> [<more> ...] [--modifiers Control,Alt,Shift]   (a path through every point)
   type <text>                  inserts text into the focused element
   press <chord> [chord ...]    Escape, Control+z, Shift+Tab, v
   scroll <deltaY> [--at <target>]
@@ -209,12 +209,13 @@ function parseModifiers(value: string | undefined): string[] {
 async function dragCommand(cdp: CdpSession, args: string[]): Promise<void> {
 	const refs = readRefs();
 	const { rest, value: modifiers } = takeOption(args, '--modifiers');
-	const from = await resolveTarget(cdp, requireArgument(rest, 0, 'from'), refs);
-	const to = await resolveTarget(cdp, requireArgument(rest, 1, 'to'), refs);
+	requireArgument(rest, 1, 'to');
+	const points = [];
+	for (const target of rest) points.push(await resolveTarget(cdp, target, refs));
 	holdModifiers(parseModifiers(modifiers));
-	await drag(cdp, from, to);
+	await dragPath(cdp, points);
 	holdModifiers([]);
-	print(`dragged ${from.x},${from.y} -> ${to.x},${to.y}`);
+	print(`dragged ${points.map((point) => `${point.x},${point.y}`).join(' -> ')}`);
 }
 
 async function pressCommand(cdp: CdpSession, args: string[]): Promise<void> {

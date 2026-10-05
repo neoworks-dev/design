@@ -45,6 +45,7 @@ import toolMove from './tool-move';
 import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
 import toolPen from './tool-pen';
+import toolPencil from './tool-pencil';
 import vectorEdit from './vector-edit';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
@@ -95,6 +96,7 @@ export const builtinPlugins: Plugin[] = [
 	toolShapes,
 	toolFrame,
 	toolPen,
+	toolPencil,
 	vectorEdit,
 	workbenchLayout,
 	titlebar,

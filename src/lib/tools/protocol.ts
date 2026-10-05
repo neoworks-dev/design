@@ -27,6 +27,11 @@ export interface ToolPointerEvent extends Modifiers {
 	/** Click count of this press (2 for a double click). */
 	detail: number;
 	pointerId: number;
+	/**
+	 * World positions of the pointer samples the browser merged into this move event (coalesced
+	 * events), oldest first, ending at `world`. Absent when the router has only this sample.
+	 */
+	coalesced?: Point[];
 }
 
 export interface ToolKeyEvent extends Modifiers {
