@@ -21,6 +21,7 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
+import appMenu from './app-menu';
 import boolean from './boolean';
 import clipboard from './clipboard';
 import colorPicker from './color-picker';
@@ -47,6 +48,8 @@ import flatten from './flatten';
 import history from './history';
 import imageCache from './image-cache';
 import recentFiles from './recent-files';
+import commandPalette from './command-palette';
+import paletteSources from './palette-sources';
 import overlay from './overlay';
 import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
@@ -63,6 +66,8 @@ import titlebar from './titlebar';
 import variablesCore from './variables-core';
 import viewport from './viewport';
 import viewTools from './view-tools';
+import zoomMenu from './zoom-menu';
+import toolbar from './toolbar';
 import toolMove from './tool-move';
 import toolImage from './tool-image';
 import toolScale from './tool-scale';
@@ -82,6 +87,7 @@ import pagesPanel from './pages-panel';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import selectionCommands from './selection-commands';
+import shortcuts from './shortcuts';
 import shapeHandles from './shape-handles';
 import transformHandles from './transform-handles';
 import zOrder from './z-order';
@@ -121,7 +127,11 @@ export const builtinPlugins: Plugin[] = [
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,
+	shortcuts,
 	coreMenus,
+	commandPalette,
+	appMenu,
+	paletteSources,
 	corePanels,
 	coreInspectors,
 	designPanel,
@@ -139,8 +149,10 @@ export const builtinPlugins: Plugin[] = [
 	inspectorStroke,
 	inspectorEffects,
 	coreTools,
+	toolbar,
 	canvasInput,
 	viewTools,
+	zoomMenu,
 	toolMove,
 	transformHandles,
 	shapeHandles,

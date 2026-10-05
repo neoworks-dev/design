@@ -21,6 +21,7 @@ import type {
 	IpcEventChannel,
 	IpcEvents,
 	LoadedDocument,
+	NativeMenuItem,
 	OpenFileOptions,
 	PickedImage,
 	RecentFile,
@@ -145,6 +146,11 @@ export class DesktopService extends Service {
 	/** Replace the OS clipboard with the given kinds, written together. */
 	clipboardWrite(content: ClipboardWrite): Promise<void> {
 		return typed(() => this.bridge.clipboard.write(content));
+	}
+
+	/** Replace the native application menu (main builds it; clicks come back as `menu:command`). */
+	setNativeMenu(items: NativeMenuItem[]): Promise<void> {
+		return typed(() => this.bridge.menu.set(items));
 	}
 
 	/** Installed system font faces, sorted by family then style. */

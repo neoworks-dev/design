@@ -20,6 +20,7 @@ export default {
 					icon: PenNibIcon,
 					shortcut: 'P',
 					group: 'create',
+					toolbarGroup: 'pen',
 					order: 12,
 					cursor: 'crosshair',
 					...createPenTool(ctx, state)

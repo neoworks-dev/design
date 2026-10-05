@@ -1,10 +1,9 @@
 import type { Context } from '@neoworks/extension-system';
 import { ToolsService, ToolsState, publishToolKeys } from '../../lib/registries/tools.svelte';
 import ToolOverlayHost from './ToolOverlayHost.svelte';
-import Toolbar from './Toolbar.svelte';
 
-// The `tools` service, the toolbar (region `toolbar`, rendered from the registry), the host for
-// the active tool's overlay component (region `canvas-overlay`) and Esc handling.
+// The `tools` service, the host for the active tool's overlay component (region
+// `canvas-overlay`) and Esc handling. The toolbar itself is the `toolbar` plugin.
 export default {
 	name: 'core-tools',
 	inject: ['regions', 'commands', 'keymap', 'contextKeys'],
@@ -17,16 +16,6 @@ export default {
 			new ToolsState()
 		);
 
-		ctx.effect(
-			() =>
-				ctx.regions.register({
-					id: 'core-tools/toolbar',
-					region: 'toolbar',
-					component: Toolbar,
-					when: () => tools.toolbarTools().length > 0
-				}),
-			'tools toolbar'
-		);
 		ctx.effect(
 			() =>
 				ctx.regions.register({
@@ -55,7 +44,9 @@ export default {
 				ctx.keymap.register({
 					key: 'Escape',
 					command: 'tools.cancel',
-					scope: 'global'
+					scope: 'global',
+					// Esc ends the tool first; selection.deselect only runs on the default tool.
+					priority: 10
 				}),
 			'shortcut Escape'
 		);

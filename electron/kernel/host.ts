@@ -137,6 +137,20 @@ export interface MessageBoxRequest {
 	cancelId?: number;
 }
 
+/** One entry of a native menu template, a subset of Electron's `MenuItemConstructorOptions`. */
+export interface HostMenuItem {
+	label?: string;
+	type?: 'normal' | 'separator' | 'checkbox' | 'submenu';
+	accelerator?: string;
+	enabled?: boolean;
+	checked?: boolean;
+	/** Show the accelerator without claiming the key (the renderer's keymap handles it). */
+	registerAccelerator?: boolean;
+	role?: string;
+	click?: () => void;
+	submenu?: HostMenuItem[];
+}
+
 export interface ElectronHost {
 	ipcMain: IpcMainApi;
 	app: AppApi;
@@ -157,6 +171,8 @@ export interface ElectronHost {
 		read(): Promise<ClipboardContent>;
 		write(content: ClipboardWrite): Promise<void>;
 	};
+	/** The native application menu. */
+	menu: { setApplicationMenu(items: HostMenuItem[]): void };
 	/** Work areas of the connected displays, primary first. */
 	screen: { workAreas(): Rect[] };
 	/** Small text files in the app's user data directory (window state, ...). */

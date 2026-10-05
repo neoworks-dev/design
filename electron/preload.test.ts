@@ -41,6 +41,7 @@ describe('preload bridge', () => {
 			'files:flush-request',
 			'files:open-request',
 			'kernel:boot-report',
+			'menu:command',
 			'window:maximized'
 		]);
 	});

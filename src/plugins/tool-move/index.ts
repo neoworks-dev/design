@@ -28,6 +28,7 @@ export default {
 					icon: CursorIcon,
 					shortcut: 'V',
 					group: 'move',
+					toolbarGroup: 'move',
 					order: 0,
 					cursor: 'default',
 					...createMoveTool(ctx, state)

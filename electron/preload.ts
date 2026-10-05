@@ -68,6 +68,9 @@ const bridge: DesktopBridge = {
 		read: () => invoke('clipboard:read'),
 		write: (content) => invoke('clipboard:write', content)
 	},
+	menu: {
+		set: (items) => invoke('menu:set', items)
+	},
 	fonts: {
 		list: () => invoke('fonts:list'),
 		load: (ref) => invoke('fonts:load', ref)
