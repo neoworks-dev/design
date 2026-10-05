@@ -46,6 +46,7 @@ import mask from './mask';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
 import selectionCommands from './selection-commands';
+import shapeHandles from './shape-handles';
 import transformHandles from './transform-handles';
 import zOrder from './z-order';
 
@@ -82,6 +83,7 @@ export const builtinPlugins: Plugin[] = [
 	viewTools,
 	toolMove,
 	transformHandles,
+	shapeHandles,
 	toolShapes,
 	toolFrame,
 	workbenchLayout,
