@@ -31,10 +31,10 @@ interface Options {
 function defaultExecutable(): string {
 	const release = path.join(projectRoot, 'release');
 	if (process.platform === 'darwin') {
-		return path.join(release, 'mac-arm64/Neoworks Design.app/Contents/MacOS/Neoworks Design');
+		return path.join(release, 'mac-arm64/Draftboard.app/Contents/MacOS/Draftboard');
 	}
-	if (process.platform === 'win32') return path.join(release, 'win-unpacked/Neoworks Design.exe');
-	return path.join(release, 'linux-unpacked/neoworks-design');
+	if (process.platform === 'win32') return path.join(release, 'win-unpacked/Draftboard.exe');
+	return path.join(release, 'linux-unpacked/draftboard');
 }
 
 function parseArguments(args: string[]): Options {
@@ -162,6 +162,7 @@ async function run(options: Options, display: VirtualDisplay | null): Promise<st
 	const environment: Record<string, string | undefined> = {
 		...process.env,
 		DESIGN_USER_DATA_DIR: profile,
+		DRAFTBOARD_LIBRARY_DIR: path.join(profile, 'library'),
 		// An AppImage normally mounts itself through FUSE, which CI machines do not have.
 		APPIMAGE_EXTRACT_AND_RUN: '1'
 	};

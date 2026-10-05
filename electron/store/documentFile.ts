@@ -436,6 +436,11 @@ export class DocumentFile {
 		return this.info();
 	}
 
+	/** Set the document's name (it follows the file name); the modification time stays. */
+	setName(name: string): void {
+		this.transact((database) => this.setMeta(database, 'name', name));
+	}
+
 	/**
 	 * Save As: write a consistent copy of this file to `destination`, replacing what is there, as
 	 * a file that has never been opened: no session marker, nothing unsaved, `name` as its name.

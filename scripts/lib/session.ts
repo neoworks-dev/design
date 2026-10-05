@@ -26,6 +26,7 @@ export const shotsDirectory = path.join(qaDirectory, 'shots');
 export const mainLogPath = path.join(qaDirectory, 'main.log');
 const viteLogPath = path.join(qaDirectory, 'vite.log');
 const profileDirectory = path.join(qaDirectory, 'profile');
+const libraryDirectory = path.join(profileDirectory, 'library');
 const sessionPath = path.join(qaDirectory, 'session.json');
 const refsPath = path.join(qaDirectory, 'refs.json');
 
@@ -179,6 +180,8 @@ function launchElectron(display: string, cdpPort: number, devServerUrl: string):
 		WAYLAND_DISPLAY: undefined,
 		DESIGN_QA: '1',
 		DESIGN_USER_DATA_DIR: profileDirectory,
+		// Keeps QA away from the user's real library in ~/.local/share/draftboard.
+		DRAFTBOARD_LIBRARY_DIR: libraryDirectory,
 		DEV_SERVER_URL: devServerUrl || undefined
 	};
 	const electron = path.join(projectRoot, 'node_modules/.bin/electron');

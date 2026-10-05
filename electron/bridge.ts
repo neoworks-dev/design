@@ -124,7 +124,11 @@ export interface Thumbnail {
 /** Where a listed file lives. */
 export type FileLocation =
 	| { kind: 'library'; /** Folder name, `''` for the library root (Drafts). */ folder: string }
-	| { kind: 'linked'; linkedId: string; /** Path relative to the linked folder, `''` at its top. */ folder: string }
+	| {
+			kind: 'linked';
+			linkedId: string;
+			/** Path relative to the linked folder, `''` at its top. */ folder: string;
+	  }
 	/** Neither: a file opened from somewhere else, known only through the recent list. */
 	| { kind: 'external' };
 
@@ -741,7 +745,7 @@ export interface DesktopBridge {
 		embeddedFonts(): Promise<FontRef[]>;
 	};
 	files: {
-		new(directory?: string): Promise<LoadedDocument>;
+		'new'(directory?: string): Promise<LoadedDocument>;
 		open(path: string): Promise<LoadedDocument>;
 		openDialog(): Promise<string | null>;
 		saveDialog(suggestedName: string): Promise<string | null>;

@@ -2,6 +2,7 @@
 // windows, protocol and dialogs. `snapshot()` is the observable state the standard mount /
 // unmount / state-identical plugin test compares.
 
+import { rmSync } from 'node:fs';
 import type { AppPathName, ClipboardContent } from '../bridge';
 import { ScriptedAgentHost, type AgentScript } from '../ai/scriptedAgents';
 import type {
@@ -313,6 +314,8 @@ export class FakeHost implements ElectronHost {
 	};
 
 	readonly revealed: string[] = [];
+	/** Paths `shell.trashItem` was asked for; the fake deletes them. */
+	readonly trashed: string[] = [];
 
 	readonly shell: ElectronHost['shell'] = {
 		openExternal: (url) => {
@@ -321,6 +324,11 @@ export class FakeHost implements ElectronHost {
 		},
 		showItemInFolder: (file) => {
 			this.revealed.push(file);
+		},
+		trashItem: (file) => {
+			this.trashed.push(file);
+			rmSync(file, { recursive: true, force: true });
+			return Promise.resolve();
 		}
 	};
 

@@ -41,6 +41,7 @@ describe('preload bridge', () => {
 			'ai:event',
 			'ai:tool-call',
 			'files:flush-request',
+			'files:moved',
 			'files:open-request',
 			'kernel:boot-report',
 			'menu:command',

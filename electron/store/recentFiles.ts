@@ -52,6 +52,26 @@ export class RecentFilesStore {
 		this.write(this.read().filter((entry) => entry.path !== resolved));
 	}
 
+	/** Every entry as stored, without pruning; for lookups that must not touch the disk. */
+	entries(): RecentEntry[] {
+		return this.read();
+	}
+
+	/** A file moved or was renamed: keep its place in the list under the new path and name. */
+	replace(from: string, to: string, name: string): void {
+		const resolvedFrom = path.resolve(from);
+		const resolvedTo = path.resolve(to);
+		const entries = this.read();
+		const original = entries.find((entry) => entry.path === resolvedFrom);
+		if (original === undefined) return;
+		const replaced: RecentEntry[] = [];
+		for (const entry of entries) {
+			if (entry === original) replaced.push({ ...original, path: resolvedTo, name });
+			else if (entry.path !== resolvedTo) replaced.push(entry);
+		}
+		this.write(replaced);
+	}
+
 	clear(): void {
 		this.write([]);
 	}

@@ -3,8 +3,8 @@
 // that crashed or hangs.
 //
 // Recovery. Every committed transaction is already persisted (autosave), so reloading loses at
-// most the debounce window. A crashed window reloads onto the file it had open: a saved file is
-// queued as the launch request, an untitled one is offered by `files:offerRecovery` at startup.
+// most the debounce window. A crashed window reloads onto the file it had open: its file is
+// queued as the launch request.
 
 import { Logger, LoggerLevel, type Exporter, type Plugin } from '@neoworks/extension-system';
 import type { DiagnosticsReport } from '../bridge';
@@ -75,7 +75,7 @@ export const mainDiagnosticsPlugin: Plugin.Object = {
 		};
 
 		const rememberFile = (window: WindowHandle): void => {
-			const file = ctx.files.savedFileOf(window.sender);
+			const file = ctx.files.openFileOf(window.sender);
 			if (file !== null) ctx.files.queueLaunch(file);
 		};
 

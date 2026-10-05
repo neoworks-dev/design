@@ -4,9 +4,9 @@
 
 /** `.ndesign`, no leading dot (dialog filters want it that way). */
 export const FILE_EXTENSION = 'ndesign';
-export const FILE_MIME_TYPE = 'application/vnd.neoworks.design+sqlite';
-export const FILE_UTI = 'dev.neoworks.design';
-export const FILE_TYPE_NAME = 'Neoworks Design';
+export const FILE_MIME_TYPE = 'application/vnd.neoworks.draftboard+sqlite';
+export const FILE_UTI = 'dev.neoworks.draftboard';
+export const FILE_TYPE_NAME = 'Draftboard File';
 
 /** `PRAGMA application_id` marker: "NWDS". */
 export const APPLICATION_ID = 0x4e574453;

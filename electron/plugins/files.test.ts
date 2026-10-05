@@ -1,30 +1,26 @@
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { planSetProps } from '../../src/lib/document/changes';
 import type { DesignDocument } from '../../src/lib/document/types';
-import type {
-	CommitResult,
-	DraftFile,
-	IpcResult,
-	LoadedDocument,
-	RecentFile,
-	StoreInfo
-} from '../bridge';
+import type { CommitResult, IpcResult, LibraryFile, LoadedDocument, StoreInfo } from '../bridge';
 import type { FakeWindow } from '../kernel/fakeHost';
 import { bootMinimalKernel, settle, type TestKernel } from '../kernel/testing';
 import { DocumentFile } from '../store/documentFile';
 import { richDocument } from '../store/testDocument';
 import { TransactionRecorder } from '../store/testRecorder';
 import { mainFilesPlugin } from './files';
+import { mainLibraryPlugin } from './library';
 import { mainStorePlugin } from './store';
 
 let directory = '';
 let userData = '';
+let library = '';
 beforeEach(() => {
 	directory = mkdtempSync(path.join(tmpdir(), 'main-files-test-'));
 	userData = path.join(directory, 'userData');
+	library = path.join(directory, 'library');
 	mkdirSync(userData);
 });
 afterEach(() => {
@@ -36,6 +32,7 @@ type Kernel = TestKernel & { window: FakeWindow };
 async function boot(launchPaths: string[] = []): Promise<Kernel> {
 	return bootMinimalKernel(
 		[
+			{ plugin: mainLibraryPlugin, config: { libraryDirectory: library } },
 			{ plugin: mainStorePlugin },
 			{ plugin: mainFilesPlugin, config: { flushTimeoutMs: 10, launchPaths } }
 		],
@@ -57,20 +54,13 @@ function failureOf<T>(result: IpcResult<T>): string {
 	return `${result.error.code}: ${result.error.message}`;
 }
 
-function loaded(result: IpcResult<LoadedDocument | null>): LoadedDocument {
-	const document = value(result);
-	if (document === null) throw new Error('expected a document, got null (cancelled)');
-	return document;
+function libraryFiles(): string[] {
+	if (!existsSync(library)) return [];
+	return readdirSync(library).filter((name) => name.endsWith('.ndesign'));
 }
 
-function untitledFiles(): string[] {
-	const untitled = path.join(userData, 'untitled');
-	if (!existsSync(untitled)) return [];
-	return readdirSync(untitled).filter((name) => name.endsWith('.ndesign'));
-}
-
-/** Edit the open untitled document the way the renderer would: one persisted transaction. */
-async function editUntitled(
+/** Edit the open document the way the renderer would: one persisted transaction. */
+async function editOpenDocument(
 	kernel: Kernel,
 	document: DesignDocument
 ): Promise<TransactionRecorder> {
@@ -84,9 +74,19 @@ async function editUntitled(
 	return recorder;
 }
 
+function flushRequests(kernel: Kernel): number {
+	return kernel.window.sent.filter((message) => message.channel === 'files:flush-request').length;
+}
+
 describe('main-files plugin', () => {
 	it('mounts its routes and listeners and unmounts leaving the host identical', async () => {
-		const kernel = await bootMinimalKernel([{ plugin: mainStorePlugin }]);
+		const kernel = await bootMinimalKernel(
+			[
+				{ plugin: mainLibraryPlugin, config: { libraryDirectory: library } },
+				{ plugin: mainStorePlugin }
+			],
+			{ paths: { userData } }
+		);
 		const before = kernel.host.snapshot();
 		const fiber = kernel.root.plugin(mainFilesPlugin, {});
 		await fiber;
@@ -94,26 +94,21 @@ describe('main-files plugin', () => {
 		const mounted = kernel.host.snapshot();
 		expect(mounted.handlers).toEqual(
 			expect.arrayContaining([
-				'files:newUntitled',
+				'files:new',
 				'files:open',
 				'files:openDialog',
 				'files:saveDialog',
 				'files:saveAs',
-				'files:offerRecovery',
 				'files:launchRequest',
 				'files:recent',
 				'files:clearRecent',
 				'files:setThumbnail',
 				'files:flushed',
-				'files:drafts',
 				'files:removeRecent',
-				'files:reveal',
-				'files:openInTab',
-				'files:newInTab',
-				'files:confirmClose',
-				'files:discard'
+				'files:reveal'
 			])
 		);
+		expect(mounted.handlers).not.toContain('files:newUntitled');
 		expect(mounted.appListeners).toMatchObject({ 'open-file': 1, 'second-instance': 1 });
 		await fiber.dispose();
 		await settle();
@@ -121,197 +116,122 @@ describe('main-files plugin', () => {
 	});
 });
 
-describe('new untitled document', () => {
-	it('creates a blank document in <userData>/untitled and makes it the window document', async () => {
+describe('new document', () => {
+	it('creates Untitled.ndesign in the library root and makes it the window document', async () => {
 		const kernel = await boot();
-		const { info, document } = loaded(await call(kernel, 'files:newUntitled'));
-		expect(info).toMatchObject({
-			name: 'Untitled',
-			untitled: true,
-			unsaved: false,
-			recovered: false
-		});
-		expect(path.dirname(info.path)).toBe(path.join(userData, 'untitled'));
+		const { info, document } = value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		expect(info).toMatchObject({ name: 'Untitled', inLibrary: true, recovered: false });
+		expect(info.path).toBe(path.join(realLibrary(), 'Untitled.ndesign'));
 		expect(Object.values(document.nodes).map((node) => node.name)).toEqual(['Page 1']);
-		expect(untitledFiles()).toHaveLength(1);
 		expect(kernel.root.store.openPaths()).toEqual([info.path]);
 	});
 
-	it('replacing an untitled document without edits deletes the temporary file silently', async () => {
+	it('numbers further documents and puts them in a given folder', async () => {
 		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		const second = loaded(await call(kernel, 'files:newUntitled'));
-		expect(second.info.path).not.toBe(first.info.path);
-		expect(untitledFiles()).toEqual([path.basename(second.info.path)]);
+		const first = value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		const second = value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		expect(path.basename(first.info.path)).toBe('Untitled.ndesign');
+		expect(path.basename(second.info.path)).toBe('Untitled 2.ndesign');
+		expect(second.info.name).toBe('Untitled 2');
+		const folder = path.join(realLibrary(), 'Work');
+		mkdirSync(folder);
+		const inFolder = value(await call<LoadedDocument>(kernel, 'files:new', { directory: folder }));
+		expect(inFolder.info.path).toBe(path.join(folder, 'Untitled.ndesign'));
+		expect(kernel.root.store.openPaths()).toEqual([inFolder.info.path]);
+	});
+
+	it('never asks, flushes the previous document first and leaves it and its edits alone', async () => {
+		const kernel = await boot();
+		const first = value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		await editOpenDocument(kernel, first.document);
+		const before = flushRequests(kernel);
+		value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		expect(flushRequests(kernel)).toBe(before + 1);
 		expect(kernel.host.messageBoxRequests).toEqual([]);
+		expect(libraryFiles()).toEqual(['Untitled 2.ndesign', 'Untitled.ndesign']);
+		const back = value(await call<LoadedDocument>(kernel, 'files:open', { path: first.info.path }));
+		expect(Object.values(back.document.nodes).some((node) => node.name === 'Edited')).toBe(true);
 	});
 
-	it('asks before leaving an untitled document with edits: Cancel keeps it', async () => {
+	it('refuses a directory outside the library', async () => {
 		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, first.document);
-		kernel.host.messageBoxResult = 2;
-		expect(value(await call(kernel, 'files:newUntitled'))).toBeNull();
-		expect(kernel.host.messageBoxRequests[0]).toMatchObject({
-			message: 'Save changes to "Untitled"?',
-			buttons: ['Save…', "Don't Save", 'Cancel']
-		});
-		expect(kernel.root.store.openPaths()).toEqual([first.info.path]);
-		expect(untitledFiles()).toHaveLength(1);
-	});
-
-	it("Don't Save replaces it and deletes the temporary file", async () => {
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, first.document);
-		kernel.host.messageBoxResult = 1;
-		const second = loaded(await call(kernel, 'files:newUntitled'));
-		expect(untitledFiles()).toEqual([path.basename(second.info.path)]);
-	});
-
-	it('Save asks where, saves as that file, then replaces the document', async () => {
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		const recorder = await editUntitled(kernel, first.document);
-		kernel.host.messageBoxResult = 0;
-		const target = path.join(directory, 'kept.ndesign');
-		kernel.host.saveDialogResult = target;
-		const second = loaded(await call(kernel, 'files:newUntitled'));
-		expect(second.info.untitled).toBe(true);
-		const kept = DocumentFile.open(target);
-		expect(kept.load()).toEqual({ ...recorder.document, name: 'kept' });
-		kept.close();
-		expect(untitledFiles()).toEqual([path.basename(second.info.path)]);
-	});
-
-	it('Save then cancelling the save dialog cancels the whole action', async () => {
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, first.document);
-		kernel.host.messageBoxResult = 0;
-		kernel.host.saveDialogResult = null;
-		expect(value(await call(kernel, 'files:newUntitled'))).toBeNull();
-		expect(kernel.root.store.openPaths()).toEqual([first.info.path]);
+		const outside = path.join(directory, 'elsewhere');
+		mkdirSync(outside);
+		expect(failureOf(await call(kernel, 'files:new', { directory: outside }))).toMatch(
+			/^HANDLER_FAILED: .*neither in the library nor in a linked folder/
+		);
+		expect(libraryFiles()).toEqual([]);
 	});
 });
+
+function realLibrary(): string {
+	mkdirSync(library, { recursive: true });
+	return path.resolve(library);
+}
 
 describe('open', () => {
 	it('opens a design file and returns its document', async () => {
 		const target = path.join(directory, 'a.ndesign');
 		DocumentFile.create(target, richDocument()).close();
 		const kernel = await boot();
-		const opened = loaded(await call(kernel, 'files:open', { path: target }));
+		const opened = value(await call<LoadedDocument>(kernel, 'files:open', { path: target }));
 		expect(opened.document).toEqual(richDocument());
-		expect(opened.info).toMatchObject({ path: target, untitled: false, unsaved: false });
+		expect(opened.info).toMatchObject({ path: target, inLibrary: false });
+	});
+
+	it('a library file reports inLibrary', async () => {
+		const target = path.join(realLibrary(), 'a.ndesign');
+		DocumentFile.create(target, richDocument()).close();
+		const kernel = await boot();
+		const opened = value(await call<LoadedDocument>(kernel, 'files:open', { path: target }));
+		expect(opened.info.inLibrary).toBe(true);
 	});
 
 	it('a file that cannot be opened is a readable error and the window keeps its document', async () => {
 		const kernel = await boot();
-		const current = loaded(await call(kernel, 'files:newUntitled'));
+		const current = value(await call<LoadedDocument>(kernel, 'files:new', {}));
 		expect(
-			failureOf(await call(kernel, 'files:open', { path: path.join(directory, 'nope') }))
+			failureOf(await call(kernel, 'files:open', { path: path.join(directory, 'nope.ndesign') }))
 		).toMatch(/^HANDLER_FAILED: .* does not exist$/);
 		expect(kernel.root.store.openPaths()).toEqual([current.info.path]);
 	});
 
-	it('opening over an untitled document without edits discards the temporary file', async () => {
-		const target = path.join(directory, 'a.ndesign');
-		DocumentFile.create(target, richDocument()).close();
+	it('refuses paths that are not design files', async () => {
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:newUntitled'));
-		loaded(await call(kernel, 'files:open', { path: target }));
-		expect(untitledFiles()).toEqual([]);
-	});
-});
-
-describe('tabs: documents kept in the background', () => {
-	it('opening in a tab keeps the previous untitled file and never asks', async () => {
-		const target = path.join(directory, 'a.ndesign');
-		DocumentFile.create(target, richDocument()).close();
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, first.document);
-		const opened = value(await call<LoadedDocument>(kernel, 'files:openInTab', { path: target }));
-		expect(opened.info.path).toBe(target);
-		expect(kernel.host.messageBoxRequests).toEqual([]);
-		expect(untitledFiles()).toEqual([path.basename(first.info.path)]);
-		// only the active tab's file is open: switching frees the handle of the one left
-		expect(kernel.root.store.openPaths()).toEqual([target]);
-	});
-
-	it('a new tab leaves the previous document alone, and switching back finds its edits', async () => {
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, first.document);
-		const second = value(await call<LoadedDocument>(kernel, 'files:newInTab'));
-		expect(second.info.path).not.toBe(first.info.path);
-		expect(kernel.root.store.openPaths()).toEqual([second.info.path]);
-		expect(untitledFiles()).toHaveLength(2);
-		const back = value(
-			await call<LoadedDocument>(kernel, 'files:openInTab', { path: first.info.path })
+		expect(failureOf(await call(kernel, 'files:open', { path: '/etc/passwd' }))).toMatch(
+			/is not a \.ndesign file/
 		);
-		expect(back.info.unsaved).toBe(true);
-		expect(Object.values(back.document.nodes).some((node) => node.name === 'Edited')).toBe(true);
-		expect(kernel.root.store.openPaths()).toEqual([first.info.path]);
-	});
-
-	it('confirmClose asks only for an untitled document with edits', async () => {
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		expect(value(await call<boolean>(kernel, 'files:confirmClose'))).toBe(true);
-		expect(kernel.host.messageBoxRequests).toEqual([]);
-		await editUntitled(kernel, first.document);
-		kernel.host.messageBoxResult = 2;
-		expect(value(await call<boolean>(kernel, 'files:confirmClose'))).toBe(false);
-		kernel.host.messageBoxResult = 1;
-		expect(value(await call<boolean>(kernel, 'files:confirmClose'))).toBe(true);
-	});
-
-	it('discard deletes a closed untitled file, never a saved or an open one', async () => {
-		const target = path.join(directory, 'a.ndesign');
-		DocumentFile.create(target, richDocument()).close();
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		value(await call(kernel, 'files:discard', { path: first.info.path }));
-		expect(untitledFiles()).toHaveLength(1);
-		const second = value(await call<LoadedDocument>(kernel, 'files:newInTab'));
-		value(await call(kernel, 'files:discard', { path: first.info.path }));
-		expect(untitledFiles()).toEqual([path.basename(second.info.path)]);
-		value(await call(kernel, 'files:discard', { path: target }));
-		expect(existsSync(target)).toBe(true);
 	});
 });
 
-describe('save as', () => {
-	it('copies the document, continues in the copy, and removes the untitled file', async () => {
+describe('save a copy as', () => {
+	it('copies the document, continues in the copy and leaves the source alone', async () => {
 		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		const recorder = await editUntitled(kernel, first.document);
+		const first = value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		const recorder = await editOpenDocument(kernel, first.document);
 		const target = path.join(directory, 'Saved Design.ndesign');
 
 		const info = value(await call<StoreInfo>(kernel, 'files:saveAs', { path: target }));
 		expect(info).toMatchObject({
 			path: target,
 			name: 'Saved Design',
-			untitled: false,
-			unsaved: false,
+			inLibrary: false,
 			recovered: false
 		});
-		expect(untitledFiles()).toEqual([]);
 		expect(kernel.root.store.openPaths()).toEqual([target]);
-
+		expect(existsSync(first.info.path)).toBe(true);
 		const reloaded = value(await call<LoadedDocument>(kernel, 'store:load'));
 		expect(reloaded.document).toEqual({ ...recorder.document, name: 'Saved Design' });
 	});
 
-	it('appends the extension, replaces an existing file, and keeps a titled source intact', async () => {
+	it('appends the extension, replaces an existing file and keeps the source intact', async () => {
 		const source = path.join(directory, 'source.ndesign');
 		const original = richDocument();
 		DocumentFile.create(source, original).close();
 		const taken = path.join(directory, 'taken.ndesign');
 		DocumentFile.create(taken, createOther()).close();
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: source }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: source }));
 
 		const info = value(await call<StoreInfo>(kernel, 'files:saveAs', { path: taken }));
 		expect(info.path).toBe(taken);
@@ -326,30 +246,27 @@ describe('save as', () => {
 
 		const untouched = DocumentFile.open(source, { session: false });
 		expect(untouched.load()).toEqual(original);
-		expect(untouched.info().recovered).toBe(false);
 		untouched.close();
 	});
 
-	it('saving as the current path is just a save', async () => {
+	it('saving as the current path changes nothing', async () => {
 		const target = path.join(directory, 'same.ndesign');
 		DocumentFile.create(target, richDocument()).close();
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: target }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: target }));
 		const info = value(await call<StoreInfo>(kernel, 'files:saveAs', { path: target }));
-		expect(info).toMatchObject({ path: target, unsaved: false });
+		expect(info.path).toBe(target);
 		expect(readdirSync(directory).filter((name) => name.endsWith('.saving'))).toEqual([]);
 	});
 
-	it('saves edits that were persisted but never saved: the copy equals the document', async () => {
+	it('flushes first, so the copy holds what the renderer had queued', async () => {
 		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		const recorder = await editUntitled(kernel, first.document);
-		const target = path.join(directory, 'copy.ndesign');
-		value(await call<StoreInfo>(kernel, 'files:saveAs', { path: target }));
-		await kernel.root.store.close(kernel.window.sender);
-		const reopened = DocumentFile.open(target);
-		expect(reopened.load()).toEqual({ ...recorder.document, name: 'copy' });
-		reopened.close();
+		value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		const before = flushRequests(kernel);
+		value(
+			await call<StoreInfo>(kernel, 'files:saveAs', { path: path.join(directory, 'c.ndesign') })
+		);
+		expect(flushRequests(kernel)).toBe(before + 1);
 	});
 });
 
@@ -361,163 +278,56 @@ function createOther(): DesignDocument {
 }
 
 describe('native dialogs', () => {
-	it('the open dialog is filtered to design files and starts in Documents', async () => {
+	it('the open dialog is filtered to design files and starts in the library', async () => {
 		const kernel = await boot();
 		kernel.host.openDialogResult = ['/x/a.ndesign'];
 		expect(value(await call(kernel, 'files:openDialog'))).toBe('/x/a.ndesign');
 		expect(kernel.host.lastOpenDialogRequest).toMatchObject({
 			multiple: false,
-			defaultPath: path.join(directory, 'documents'),
-			filters: [{ name: 'Neoworks Design', extensions: ['ndesign'] }]
+			defaultPath: realLibrary(),
+			filters: [{ name: 'Draftboard File', extensions: ['ndesign'] }]
 		});
 		kernel.host.openDialogResult = null;
 		expect(value(await call(kernel, 'files:openDialog'))).toBeNull();
 	});
 
-	it('the save dialog suggests a name with the extension and forces it on the answer', async () => {
+	it('the save dialog starts in the library and forces the extension on the answer', async () => {
 		const kernel = await boot();
 		kernel.host.saveDialogResult = '/x/chosen';
 		expect(value(await call(kernel, 'files:saveDialog', { suggestedName: 'Untitled' }))).toBe(
 			'/x/chosen.ndesign'
 		);
 		expect(kernel.host.lastSaveDialogRequest).toMatchObject({
-			defaultPath: path.join(directory, 'documents', 'Untitled.ndesign')
+			defaultPath: path.join(realLibrary(), 'Untitled.ndesign')
 		});
 		kernel.host.saveDialogResult = null;
 		expect(value(await call(kernel, 'files:saveDialog', { suggestedName: 'x' }))).toBeNull();
 	});
 });
 
-describe('recovery of untitled documents', () => {
-	async function leaveEditedUntitled(): Promise<DesignDocument> {
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		const recorder = await editUntitled(kernel, first.document);
-		await kernel.root.fiber.dispose();
-		await settle();
-		return recorder.document;
-	}
-
-	it('offers to restore an untitled document an earlier run left, and restores it', async () => {
-		const expected = await leaveEditedUntitled();
-		const kernel = await boot();
-		kernel.host.messageBoxResult = 0;
-		const restored = loaded(await call(kernel, 'files:offerRecovery'));
-		expect(kernel.host.messageBoxRequests[0]).toMatchObject({
-			message: 'Restore "Untitled"?',
-			buttons: ['Restore', 'Discard']
-		});
-		expect(restored.document).toEqual(expected);
-		expect(restored.info).toMatchObject({ untitled: true, unsaved: true });
-	});
-
-	it('an untitled document left by a crash is offered too, flagged as recovered', async () => {
-		const first = await boot();
-		const opened = loaded(await call(first, 'files:newUntitled'));
-		const recorder = await editUntitled(first, opened.document);
-		// what kill -9 leaves behind: the file and its WAL, copied while the first run still has it open
-		const crashedDirectory = path.join(directory, 'crashed-userData');
-		mkdirSync(path.join(crashedDirectory, 'untitled'), { recursive: true });
-		const crashed = path.join(crashedDirectory, 'untitled', path.basename(opened.info.path));
-		for (const suffix of ['', '-wal', '-shm']) {
-			if (existsSync(`${opened.info.path}${suffix}`)) {
-				copyFileSync(`${opened.info.path}${suffix}`, `${crashed}${suffix}`);
-			}
-		}
-		const second = await bootMinimalKernel(
-			[{ plugin: mainStorePlugin }, { plugin: mainFilesPlugin, config: { flushTimeoutMs: 10 } }],
-			{ paths: { userData: crashedDirectory } }
-		);
-		second.host.messageBoxResult = 0;
-		const restored = loaded(await call(second, 'files:offerRecovery'));
-		expect(restored.info.recovered).toBe(true);
-		expect(restored.document).toEqual(recorder.document);
-	});
-
-	it('declining deletes the leftover; empty leftovers are removed without asking', async () => {
-		await leaveEditedUntitled();
-		const empty = path.join(userData, 'untitled', 'untitled-empty.ndesign');
-		DocumentFile.create(empty).close();
-		const kernel = await boot();
-		kernel.host.messageBoxResult = 1;
-		expect(value(await call(kernel, 'files:offerRecovery'))).toBeNull();
-		expect(kernel.host.messageBoxRequests).toHaveLength(1);
-		expect(untitledFiles()).toEqual([]);
-	});
-
-	it('offers nothing when nothing was left, and never offers the document that is open', async () => {
-		const kernel = await boot();
-		expect(value(await call(kernel, 'files:offerRecovery'))).toBeNull();
-		expect(kernel.host.messageBoxRequests).toEqual([]);
-		const opened = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, opened.document);
-		expect(kernel.root.files.recoverable()).toEqual([]);
-	});
-});
-
 describe('closing the window', () => {
-	it('a saved document closes without asking', async () => {
-		const target = path.join(directory, 'saved.ndesign');
-		DocumentFile.create(target, richDocument()).close();
+	it('flushes and closes without asking, with or without edits', async () => {
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: target }));
-		expect(await kernel.window.requestClose()).toBe(true);
-		expect(kernel.host.messageBoxRequests).toEqual([]);
+		const first = value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		await editOpenDocument(kernel, first.document);
+		const before = flushRequests(kernel);
+		const closing = kernel.window.requestClose();
 		await settle();
+		expect(flushRequests(kernel)).toBe(before + 1);
+		const requests = kernel.window.sent.filter((m) => m.channel === 'files:flush-request');
+		const { requestId } = requests[requests.length - 1].payload as { requestId: string };
+		value(await call<void>(kernel, 'files:flushed', { requestId }));
+		expect(await closing).toBe(true);
+		expect(kernel.host.messageBoxRequests).toEqual([]);
 		expect(kernel.root.store.openPaths()).toEqual([]);
+		expect(existsSync(first.info.path)).toBe(true);
 	});
 
-	it('an untitled document without edits closes silently and its file is removed', async () => {
+	it('a window without a document closes at once', async () => {
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:newUntitled'));
 		expect(await kernel.window.requestClose()).toBe(true);
-		expect(kernel.host.messageBoxRequests).toEqual([]);
-		expect(untitledFiles()).toEqual([]);
-	});
-
-	it('an untitled document with edits asks: Cancel keeps the window, Do not save closes', async () => {
-		const kernel = await boot();
-		const opened = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, opened.document);
-
-		kernel.host.messageBoxResult = 2;
-		expect(await kernel.window.requestClose()).toBe(false);
-		expect(kernel.window.destroyed).toBe(false);
-		expect(untitledFiles()).toHaveLength(1);
-
-		kernel.host.messageBoxResult = 1;
-		expect(await kernel.window.requestClose()).toBe(true);
-		expect(untitledFiles()).toEqual([]);
-	});
-
-	it('Save saves into the chosen file and closes', async () => {
-		const kernel = await boot();
-		const opened = loaded(await call(kernel, 'files:newUntitled'));
-		const recorder = await editUntitled(kernel, opened.document);
-		const target = path.join(directory, 'on-close.ndesign');
-		kernel.host.messageBoxResult = 0;
-		kernel.host.saveDialogResult = target;
-		expect(await kernel.window.requestClose()).toBe(true);
-		const saved = DocumentFile.open(target);
-		expect(saved.load()).toEqual({ ...recorder.document, name: 'on-close' });
-		saved.close();
-		expect(untitledFiles()).toEqual([]);
-	});
-
-	it('a quit never prompts: the untitled document stays for recovery', async () => {
-		const kernel = await bootWithQuit();
-		const opened = loaded(await call(kernel, 'files:newUntitled'));
-		await editUntitled(kernel, opened.document);
-		await kernel.root.parallel('app/before-quit');
-		expect(await kernel.window.requestClose()).toBe(true);
-		expect(kernel.host.messageBoxRequests).toEqual([]);
-		expect(untitledFiles()).toHaveLength(1);
 	});
 });
-
-async function bootWithQuit(): Promise<Kernel> {
-	return boot();
-}
 
 describe('flushing the renderer', () => {
 	it('pushes a flush request and resolves when the renderer confirms', async () => {
@@ -537,13 +347,13 @@ describe('flushing the renderer', () => {
 		expect(kernel.root.files.snapshotState()).toMatchObject({ pendingFlushes: 0 });
 	});
 
-	it('a quit flushes every window that has a document first', async () => {
+	it('a quit flushes every window that has a document first, without prompting', async () => {
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:newUntitled'));
-		const quitting = kernel.root.parallel('app/before-quit');
-		const request = kernel.window.sent.find((message) => message.channel === 'files:flush-request');
-		expect(request).toBeDefined();
-		await quitting;
+		value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		const before = flushRequests(kernel);
+		await kernel.root.parallel('app/before-quit');
+		expect(flushRequests(kernel)).toBe(before + 1);
+		expect(kernel.host.messageBoxRequests).toEqual([]);
 	});
 
 	it('refuses a malformed flush answer', async () => {
@@ -575,43 +385,60 @@ describe('opening on the OS request', () => {
 });
 
 describe('recent files', () => {
-	function makeDesign(name: string): string {
-		const target = path.join(directory, name);
+	function makeDesign(name: string, where: string = directory): string {
+		const target = path.join(where, name);
 		DocumentFile.create(target, richDocument()).close();
 		return target;
 	}
 
 	async function recentPaths(kernel: Kernel): Promise<string[]> {
-		return value(await call<RecentFile[]>(kernel, 'files:recent')).map((entry) => entry.path);
+		return value(await call<LibraryFile[]>(kernel, 'files:recent')).map((entry) => entry.path);
 	}
 
 	it('lists opened files newest first and reopening moves a file to the front', async () => {
 		const first = makeDesign('a.ndesign');
 		const second = makeDesign('b.ndesign');
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: first }));
-		loaded(await call(kernel, 'files:open', { path: second }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: first }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: second }));
 		expect(await recentPaths(kernel)).toEqual([second, first]);
-		loaded(await call(kernel, 'files:open', { path: first }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: first }));
 		expect(await recentPaths(kernel)).toEqual([first, second]);
 		expect(kernel.host.osRecentDocuments).toEqual([first, second, first]);
 	});
 
-	it('records Save As destinations but never untitled documents', async () => {
+	it('records library files and new documents too, with their location', async () => {
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:newUntitled'));
-		expect(await recentPaths(kernel)).toEqual([]);
+		const created = value(await call<LoadedDocument>(kernel, 'files:new', {}));
+		const external = makeDesign('ext.ndesign');
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: external }));
+		const folder = path.join(realLibrary(), 'Work');
+		mkdirSync(folder);
+		const inFolder = makeDesign('f.ndesign', folder);
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: inFolder }));
+		const recent = value(await call<LibraryFile[]>(kernel, 'files:recent'));
+		expect(recent.map((entry) => [entry.path, entry.location])).toEqual([
+			[inFolder, { kind: 'library', folder: 'Work' }],
+			[external, { kind: 'external' }],
+			[created.info.path, { kind: 'library', folder: '' }]
+		]);
+		expect(recent[0].openedAt).toBeTypeOf('number');
+	});
+
+	it('records Save a copy as destinations', async () => {
+		const kernel = await boot();
+		value(await call<LoadedDocument>(kernel, 'files:new', {}));
 		const target = path.join(directory, 'saved.ndesign');
 		value(await call(kernel, 'files:saveAs', { path: target }));
-		expect(await recentPaths(kernel)).toEqual([target]);
+		expect((await recentPaths(kernel))[0]).toBe(target);
 	});
 
 	it('prunes files that vanished when the list is read', async () => {
 		const kept = makeDesign('kept.ndesign');
 		const gone = makeDesign('gone.ndesign');
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: gone }));
-		loaded(await call(kernel, 'files:open', { path: kept }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: gone }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: kept }));
 		rmSync(gone);
 		expect(await recentPaths(kernel)).toEqual([kept]);
 		const reboot = await boot();
@@ -621,7 +448,8 @@ describe('recent files', () => {
 	it('caps the list at 20 entries', async () => {
 		const kernel = await boot();
 		for (let index = 0; index < 22; index += 1) {
-			loaded(await call(kernel, 'files:open', { path: makeDesign(`f${index}.ndesign`) }));
+			const target = makeDesign(`f${index}.ndesign`);
+			value(await call<LoadedDocument>(kernel, 'files:open', { path: target }));
 		}
 		const paths = await recentPaths(kernel);
 		expect(paths).toHaveLength(20);
@@ -630,7 +458,7 @@ describe('recent files', () => {
 
 	it('clearRecent empties the list and the OS list', async () => {
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: makeDesign('a.ndesign') }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: makeDesign('a.ndesign') }));
 		value(await call(kernel, 'files:clearRecent'));
 		expect(await recentPaths(kernel)).toEqual([]);
 		expect(kernel.host.osRecentDocuments).toEqual([]);
@@ -639,47 +467,44 @@ describe('recent files', () => {
 	it('returns the stored thumbnail of each file, null until one was written', async () => {
 		const target = makeDesign('a.ndesign');
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: target }));
-		expect(value(await call<RecentFile[]>(kernel, 'files:recent'))[0].thumbnail).toBeNull();
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: target }));
+		expect(value(await call<LibraryFile[]>(kernel, 'files:recent'))[0].thumbnail).toBeNull();
 		const thumbnail = { mime: 'image/png', width: 2, height: 3, bytes: new Uint8Array([1, 2, 3]) };
 		value(await call(kernel, 'files:setThumbnail', thumbnail));
-		const [entry] = value(await call<RecentFile[]>(kernel, 'files:recent'));
+		const [entry] = value(await call<LibraryFile[]>(kernel, 'files:recent'));
 		expect(entry.thumbnail).toEqual(thumbnail);
-	});
-});
-
-describe('home screen: drafts, removing and revealing', () => {
-	it('lists untitled documents with edits, open ones included, and leaves them untouched', async () => {
-		const kernel = await boot();
-		const first = loaded(await call(kernel, 'files:newUntitled'));
-		expect(value(await call<DraftFile[]>(kernel, 'files:drafts'))).toEqual([]);
-		await editUntitled(kernel, first.document);
-		value(await call(kernel, 'files:newInTab'));
-		const drafts = value(await call<DraftFile[]>(kernel, 'files:drafts'));
-		expect(drafts.map((draft) => draft.path)).toEqual([first.info.path]);
-		expect(drafts[0]).toMatchObject({ name: 'Untitled', thumbnail: null });
-		expect(untitledFiles()).toHaveLength(2);
 	});
 
 	it('removeRecent forgets one file and keeps the file on disk', async () => {
-		const first = path.join(directory, 'a.ndesign');
-		const second = path.join(directory, 'b.ndesign');
-		DocumentFile.create(first, richDocument()).close();
-		DocumentFile.create(second, richDocument()).close();
+		const first = makeDesign('a.ndesign');
+		const second = makeDesign('b.ndesign');
 		const kernel = await boot();
-		loaded(await call(kernel, 'files:open', { path: first }));
-		loaded(await call(kernel, 'files:open', { path: second }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: first }));
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: second }));
 		value(await call(kernel, 'files:removeRecent', { path: first }));
-		const listed = value(await call<RecentFile[]>(kernel, 'files:recent')).map(
-			(entry) => entry.path
-		);
-		expect(listed).toEqual([second]);
+		expect(await recentPaths(kernel)).toEqual([second]);
 		expect(existsSync(first)).toBe(true);
 	});
 
-	it('reveal shows the file in the OS file manager', async () => {
+	it('reveal and removeRecent refuse files the app does not know', async () => {
 		const kernel = await boot();
-		value(await call(kernel, 'files:reveal', { path: '/x/a.ndesign' }));
-		expect(kernel.host.revealed).toEqual([path.resolve('/x/a.ndesign')]);
+		const stranger = makeDesign('stranger.ndesign');
+		expect(failureOf(await call(kernel, 'files:reveal', { path: stranger }))).toMatch(
+			/neither in the library/
+		);
+		expect(failureOf(await call(kernel, 'files:removeRecent', { path: stranger }))).toMatch(
+			/neither in the library/
+		);
+		expect(kernel.host.revealed).toEqual([]);
+	});
+
+	it('reveal shows a recent or library file in the OS file manager', async () => {
+		const kernel = await boot();
+		const target = makeDesign('a.ndesign');
+		value(await call<LoadedDocument>(kernel, 'files:open', { path: target }));
+		value(await call(kernel, 'files:reveal', { path: target }));
+		const inLibrary = makeDesign('lib.ndesign', realLibrary());
+		value(await call(kernel, 'files:reveal', { path: inLibrary }));
+		expect(kernel.host.revealed).toEqual([target, inLibrary]);
 	});
 });

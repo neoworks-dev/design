@@ -147,15 +147,30 @@ first; the outer main's change propagates only where the inner instance hasn't t
 On swap, touched groups carry over to nodes matching by name path; unmatched overrides are
 dropped (Figma behaviour).
 
-**File.** Extension `.ndesign`, MIME `application/vnd.neoworks.design+sqlite`, macOS UTI
-`dev.neoworks.design`. SQLite `application_id` pragma = `0x4E574453` ("NWDS") as the magic
+**File.** Extension `.ndesign`, MIME `application/vnd.neoworks.draftboard+sqlite`, macOS UTI
+`dev.neoworks.draftboard`. SQLite `application_id` pragma = `0x4E574453` ("NWDS") as the magic
 marker; `user_version` = schema version.
 
 **SQLite.** One row per node; `data` holds the node JSON minus columns (`id`, `parent_id`, `idx`,
 `type`). Pragmas: `journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`. Transaction log
-pruned to the last 1000 transactions or 30 days. Every transaction is persisted, so **Save** =
-WAL checkpoint + clear the "unsaved" marker; there is no unsaved in-memory state. Untitled
-documents live as a SQLite file in `<userData>/untitled/` until "Save as" moves it.
+pruned to the last 1000 transactions or 30 days. Every transaction is persisted (the renderer
+commits each one, debounced), so there is no unsaved in-memory state, no Save command and no
+Save/Don't Save prompt: closing a window or quitting only flushes the renderer's queue. A
+checkpoint (WAL fold plus a "Saved" history mark) remains for version history.
+
+**Library.** Files live in the library root: `$XDG_DATA_HOME/draftboard` (default
+`~/.local/share/draftboard`) on Linux, `Documents/Draftboard` elsewhere; `DRAFTBOARD_LIBRARY_DIR`
+overrides it (QA, tests). "New" creates `Untitled.ndesign` there straight away (`Untitled 2`, ...),
+so there are no untitled temp files. Folders are real directories, one level under the root; a
+file's name on disk is its document name. Directories elsewhere (a shared repository) can be
+added as **linked folders** (id, name, path in `<userData>/linked-folders.json`) and are listed
+like library folders, including their direct subdirectories. A single file opened from elsewhere
+is only known through the recent list (`<userData>/recent-files.json`). Main accepts a directory
+argument only when its real path is the root, a library folder, a linked folder or a direct
+subdirectory of a linked one (symlinks cannot lead out). Renaming, moving or trashing a file that
+a window has open flushes it, reopens it at the new path and pushes `files:moved`. Older
+versions kept untitled documents in `<userData>/untitled/`; at startup the ones with edits move
+into the library root and empty ones are deleted.
 
 **Text.** Lists are paragraph properties (`list`, `listLevel`); links are a `hyperlink` on the
 run style; fonts are referenced by `{ family, style }` on the run style. A missing font keeps its

@@ -1,34 +1,28 @@
-// main-files: the `files` service and the `files:*` IPC routes: new, open, Save As, the native
-// file dialogs, untitled documents and their recovery, and flushing the renderer before a file
-// is closed.
+// main-files: the `files` service and the `files:*` IPC routes: new, open, Save a copy as, the
+// native file dialogs, the recent list and flushing the renderer before a file is closed.
 //
-// Untitled documents are SQLite files in `<userData>/untitled/` (data-model.md section 7) until
-// the user saves them somewhere with Save As. Autosave means nothing is ever "unsaved in memory":
-// leaving an untitled document with edits asks first (Save / Don't Save / Cancel); a saved
-// document never asks. Anything left in the untitled directory at the next start (a crash, or a
-// quit with an untitled document open) is offered for recovery.
+// There are no untitled documents and no Save prompt (data-model.md section 7). A new document is
+// a file in the library from its first moment and every committed transaction is autosaved, so
+// leaving a document, closing a window or quitting only asks the renderer to persist its queue.
 
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { createBlankDocument } from '../../src/lib/document/blank';
-import type { DraftFile, LoadedDocument, RecentFile, StoreInfo, Thumbnail } from '../bridge';
+import type { LibraryFile, LoadedDocument, StoreInfo, Thumbnail } from '../bridge';
 import type { SenderHandle, WindowHandle } from '../kernel/host';
 import { emitTo, route } from '../kernel/route';
 import { FILE_EXTENSION, FILE_TYPE_NAME } from '../store/constants';
-import { DocumentFile, removeFileAndSidecars } from '../store/documentFile';
-import { StoreError } from '../store/errors';
-import { RECENT_FILES_NAME, RecentFilesStore } from '../store/recentFiles';
-import { untitledDirectory } from '../store/untitled';
+import { DocumentFile } from '../store/documentFile';
+import { displayNameOf, realOrResolved, uniqueName, withExtension } from '../store/library';
+import { FILE_THUMBNAIL_KEY } from './library';
+
+export { FILE_THUMBNAIL_KEY };
 
 /** How long main waits for the renderer to confirm it persisted its queue. */
 export const FLUSH_TIMEOUT_MS = 2000;
 
 export const UNTITLED_NAME = 'Untitled';
-
-/** The `thumbnails` key of a document's own preview. */
-export const FILE_THUMBNAIL_KEY = 'file';
 
 export interface FilesConfig {
 	/** How long to wait for the renderer to confirm a flush (milliseconds). */
@@ -37,34 +31,11 @@ export interface FilesConfig {
 	launchPaths?: string[];
 }
 
-/** An untitled document with edits that an earlier run left behind. */
-export interface RecoverableDocument {
-	path: string;
-	name: string;
-	modifiedAt: number;
-}
-
-type Decision = 'proceed' | 'cancel';
-
-const SAVE_CHOICE = 0;
-const DISCARD_CHOICE = 1;
-
-function withExtension(file: string): string {
-	if (path.extname(file) === `.${FILE_EXTENSION}`) return file;
-	return `${file}.${FILE_EXTENSION}`;
-}
-
-function displayNameOf(file: string): string {
-	return path.basename(file, path.extname(file));
-}
-
 export class FilesService extends Service {
 	private readonly pendingFlushes = new Map<string, () => void>();
 	private readonly watchedWindows = new Set<number>();
 	private readonly launchPaths: string[];
 	private readonly flushTimeoutMs: number;
-	private quitting = false;
-	private recentStore: RecentFilesStore | null = null;
 
 	constructor(ctx: Context, config: FilesConfig = {}) {
 		super(ctx, 'files');
@@ -74,76 +45,41 @@ export class FilesService extends Service {
 
 	// ---------- new and open ----------
 
-	/** A new empty document in a temporary file; `null` when the user cancelled leaving the old one. */
-	async newUntitled(sender: SenderHandle): Promise<LoadedDocument | null> {
-		const previous = this.currentFile(sender);
-		if ((await this.settleCurrent(sender)) === 'cancel') return null;
-		const target = this.nextUntitledPath();
-		const info = await this.store.adopt(sender, () =>
-			DocumentFile.create(target, createBlankDocument(UNTITLED_NAME))
-		);
-		this.discardIfUntitled(previous);
-		this.watchClose(sender);
-		this.recordRecent(info);
-		return this.loaded(sender, info);
-	}
-
-	/** Open `target` as the sender's document; `null` when the user cancelled leaving the old one. */
-	async open(sender: SenderHandle, target: string): Promise<LoadedDocument | null> {
-		const previous = this.currentFile(sender);
-		if ((await this.settleCurrent(sender)) === 'cancel') return null;
-		const info = await this.store.adopt(sender, () => DocumentFile.open(target));
-		if (previous !== null && previous !== path.resolve(target)) this.discardIfUntitled(previous);
-		this.watchClose(sender);
-		this.recordRecent(info);
-		return this.loaded(sender, info);
-	}
-
 	/**
-	 * Tabs: `target` becomes the sender's document and the one it had is left alone, to be a tab in
-	 * the background. The renderer persisted that document's queue first; main confirms it again.
+	 * A new empty document, created in `directory` (default: the library root) as `Untitled`,
+	 * `Untitled 2`, ... and made the sender's document. The previous document is left alone.
 	 */
-	async openInTab(sender: SenderHandle, target: string): Promise<LoadedDocument> {
+	async create(sender: SenderHandle, directory?: string): Promise<LoadedDocument> {
+		const library = this.ctx.library;
+		const requested = directory === undefined ? library.ensureRoot() : directory;
+		const target = library.resolveDirectory(requested);
 		await this.flushSender(sender);
-		const info = await this.store.adopt(sender, () => DocumentFile.open(target));
-		this.watchClose(sender);
-		this.recordRecent(info);
-		return this.loaded(sender, info);
-	}
-
-	/** Tabs: like `newUntitled`, without asking about or deleting the previous document. */
-	async newInTab(sender: SenderHandle): Promise<LoadedDocument> {
-		await this.flushSender(sender);
-		const target = this.nextUntitledPath();
+		const name = uniqueName(target.path, UNTITLED_NAME, `.${FILE_EXTENSION}`);
+		const file = path.join(target.path, `${name}.${FILE_EXTENSION}`);
 		const info = await this.store.adopt(sender, () =>
-			DocumentFile.create(target, createBlankDocument(UNTITLED_NAME))
+			DocumentFile.create(file, createBlankDocument(name))
 		);
-		this.watchClose(sender);
-		return this.loaded(sender, info);
+		return this.adopted(sender, info);
 	}
 
-	/** Tabs: whether the sender's document may be closed (asks about untitled edits). */
-	async confirmClose(sender: SenderHandle): Promise<boolean> {
-		return (await this.settleCurrent(sender)) === 'proceed';
-	}
-
-	/** Tabs: delete the temporary file of a closed untitled document, unless something has it open. */
-	discard(file: string): void {
-		const resolved = path.resolve(file);
-		if (this.store.openPaths().some((open) => path.resolve(open) === resolved)) return;
-		this.discardIfUntitled(resolved);
+	/** Open `target` as the sender's document; the previous document is left alone. */
+	async open(sender: SenderHandle, target: string): Promise<LoadedDocument> {
+		const file = this.ctx.library.openableFile(target);
+		await this.flushSender(sender);
+		const info = await this.store.adopt(sender, () => DocumentFile.open(file));
+		return this.adopted(sender, info);
 	}
 
 	/** Copy the sender's file to `destination` and carry on editing the copy. */
 	async saveAs(sender: SenderHandle, destination: string): Promise<StoreInfo> {
 		const target = path.resolve(withExtension(destination));
+		await this.flushSender(sender);
 		const file = this.store.current(sender);
-		if (path.resolve(file.path) === target) return this.store.checkpoint(sender);
-		const source = file.path;
+		if (realOrResolved(file.path) === realOrResolved(target)) return this.store.checkpoint(sender);
 		file.saveCopyTo(target, displayNameOf(target));
 		const info = await this.store.adopt(sender, () => DocumentFile.open(target));
-		this.discardIfUntitled(source);
-		this.recordRecent(info);
+		this.watchClose(sender);
+		this.ctx.library.recordRecent(info.path, info.name);
 		return info;
 	}
 
@@ -152,7 +88,7 @@ export class FilesService extends Service {
 	async openDialog(): Promise<string | null> {
 		const chosen = await this.ctx.electron.dialog.showOpenDialog({
 			title: 'Open',
-			defaultPath: this.ctx.electron.app.getPath('documents'),
+			defaultPath: this.ctx.library.dialogDirectory(),
 			filters: [{ name: FILE_TYPE_NAME, extensions: [FILE_EXTENSION] }],
 			multiple: false
 		});
@@ -161,10 +97,10 @@ export class FilesService extends Service {
 	}
 
 	async saveDialog(suggestedName: string): Promise<string | null> {
-		const documents = this.ctx.electron.app.getPath('documents');
+		const directory = this.ctx.library.dialogDirectory();
 		const chosen = await this.ctx.electron.dialog.showSaveDialog({
-			title: 'Save As',
-			defaultPath: path.join(documents, withExtension(suggestedName)),
+			title: 'Save a copy as',
+			defaultPath: path.join(directory, withExtension(suggestedName)),
 			filters: [{ name: FILE_TYPE_NAME, extensions: [FILE_EXTENSION] }]
 		});
 		if (chosen === null) return null;
@@ -174,109 +110,28 @@ export class FilesService extends Service {
 	// ---------- recent files ----------
 
 	/** Recent documents, newest first; vanished files are pruned, thumbnails read from each file. */
-	recent(): RecentFile[] {
-		return this.recents()
-			.list()
-			.map((entry) => ({ ...entry, thumbnail: this.readThumbnailFromDisk(entry.path) }));
+	recent(): LibraryFile[] {
+		return this.ctx.library.recentFiles();
 	}
 
 	/** Forget one recent file; also what the home screen's "remove" does. */
 	removeRecent(file: string): void {
-		this.recents().remove(file);
+		this.ctx.library.recents().remove(this.ctx.library.knownFile(file));
 	}
 
-	/** Show `file` in the OS file manager (only files the app knows: recents and drafts). */
+	/** Show `file` in the OS file manager (library, linked and recent files only). */
 	reveal(file: string): void {
-		this.ctx.electron.shell.showItemInFolder(path.resolve(file));
-	}
-
-	/** Untitled documents with edits, newest first. Unlike `recoverable` it keeps open ones. */
-	drafts(): DraftFile[] {
-		const directory = untitledDirectory(this.ctx.electron.app.getPath('userData'));
-		const found: DraftFile[] = [];
-		for (const entry of this.untitledFiles(directory)) {
-			const draft = this.peekDraft(entry);
-			if (draft !== null) found.push(draft);
-		}
-		return found.sort((left, right) => right.modifiedAt - left.modifiedAt);
+		this.ctx.electron.shell.showItemInFolder(this.ctx.library.knownFile(file));
 	}
 
 	clearRecent(): void {
-		this.recents().clear();
+		this.ctx.library.recents().clear();
 		this.ctx.electron.app.clearRecentDocuments();
 	}
 
 	/** Store the sender's preview. The renderer draws it (see the renderer's thumbnail seam). */
 	setThumbnail(sender: SenderHandle, thumbnail: Thumbnail): void {
 		this.store.current(sender).writeThumbnail(FILE_THUMBNAIL_KEY, thumbnail);
-	}
-
-	/** Untitled documents are temporary and never listed; the OS list follows ours. */
-	private recordRecent(info: StoreInfo): void {
-		if (info.untitled) return;
-		this.recents().record(info.path, info.name);
-		this.ctx.electron.app.addRecentDocument(path.resolve(info.path));
-	}
-
-	private recents(): RecentFilesStore {
-		if (this.recentStore === null) {
-			const userData = this.ctx.electron.app.getPath('userData');
-			this.recentStore = new RecentFilesStore(path.join(userData, RECENT_FILES_NAME));
-		}
-		return this.recentStore;
-	}
-
-	private readThumbnailFromDisk(file: string): Thumbnail | null {
-		let peeked: DocumentFile | null = null;
-		try {
-			peeked = DocumentFile.open(file, { session: false });
-			return peeked.readThumbnail(FILE_THUMBNAIL_KEY);
-		} catch (error) {
-			if (!(error instanceof StoreError)) throw error;
-			return null;
-		} finally {
-			peeked?.close();
-		}
-	}
-
-	// ---------- untitled documents and recovery ----------
-
-	/** Untitled documents with edits that nothing has open: what a crash or a quit left behind. */
-	recoverable(): RecoverableDocument[] {
-		const directory = untitledDirectory(this.ctx.electron.app.getPath('userData'));
-		const open = new Set(this.store.openPaths().map((file) => path.resolve(file)));
-		const found: RecoverableDocument[] = [];
-		for (const entry of this.untitledFiles(directory)) {
-			if (open.has(path.resolve(entry))) continue;
-			const document = this.inspect(entry);
-			if (document !== null) found.push(document);
-		}
-		return found.sort((left, right) => right.modifiedAt - left.modifiedAt);
-	}
-
-	/**
-	 * Ask whether to restore the newest recoverable untitled document (and the next ones, if the
-	 * answer is no). Declined ones are deleted. Returns the restored document, or `null`.
-	 */
-	async offerRecovery(sender: SenderHandle): Promise<LoadedDocument | null> {
-		for (const candidate of this.recoverable()) {
-			const answer = await this.ctx.electron.dialog.showMessageBox({
-				message: `Restore "${candidate.name}"?`,
-				detail: `The app closed before this document was saved (last changed ${new Date(candidate.modifiedAt).toLocaleString()}).`,
-				buttons: ['Restore', 'Discard'],
-				defaultId: 0,
-				cancelId: 1
-			});
-			if (answer !== 0) {
-				removeFileAndSidecars(candidate.path);
-				continue;
-			}
-			const info = await this.store.adopt(sender, () => DocumentFile.open(candidate.path));
-			this.watchClose(sender);
-			this.recordRecent(info);
-			return this.loaded(sender, info);
-		}
-		return null;
 	}
 
 	// ---------- flushing and closing ----------
@@ -305,28 +160,24 @@ export class FilesService extends Service {
 		this.pendingFlushes.get(requestId)?.();
 	}
 
-	/** `app/before-quit`: persist every window's queue. A quit never prompts; see `onClose`. */
+	/** Persist the queue of the sender's window, if it has a document. */
+	async flushSender(sender: SenderHandle): Promise<void> {
+		if (!this.store.hasStore(sender)) return;
+		const window = this.ctx.electron.windowFromSender(sender);
+		if (window !== null) await this.requestFlush(window);
+	}
+
+	/** `app/before-quit`: persist every window's queue. */
 	async prepareToQuit(): Promise<void> {
-		this.quitting = true;
 		const withDocuments = this.ctx.electron
 			.windows()
 			.filter((window) => this.store.hasStore(window.sender));
 		await Promise.all(withDocuments.map((window) => this.requestFlush(window)));
 	}
 
-	/**
-	 * A window was asked to close: true lets it. A saved document never asks. An untitled one
-	 * with edits asks to Save, Don't Save or Cancel; during a quit it is left in the untitled
-	 * directory instead, to be offered for recovery at the next start.
-	 */
+	/** A window was asked to close: persist its queue and let it. Closing never prompts. */
 	async onClose(window: WindowHandle): Promise<boolean> {
-		if (this.quitting) return true;
-		const sender = window.sender;
-		const current = this.currentFile(sender);
-		if (current === null) return true;
-		if ((await this.settleCurrent(sender)) === 'cancel') return false;
-		await this.store.close(sender);
-		this.discardIfUntitled(current);
+		if (this.store.hasStore(window.sender)) await this.requestFlush(window);
 		return true;
 	}
 
@@ -337,15 +188,10 @@ export class FilesService extends Service {
 		return this.launchPaths.shift() ?? null;
 	}
 
-	/**
-	 * The path of the saved (not untitled) file `sender` has open, or `null`. Untitled documents
-	 * are not here: the next start offers them for recovery by itself.
-	 */
-	savedFileOf(sender: SenderHandle): string | null {
+	/** The path of the file `sender` has open, or `null`. */
+	openFileOf(sender: SenderHandle): string | null {
 		if (!this.store.hasStore(sender)) return null;
-		const info = this.store.infoOf(this.store.current(sender));
-		if (info.untitled) return null;
-		return info.path;
+		return this.store.current(sender).path;
 	}
 
 	/** Have the next window that asks for its launch file open `target` (a reloaded window). */
@@ -369,7 +215,7 @@ export class FilesService extends Service {
 
 	// ---------- internals ----------
 
-	/** From now on the sender's window asks this service before it closes. */
+	/** From now on the sender's window flushes through this service before it closes. */
 	private watchClose(sender: SenderHandle): void {
 		if (this.watchedWindows.has(sender.id)) return;
 		const window = this.ctx.electron.windowFromSender(sender);
@@ -390,115 +236,10 @@ export class FilesService extends Service {
 		return this.ctx.store;
 	}
 
-	private async flushSender(sender: SenderHandle): Promise<void> {
-		if (!this.store.hasStore(sender)) return;
-		const window = this.ctx.electron.windowFromSender(sender);
-		if (window !== null) await this.requestFlush(window);
-	}
-
-	private currentFile(sender: SenderHandle): string | null {
-		if (!this.store.hasStore(sender)) return null;
-		return path.resolve(this.store.current(sender).path);
-	}
-
-	private loaded(sender: SenderHandle, info: StoreInfo): LoadedDocument {
-		const file = this.store.current(sender);
-		return { info, document: file.load() };
-	}
-
-	/**
-	 * Before the sender's document goes away: let the renderer persist, then, for an untitled
-	 * document with edits, ask what to do with them.
-	 */
-	private async settleCurrent(sender: SenderHandle): Promise<Decision> {
-		if (!this.store.hasStore(sender)) return 'proceed';
-		const window = this.ctx.electron.windowFromSender(sender);
-		if (window !== null) await this.requestFlush(window);
-		const file = this.store.current(sender);
-		const info = this.store.infoOf(file);
-		if (!info.untitled || !info.unsaved) return 'proceed';
-		const choice = await this.ctx.electron.dialog.showMessageBox({
-			message: `Save changes to "${info.name}"?`,
-			detail: "Your changes will be lost if you don't save them.",
-			buttons: ['Save…', "Don't Save", 'Cancel'],
-			defaultId: SAVE_CHOICE,
-			cancelId: 2
-		});
-		if (choice === DISCARD_CHOICE) return 'proceed';
-		if (choice !== SAVE_CHOICE) return 'cancel';
-		const destination = await this.saveDialog(info.name);
-		if (destination === null) return 'cancel';
-		await this.saveAs(sender, destination);
-		return 'proceed';
-	}
-
-	private nextUntitledPath(): string {
-		const directory = untitledDirectory(this.ctx.electron.app.getPath('userData'));
-		mkdirSync(directory, { recursive: true });
-		const unique = `${Date.now()}-${randomBytes(4).toString('hex')}`;
-		return path.join(directory, `untitled-${unique}.${FILE_EXTENSION}`);
-	}
-
-	private isUntitled(file: string): boolean {
-		const directory = untitledDirectory(this.ctx.electron.app.getPath('userData'));
-		return path.dirname(path.resolve(file)) === path.resolve(directory);
-	}
-
-	/** Delete a temporary untitled file nobody needs any more. */
-	private discardIfUntitled(file: string | null): void {
-		if (file === null || !this.isUntitled(file)) return;
-		removeFileAndSidecars(file);
-	}
-
-	private untitledFiles(directory: string): string[] {
-		try {
-			return readdirSync(directory)
-				.filter((name) => name.endsWith(`.${FILE_EXTENSION}`))
-				.map((name) => path.join(directory, name));
-		} catch {
-			return [];
-		}
-	}
-
-	/** A draft's summary, without ever deleting the file (an open document may own it). */
-	private peekDraft(file: string): DraftFile | null {
-		let peeked: DocumentFile | null = null;
-		try {
-			peeked = DocumentFile.open(file, { session: false });
-			const info = peeked.info();
-			if (!info.unsaved) return null;
-			return {
-				path: file,
-				name: info.name,
-				modifiedAt: info.modifiedAt,
-				thumbnail: peeked.readThumbnail(FILE_THUMBNAIL_KEY)
-			};
-		} catch (error) {
-			if (!(error instanceof StoreError)) throw error;
-			return null;
-		} finally {
-			peeked?.close();
-		}
-	}
-
-	/** What a leftover untitled file holds; empty and unreadable ones are cleaned up. */
-	private inspect(file: string): RecoverableDocument | null {
-		let peeked: DocumentFile | null = null;
-		try {
-			peeked = DocumentFile.open(file, { session: false });
-			const info = peeked.info();
-			if (info.unsaved) return { path: file, name: info.name, modifiedAt: info.modifiedAt };
-		} catch (error) {
-			if (!(error instanceof StoreError)) throw error;
-			this.ctx.logger.warn(
-				`untitled file ${file} cannot be read and is left alone: ${error.message}`
-			);
-			return null;
-		} finally {
-			peeked?.close();
-		}
-		removeFileAndSidecars(file);
-		return null;
+	private adopted(sender: SenderHandle, info: StoreInfo): LoadedDocument {
+		this.watchClose(sender);
+		this.ctx.library.recordRecent(info.path, info.name);
+		return { info, document: this.store.current(sender).load() };
 	}
 }
 
@@ -510,22 +251,16 @@ declare module '@neoworks/extension-system' {
 
 export const mainFilesPlugin: Plugin.Object<FilesConfig> = {
 	name: 'main-files',
-	inject: ['electron', 'ipc', 'store'],
+	inject: ['electron', 'ipc', 'store', 'library'],
 	apply(ctx, config) {
 		const files = new FilesService(ctx, config);
 
-		route(ctx, 'files:newUntitled', (_payload, event) => files.newUntitled(event.sender));
+		route(ctx, 'files:new', (request, event) => files.create(event.sender, request.directory));
 		route(ctx, 'files:open', (request, event) => files.open(event.sender, request.path));
-		route(ctx, 'files:openInTab', (request, event) => files.openInTab(event.sender, request.path));
-		route(ctx, 'files:newInTab', (_payload, event) => files.newInTab(event.sender));
-		route(ctx, 'files:confirmClose', (_payload, event) => files.confirmClose(event.sender));
-		route(ctx, 'files:discard', (request) => files.discard(request.path));
 		route(ctx, 'files:openDialog', () => files.openDialog());
 		route(ctx, 'files:saveDialog', (request) => files.saveDialog(request.suggestedName));
 		route(ctx, 'files:saveAs', (request, event) => files.saveAs(event.sender, request.path));
-		route(ctx, 'files:offerRecovery', (_payload, event) => files.offerRecovery(event.sender));
 		route(ctx, 'files:recent', () => files.recent());
-		route(ctx, 'files:drafts', () => files.drafts());
 		route(ctx, 'files:removeRecent', (request) => files.removeRecent(request.path));
 		route(ctx, 'files:reveal', (request) => files.reveal(request.path));
 		route(ctx, 'files:clearRecent', () => files.clearRecent());

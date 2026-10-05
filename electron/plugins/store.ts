@@ -10,7 +10,6 @@ import { route } from '../kernel/route';
 import type { SenderHandle } from '../kernel/host';
 import { DocumentFile } from '../store/documentFile';
 import { StoreError } from '../store/errors';
-import { isUntitledPath } from '../store/untitled';
 
 interface OpenStore {
 	file: DocumentFile;
@@ -58,10 +57,19 @@ export class StoreService extends Service {
 		return this.infoOf(file);
 	}
 
-	/** What `file` says about itself, plus whether it is an untitled document of ours. */
+	/** What `file` says about itself, plus whether it lives in the library. */
 	infoOf(file: DocumentFile): StoreInfo {
-		const userData = this.ctx.electron.app.getPath('userData');
-		return { ...file.info(), untitled: isUntitledPath(userData, file.path) };
+		const info = file.info();
+		return {
+			path: info.path,
+			documentId: info.documentId,
+			name: info.name,
+			schemaVersion: info.schemaVersion,
+			createdAt: info.createdAt,
+			modifiedAt: info.modifiedAt,
+			recovered: info.recovered,
+			inLibrary: this.ctx.library.isInLibrary(info.path)
+		};
 	}
 
 	/** The sender's open file; throws NO_STORE when it has none. */
@@ -94,7 +102,7 @@ export class StoreService extends Service {
 		return { committed, documentRows };
 	}
 
-	/** Save: checkpoint the sender's file and clear its unsaved marker. */
+	/** Fold the sender's WAL into the file and add a "Saved" mark to its history. */
 	checkpoint(sender: SenderHandle): StoreInfo {
 		const file = this.current(sender);
 		file.checkpoint();
@@ -121,12 +129,20 @@ export class StoreService extends Service {
 		for (const listener of Array.from(this.changeListeners)) listener(sender);
 	}
 
-	/** The directory of the sender's saved document; `null` without one or for an untitled one. */
+	/** The directory of the sender's document; `null` without one or for one in the library. */
 	projectDirectory(sender: SenderHandle): string | null {
 		const open = this.stores.get(sender.id);
 		if (!open) return null;
-		if (this.infoOf(open.file).untitled) return null;
+		if (this.ctx.library.isInLibrary(open.file.path)) return null;
 		return path.dirname(open.file.path);
+	}
+
+	/** Every open file with the window that has it open. */
+	openFiles(): { sender: SenderHandle; path: string }[] {
+		return [...this.stores.entries()].map(([id, open]) => ({
+			sender: { id },
+			path: open.file.path
+		}));
 	}
 
 	/** Paths of every open file, sorted: part of the observable state in tests. */
@@ -147,7 +163,7 @@ declare module '@neoworks/extension-system' {
 
 export const mainStorePlugin: Plugin.Object = {
 	name: 'main-store',
-	inject: ['electron', 'ipc'],
+	inject: ['electron', 'ipc', 'library'],
 	apply(ctx) {
 		const store = new StoreService(ctx);
 

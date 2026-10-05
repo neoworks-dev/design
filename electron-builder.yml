@@ -6,8 +6,8 @@
 # with `--packages external`, so its runtime dependencies (the harness, zod, the extension system)
 # are copied from node_modules by electron-builder.
 
-appId: dev.neoworks.design
-productName: Neoworks Design
+appId: dev.neoworks.draftboard
+productName: Draftboard
 copyright: Copyright (c) Neoworks
 
 directories:
@@ -44,9 +44,9 @@ electronDist: node_modules/electron/dist
 # end up in main-files (`launchPaths`, `files:open-request`).
 fileAssociations:
   - ext: ndesign
-    name: Neoworks Design document
-    description: Neoworks Design document
-    mimeType: application/vnd.neoworks.design+sqlite
+    name: Draftboard File document
+    description: Draftboard File document
+    mimeType: application/vnd.neoworks.draftboard+sqlite
     role: Editor
 
 linux:
@@ -54,18 +54,18 @@ linux:
     - AppImage
     - deb
   category: Graphics
-  executableName: neoworks-design
+  executableName: draftboard
   syncDesktopName: true
   icon: icon.png
   synopsis: Offline design tool with built-in AI and plugins
   maintainer: Moritz Utcke <moritz.utcke@gmx.de>
   desktop:
     entry:
-      StartupWMClass: Neoworks Design
+      StartupWMClass: Draftboard
 
 deb:
-  artifactName: neoworks-design_${version}_${arch}.${ext}
-  packageName: neoworks-design
+  artifactName: draftboard_${version}_${arch}.${ext}
+  packageName: draftboard
   depends:
     - libgtk-3-0
     - libnotify4
@@ -93,15 +93,15 @@ mac:
   # The type behind `.ndesign` for Finder and Spotlight.
   extendInfo:
     UTExportedTypeDeclarations:
-      - UTTypeIdentifier: dev.neoworks.design
-        UTTypeDescription: Neoworks Design document
+      - UTTypeIdentifier: dev.neoworks.draftboard
+        UTTypeDescription: Draftboard File document
         UTTypeConformsTo:
           - public.data
           - public.database
         UTTypeTagSpecification:
           public.filename-extension:
             - ndesign
-          public.mime-type: application/vnd.neoworks.design+sqlite
+          public.mime-type: application/vnd.neoworks.draftboard+sqlite
 # Signing and notarization run only when credentials are in the environment (CSC_LINK,
 # CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID); without them the dmg is
 # built unsigned. `notarize` is switched on in the CI job when the secrets exist.
