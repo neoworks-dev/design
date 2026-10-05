@@ -65,6 +65,8 @@ export interface PanelSectionContribution {
 	props?: Record<string, unknown>;
 	/** Start collapsed until the user chooses otherwise. */
 	collapsed?: boolean;
+	/** Take the height left in the tab and scroll inside (the layers list). */
+	fill?: boolean;
 	/**
 	 * Context the component renders with. Defaults to the plugin calling `registerSection`;
 	 * services that register on behalf of a plugin (inspectors) pass that plugin's context.
@@ -88,6 +90,7 @@ export interface PanelSection extends RegistryEntry {
 	when?: string;
 	visible?: () => boolean;
 	collapsedByDefault: boolean;
+	fill: boolean;
 	content: RegionEntry;
 }
 
@@ -290,6 +293,7 @@ export class PanelsService extends Service {
 			when: section.when,
 			visible: section.visible,
 			collapsedByDefault: section.collapsed === true,
+			fill: section.fill === true,
 			content
 		});
 	}

@@ -59,6 +59,7 @@ import toolPencil from './tool-pencil';
 import vectorEdit from './vector-edit';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
+import layersPanel from './layers-panel';
 import mask from './mask';
 import nodeCommands from './node-commands';
 import nudge from './nudge';
@@ -131,5 +132,6 @@ export const builtinPlugins: Plugin[] = [
 	align,
 	boolean,
 	clipboard,
-	contextMenus
+	contextMenus,
+	layersPanel
 ];
