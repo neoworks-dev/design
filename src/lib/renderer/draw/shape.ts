@@ -4,7 +4,8 @@
 import type { Path } from 'canvaskit-wasm';
 import { cornerRadiiOf, nodeOutline, type CornerRadii, type Outline } from '../../document/outline';
 import type { Size } from '../../kernel/types';
-import type { Paint, SceneNode } from '../../document/types';
+import type { BooleanOperationNode, Paint, SceneNode } from '../../document/types';
+import { booleanResultPath } from '../booleanOps';
 import type { DrawContext } from './context';
 import { skiaPath } from './skiaPath';
 
@@ -27,7 +28,24 @@ export interface NodeShape {
 	rectangle: RectangleGeometry | null;
 }
 
+/** A boolean operation draws as its derived result path (operands are not drawn on their own). */
+function booleanShape(context: DrawContext, node: BooleanOperationNode): NodeShape | null {
+	const path = booleanResultPath(context.canvasKit, context.source, node, (object) =>
+		context.scope.own(object)
+	);
+	if (!path) return null;
+	return {
+		outline: { fill: [], stroke: [], closed: true, fillRule: 'NONZERO' },
+		size: { width: node.width, height: node.height },
+		fillPath: path,
+		strokePath: path,
+		regionFills: [],
+		rectangle: null
+	};
+}
+
 export function buildNodeShape(context: DrawContext, node: SceneNode): NodeShape | null {
+	if (node.type === 'BOOLEAN_OPERATION') return booleanShape(context, node);
 	const outline = nodeOutline(node);
 	if (!outline) return null;
 	const { fillRule } = outline;

@@ -118,6 +118,7 @@ function drawOwnContent(context: DrawContext, node: SceneNode, shape: NodeShape)
 
 function drawNodeChildren(context: DrawContext, node: SceneNode, shape: NodeShape | null): void {
 	if (node.type === 'SECTION' && node.sectionContentsHidden) return;
+	if (node.type === 'BOOLEAN_OPERATION') return;
 	const { canvas, canvasKit } = context;
 	const clips = clipsChildren(node) && shape !== null && shape.fillPath !== null;
 	if (clips && shape && shape.fillPath) {

@@ -4,6 +4,7 @@ import { parseNode } from '../document/schema';
 import type { VectorNetwork } from '../document/types';
 import { vectorNetworkOutline } from '../document/outline';
 import { signedDistance } from '../document/shapeGeometry';
+import { commandsToNetwork } from './fromCommands';
 import { expandCornerRadii } from './cornerRadius';
 import { fitFreehand } from './fit';
 import {
@@ -506,5 +507,44 @@ describe('drawing and hit testing of vectors', () => {
 		});
 		expect(signedDistance(node, 20, 20)).toBeCloseTo(0);
 		expect(signedDistance(node, 40, 0)).toBeCloseTo(Math.hypot(20, 20));
+	});
+});
+
+describe('path commands to a network', () => {
+	it('a closed contour becomes a region and reuses its start vertex', () => {
+		const network = commandsToNetwork(
+			[
+				{ op: 'move', x: 0, y: 0 },
+				{ op: 'line', x: 10, y: 0 },
+				{ op: 'line', x: 10, y: 10 },
+				{ op: 'line', x: 0, y: 0 },
+				{ op: 'close' }
+			],
+			'NONZERO'
+		);
+		expect(network.vertices).toHaveLength(3);
+		expect(network.segments).toHaveLength(3);
+		expect(network.regions).toEqual([{ windingRule: 'NONZERO', loops: [[0, 1, 2]] }]);
+	});
+
+	it('closes an open ending with a line, keeps cubic tangents and several contours', () => {
+		const network = commandsToNetwork(
+			[
+				{ op: 'move', x: 0, y: 0 },
+				{ op: 'cubic', x1: 5, y1: 0, x2: 10, y2: 5, x: 10, y: 10 },
+				{ op: 'line', x: 0, y: 10 },
+				{ op: 'close' },
+				{ op: 'move', x: 20, y: 0 },
+				{ op: 'line', x: 30, y: 0 }
+			],
+			'EVENODD'
+		);
+		expect(network.vertices).toHaveLength(5);
+		expect(network.segments[0].tangentStart).toEqual({ x: 5, y: 0 });
+		expect(network.segments[0].tangentEnd).toEqual({ x: 0, y: -5 });
+		expect(network.regions).toHaveLength(1);
+		expect(network.regions?.[0].windingRule).toBe('EVENODD');
+		expect(network.regions?.[0].loops).toEqual([[0, 1, 2]]);
+		expect(isValidVector(network)).toBe(true);
 	});
 });

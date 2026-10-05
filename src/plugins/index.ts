@@ -21,6 +21,7 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
+import boolean from './boolean';
 import clipboard from './clipboard';
 import duplicate from './duplicate';
 import selection from './selection';
@@ -109,5 +110,6 @@ export const builtinPlugins: Plugin[] = [
 	nodeCommands,
 	duplicate,
 	align,
+	boolean,
 	clipboard
 ];

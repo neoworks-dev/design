@@ -1,7 +1,7 @@
 // Path commands (src/lib/document/outline.ts) to Skia paths. Every path is owned by the frame's
 // scope, so nothing outlives the frame.
 
-import type { Path, PathBuilder } from 'canvaskit-wasm';
+import type { CanvasKit, Path, PathBuilder } from 'canvaskit-wasm';
 import type { FillRule, PathCommand } from '../../document/outline';
 import type { DrawContext } from './context';
 
@@ -10,11 +10,19 @@ export function skiaPath(
 	commands: readonly PathCommand[],
 	fillRule: FillRule
 ): Path {
-	const { canvasKit } = context;
+	return context.scope.own(pathFromCommands(context.canvasKit, commands, fillRule));
+}
+
+/** The caller owns (and deletes) the returned path. */
+export function pathFromCommands(
+	canvasKit: CanvasKit,
+	commands: readonly PathCommand[],
+	fillRule: FillRule
+): Path {
 	const builder = new canvasKit.PathBuilder();
 	for (const command of commands) appendCommand(builder, command);
 	if (fillRule === 'EVENODD') builder.setFillType(canvasKit.FillType.EvenOdd);
-	return context.scope.own(builder.detachAndDelete());
+	return builder.detachAndDelete();
 }
 
 function appendCommand(builder: PathBuilder, command: PathCommand): void {
