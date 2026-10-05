@@ -28,6 +28,7 @@ import aiChat from './ai-chat';
 import aiContext from './ai-context';
 import aiHistory from './ai-history';
 import aiRename from './ai-rename';
+import aiSearch from './ai-search';
 import aiReview from './ai-review';
 import aiTools from './ai-tools';
 import align from './align';
@@ -233,5 +234,6 @@ export const builtinPlugins: Plugin[] = [
 	aiContext,
 	aiReview,
 	aiRename,
+	aiSearch,
 	aiChat
 ];

@@ -25,6 +25,11 @@ export interface PaletteSource {
 	/** Candidates for `query`; the palette ranks them by fuzzy match on the title. Reactive reads are fine. */
 	items: (query: string) => PaletteItem[];
 	/**
+	 * The items are already filtered and ordered for the query (a semantic search): the palette
+	 * keeps them as they are instead of matching the title against the query letter by letter.
+	 */
+	ranked?: boolean;
+	/**
 	 * An extra row for a non-empty query, shown after the matches (for example "Ask the AI").
 	 * This is the reserved hook for a natural-language mode.
 	 */
@@ -139,9 +144,7 @@ export class PaletteService extends Service {
 		if (!entry) return [];
 		const { source } = entry;
 		const query = this.state.query;
-		const ranked = rank(source.items(query), query, (item) => item.title)
-			.slice(0, MAX_ROWS)
-			.map(({ item, match }) => ({ item, match }));
+		const ranked = this.rowsOf(source, query);
 		const fallback = this.fallbackRow(source, query);
 		if (fallback) ranked.push(fallback);
 		return ranked;
@@ -173,6 +176,18 @@ export class PaletteService extends Service {
 	private remember(commandId: string): void {
 		const others = this.state.recent.filter((id) => id !== commandId);
 		this.state.recent = [commandId, ...others].slice(0, MAX_RECENT);
+	}
+
+	private rowsOf(source: PaletteSource, query: string): PaletteRow[] {
+		if (source.ranked === true) {
+			return source
+				.items(query)
+				.slice(0, MAX_ROWS)
+				.map((item) => ({ item, match: { score: 0, indices: [] } }));
+		}
+		return rank(source.items(query), query, (item) => item.title)
+			.slice(0, MAX_ROWS)
+			.map(({ item, match }) => ({ item, match }));
 	}
 
 	private fallbackRow(source: PaletteSource, query: string): PaletteRow | undefined {

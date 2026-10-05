@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolCallMessage } from '../bridge';
-import { renamesFor, taskOf } from './qaTasks';
+import { matchesFor, renamesFor, taskOf } from './qaTasks';
 import { contentOf, McpServer } from './mcpServer';
 import { qaScript, ScriptedAgentHost } from './scriptedAgents';
 import { ToolBroker } from './toolBroker';
@@ -194,5 +194,16 @@ describe('QA task scripts', () => {
 			{ id: 'c', name: 'Welcome Back Friend' },
 			{ id: 'd', name: 'Container' }
 		]);
+	});
+
+	it('finds search candidates by word or alias', () => {
+		const prompt = [
+			'Task: search-layers',
+			'Query: sign in',
+			'- a | FRAME | Login form | ',
+			'- b | RECTANGLE | Hero image | ',
+			'- c | TEXT | Heading | Sign in to continue'
+		].join('\n');
+		expect(matchesFor(prompt).sort()).toEqual(['a', 'c']);
 	});
 });

@@ -100,6 +100,46 @@ async function* renameLayers(prompt: string, tools: TaskTools): AsyncGenerator<A
 	yield { type: 'text', text: `Renamed ${names.length} ${noun}.` };
 }
 
+// ---------- search-layers ----------
+
+const SEARCH_ALIASES: Record<string, string[]> = {
+	sign: ['login', 'log in'],
+	signin: ['login'],
+	purchase: ['buy', 'checkout', 'cart'],
+	picture: ['image', 'photo', 'img'],
+	money: ['price', 'pricing', 'plan'],
+	round: ['circle', 'ellipse', 'avatar']
+};
+
+/** Ids of candidates whose name or text contains a word of the query or one of its aliases. */
+export function matchesFor(prompt: string): string[] {
+	const query = /^Query: (.*)$/m.exec(prompt)?.[1] ?? '';
+	const words = query
+		.toLowerCase()
+		.split(/\W+/)
+		.filter((word) => word !== '');
+	const needles = words.flatMap((word) => [word, ...(SEARCH_ALIASES[word] ?? [])]);
+	const scored: { id: string; score: number }[] = [];
+	for (const line of prompt.split('\n')) {
+		if (!line.startsWith('- ')) continue;
+		const [id, , name, text] = line.slice(2).split(' | ');
+		const haystack = `${name ?? ''} ${text ?? ''}`.toLowerCase();
+		const score = needles.filter((needle) => haystack.includes(needle)).length;
+		if (score > 0) scored.push({ id, score });
+	}
+	scored.sort((a, b) => b.score - a.score);
+	return scored.slice(0, 15).map((entry) => entry.id);
+}
+
+async function* searchLayers(prompt: string, tools: TaskTools): AsyncGenerator<AiStreamEvent> {
+	const ids = matchesFor(prompt);
+	yield { type: 'thought', text: 'Comparing the query with the candidates by meaning.' };
+	const result: { value: AgentToolResult | undefined } = { value: undefined };
+	yield* callTool(tools, 'qa-search', 'report_matches', { ids }, result);
+	yield { type: 'text', text: `Found ${ids.length} matches.` };
+}
+
 export const TASK_SCRIPTS: Record<string, TaskScript> = {
-	'rename-layers': renameLayers
+	'rename-layers': renameLayers,
+	'search-layers': searchLayers
 };
