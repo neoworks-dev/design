@@ -103,6 +103,9 @@ export const payloadSchemas: PayloadSchemas = {
 	'settings:load': z.void(),
 	'settings:save': settingsData,
 	'files:recent': z.void(),
+	'files:drafts': z.void(),
+	'files:removeRecent': z.strictObject({ path: storePath }),
+	'files:reveal': z.strictObject({ path: storePath }),
 	'files:clearRecent': z.void(),
 	'files:setThumbnail': z.strictObject({
 		mime: z.string().min(1),

@@ -83,6 +83,15 @@ export interface RecentFile {
 	thumbnail: Thumbnail | null;
 }
 
+/** An untitled document with edits, in the app's `untitled` directory (a draft). */
+export interface DraftFile {
+	path: string;
+	name: string;
+	/** Milliseconds since the epoch. */
+	modifiedAt: number;
+	thumbnail: Thumbnail | null;
+}
+
 /** An image file the user picked in the native dialog, read by main. */
 export interface PickedImage {
 	/** File name with extension, for naming the layer. */
@@ -218,6 +227,12 @@ export interface IpcContract {
 	'files:launchRequest': { payload: void; result: string | null };
 	/** Recently opened or saved documents, newest first; files that vanished are pruned here. */
 	'files:recent': { payload: void; result: RecentFile[] };
+	/** Untitled documents with edits, newest first (open ones included): the home screen's drafts. */
+	'files:drafts': { payload: void; result: DraftFile[] };
+	/** Drop one file from the recent list; the file itself stays. */
+	'files:removeRecent': { payload: { path: string }; result: void };
+	/** Show a file in the OS file manager. */
+	'files:reveal': { payload: { path: string }; result: void };
 	/** Forget every recent document (also the OS's list where it has one). */
 	'files:clearRecent': { payload: void; result: void };
 	/** Store the open file's thumbnail (key `file`) so the recent list can show it. */
@@ -336,6 +351,9 @@ export interface DesktopBridge {
 		offerRecovery(): Promise<LoadedDocument | null>;
 		launchRequest(): Promise<string | null>;
 		recent(): Promise<RecentFile[]>;
+		drafts(): Promise<DraftFile[]>;
+		removeRecent(path: string): Promise<void>;
+		reveal(path: string): Promise<void>;
 		clearRecent(): Promise<void>;
 		setThumbnail(thumbnail: Thumbnail): Promise<void>;
 		flushed(requestId: string): Promise<void>;

@@ -79,6 +79,9 @@ class FakeBackend {
 
 	files: DesktopBridge['files'] = {
 		recent: () => Promise.resolve([]),
+		drafts: () => Promise.resolve([]),
+		removeRecent: () => Promise.resolve(),
+		reveal: () => Promise.resolve(),
 		clearRecent: () => Promise.resolve(),
 		setThumbnail: () => Promise.resolve(),
 		openInTab: () => Promise.reject(new Error('not used')),

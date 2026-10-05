@@ -235,7 +235,10 @@ export function createRealHost(): ElectronHost {
 			unhandle: (scheme) => protocol.unhandle(scheme)
 		},
 		net: { fetch: (url) => net.fetch(url) },
-		shell: { openExternal: (url) => shell.openExternal(url) },
+		shell: {
+			openExternal: (url) => shell.openExternal(url),
+			showItemInFolder: (file) => shell.showItemInFolder(file)
+		},
 		dialog: {
 			showOpenDialog: async (request) => {
 				const answer = qaAnswer('DESIGN_QA_OPEN_PATH');

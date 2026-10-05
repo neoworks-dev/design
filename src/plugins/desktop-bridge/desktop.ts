@@ -15,6 +15,7 @@ import type {
 	ClipboardWrite,
 	CommitResult,
 	CreateStoreRequest,
+	DraftFile,
 	DesktopBridge,
 	FontRef,
 	IpcErrorCode,
@@ -288,6 +289,21 @@ export class DesktopService extends Service {
 	/** Recently opened or saved documents, newest first. */
 	filesRecent(): Promise<RecentFile[]> {
 		return typed(() => this.bridge.files.recent());
+	}
+
+	/** Untitled documents with edits (including open ones), newest first. */
+	filesDrafts(): Promise<DraftFile[]> {
+		return typed(() => this.bridge.files.drafts());
+	}
+
+	/** Drop one file from the recent list (the file stays on disk). */
+	filesRemoveRecent(path: string): Promise<void> {
+		return typed(() => this.bridge.files.removeRecent(path));
+	}
+
+	/** Show a file in the OS file manager. */
+	filesReveal(path: string): Promise<void> {
+		return typed(() => this.bridge.files.reveal(path));
 	}
 
 	filesClearRecent(): Promise<void> {

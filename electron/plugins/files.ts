@@ -13,7 +13,7 @@ import { mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { createBlankDocument } from '../../src/lib/document/blank';
-import type { LoadedDocument, RecentFile, StoreInfo, Thumbnail } from '../bridge';
+import type { DraftFile, LoadedDocument, RecentFile, StoreInfo, Thumbnail } from '../bridge';
 import type { SenderHandle, WindowHandle } from '../kernel/host';
 import { emitTo, route } from '../kernel/route';
 import { FILE_EXTENSION, FILE_TYPE_NAME } from '../store/constants';
@@ -178,6 +178,27 @@ export class FilesService extends Service {
 		return this.recents()
 			.list()
 			.map((entry) => ({ ...entry, thumbnail: this.readThumbnailFromDisk(entry.path) }));
+	}
+
+	/** Forget one recent file; also what the home screen's "remove" does. */
+	removeRecent(file: string): void {
+		this.recents().remove(file);
+	}
+
+	/** Show `file` in the OS file manager (only files the app knows: recents and drafts). */
+	reveal(file: string): void {
+		this.ctx.electron.shell.showItemInFolder(path.resolve(file));
+	}
+
+	/** Untitled documents with edits, newest first. Unlike `recoverable` it keeps open ones. */
+	drafts(): DraftFile[] {
+		const directory = untitledDirectory(this.ctx.electron.app.getPath('userData'));
+		const found: DraftFile[] = [];
+		for (const entry of this.untitledFiles(directory)) {
+			const draft = this.peekDraft(entry);
+			if (draft !== null) found.push(draft);
+		}
+		return found.sort((left, right) => right.modifiedAt - left.modifiedAt);
 	}
 
 	clearRecent(): void {
@@ -423,6 +444,27 @@ export class FilesService extends Service {
 		}
 	}
 
+	/** A draft's summary, without ever deleting the file (an open document may own it). */
+	private peekDraft(file: string): DraftFile | null {
+		let peeked: DocumentFile | null = null;
+		try {
+			peeked = DocumentFile.open(file, { session: false });
+			const info = peeked.info();
+			if (!info.unsaved) return null;
+			return {
+				path: file,
+				name: info.name,
+				modifiedAt: info.modifiedAt,
+				thumbnail: peeked.readThumbnail(FILE_THUMBNAIL_KEY)
+			};
+		} catch (error) {
+			if (!(error instanceof StoreError)) throw error;
+			return null;
+		} finally {
+			peeked?.close();
+		}
+	}
+
 	/** What a leftover untitled file holds; empty and unreadable ones are cleaned up. */
 	private inspect(file: string): RecoverableDocument | null {
 		let peeked: DocumentFile | null = null;
@@ -467,6 +509,9 @@ export const mainFilesPlugin: Plugin.Object<FilesConfig> = {
 		route(ctx, 'files:saveAs', (request, event) => files.saveAs(event.sender, request.path));
 		route(ctx, 'files:offerRecovery', (_payload, event) => files.offerRecovery(event.sender));
 		route(ctx, 'files:recent', () => files.recent());
+		route(ctx, 'files:drafts', () => files.drafts());
+		route(ctx, 'files:removeRecent', (request) => files.removeRecent(request.path));
+		route(ctx, 'files:reveal', (request) => files.reveal(request.path));
 		route(ctx, 'files:clearRecent', () => files.clearRecent());
 		route(ctx, 'files:setThumbnail', (thumbnail, event) =>
 			files.setThumbnail(event.sender, thumbnail)
