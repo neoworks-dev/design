@@ -35,6 +35,8 @@ import inspectorLayoutSize from './inspector-layout-size';
 import inspectorStroke from './inspector-stroke';
 import inspectorPosition from './inspector-position';
 import selection from './selection';
+import shortcutsPanel from './shortcuts-panel';
+import shortcutsStore from './shortcuts-store';
 import spatial from './spatial';
 import hitTest from './hit-test';
 import snapping from './snapping';
@@ -131,6 +133,8 @@ export const builtinPlugins: Plugin[] = [
 	coreCommands,
 	coreKeymap,
 	shortcuts,
+	shortcutsPanel,
+	shortcutsStore,
 	coreMenus,
 	commandPalette,
 	appMenu,
