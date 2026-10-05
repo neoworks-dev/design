@@ -88,7 +88,12 @@
 
 	function openStopColor(event: MouseEvent, index: number): void {
 		if (!(event.currentTarget instanceof HTMLElement)) return;
-		const box = event.currentTarget.getBoundingClientRect();
+		// Open beside the gradient popover rather than over it.
+		const swatch = event.currentTarget.getBoundingClientRect();
+		const popover = event.currentTarget.closest('[data-popover]')?.getBoundingClientRect();
+		let left = swatch.left;
+		if (popover !== undefined) left = popover.left;
+		const box = { left, top: swatch.top, width: swatch.width, height: swatch.height };
 		const stopAt = (): RGBA => {
 			const stop = editor.paint?.gradientStops[index];
 			if (stop === undefined) return { r: 0, g: 0, b: 0, a: 1 };
