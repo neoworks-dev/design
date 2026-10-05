@@ -16,6 +16,7 @@ export class ElectronService extends Service implements ElectronHost {
 	readonly screen: ElectronHost['screen'];
 	readonly userData: ElectronHost['userData'];
 	readonly fonts: ElectronHost['fonts'];
+	readonly agents: ElectronHost['agents'];
 	readonly createWindow: ElectronHost['createWindow'];
 	readonly windows: ElectronHost['windows'];
 	readonly windowFromSender: ElectronHost['windowFromSender'];
@@ -33,6 +34,7 @@ export class ElectronService extends Service implements ElectronHost {
 		this.screen = host.screen;
 		this.userData = host.userData;
 		this.fonts = host.fonts;
+		this.agents = host.agents;
 		this.createWindow = host.createWindow;
 		this.windows = host.windows;
 		this.windowFromSender = host.windowFromSender;

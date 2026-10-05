@@ -451,7 +451,8 @@ export class DocumentService extends Service {
 			label: meta.label,
 			changes: mine,
 			undo: invertChanges(mine),
-			mergeKey: meta.mergeKey
+			mergeKey: meta.mergeKey,
+			runId: meta.runId
 		};
 	}
 
@@ -495,7 +496,8 @@ export class DocumentService extends Service {
 			label: meta.label,
 			changes: applied,
 			undo: invertChanges(applied),
-			mergeKey: meta.mergeKey
+			mergeKey: meta.mergeKey,
+			runId: meta.runId
 		};
 		if (applied.length === 0) return transaction;
 

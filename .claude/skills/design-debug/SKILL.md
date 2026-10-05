@@ -149,6 +149,13 @@ or `blobs.put` fail with "no document file open"). Start with `--fresh`, or answ
 the environment: `DESIGN_QA_MESSAGE_BOX=<button index>`, `DESIGN_QA_OPEN_PATH`,
 `DESIGN_QA_SAVE_PATH`. `DESIGN_QA_FIXTURE=0` starts without the fixture scene (a real, editable blank file).
 
+The AI chat (left sidebar tab "AI", `Alt+I`) needs a model. In QA, `DESIGN_QA_AI=fake bun run qa
+start --no-viewer --fresh` plugs a scripted agent into main instead of `@neoworks/harness`: no
+credentials, no network. For any prompt it reads the selection, then draws N rectangles (N is the
+first number in the prompt, default 3) with one `apply_changes` call and answers in text, so a run
+can be typed, screenshotted, stopped, undone (one step) and retried deterministically. The
+document must be allowed once per session: click "Allow for this document" in the panel.
+
 ## Raw CDP
 
 `qa status` prints the endpoint (`http://127.0.0.1:<port>/json/list`). Anything that speaks CDP

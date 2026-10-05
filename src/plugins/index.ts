@@ -23,6 +23,10 @@ import fonts from './fonts';
 import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
+import ai from './ai';
+import aiChat from './ai-chat';
+import aiHistory from './ai-history';
+import aiTools from './ai-tools';
 import align from './align';
 import autolayout from './autolayout';
 import autolayoutHandles from './autolayout-handles';
@@ -219,5 +223,9 @@ export const builtinPlugins: Plugin[] = [
 	clipboard,
 	contextMenus,
 	layersPanel,
-	pagesPanel
+	pagesPanel,
+	ai,
+	aiTools,
+	aiHistory,
+	aiChat
 ];
