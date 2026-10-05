@@ -22,6 +22,7 @@ import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
 import clipboard from './clipboard';
+import designPanel from './design-panel';
 import duplicate from './duplicate';
 import selection from './selection';
 import spatial from './spatial';
@@ -97,6 +98,7 @@ export const builtinPlugins: Plugin[] = [
 	coreMenus,
 	corePanels,
 	coreInspectors,
+	designPanel,
 	coreTools,
 	canvasInput,
 	viewTools,
