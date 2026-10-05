@@ -101,6 +101,13 @@ export async function pressChord(cdp: CdpSession, chord: string): Promise<void> 
 	await cdp.send('Input.dispatchKeyEvent', { ...base, type: 'keyUp' });
 }
 
+let heldModifiers = 0;
+
+/** Mouse events carry these modifiers (Alt, Control, Meta, Shift) until `holdModifiers([])`. */
+export function holdModifiers(names: string[]): void {
+	heldModifiers = names.reduce((bits, name) => bits | modifierBit(name), 0);
+}
+
 async function mouse(
 	cdp: CdpSession,
 	type: string,
@@ -115,7 +122,8 @@ async function mouse(
 		y: point.y,
 		button,
 		buttons,
-		clickCount
+		clickCount,
+		modifiers: heldModifiers
 	});
 }
 

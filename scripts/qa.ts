@@ -4,7 +4,15 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { CdpSession } from './lib/cdp';
-import { click, drag, pressChord, scroll, typeText, type MouseButton } from './lib/input';
+import {
+	click,
+	drag,
+	holdModifiers,
+	pressChord,
+	scroll,
+	typeText,
+	type MouseButton
+} from './lib/input';
 import { formatElements, parsePoint, probeElements, resolveTarget } from './lib/probe';
 import {
 	mainLogPath,
@@ -34,8 +42,8 @@ const HELP = `qa — debug the app on a virtual display, driven over CDP
   eval '<expression>'          runs in the renderer, awaited, printed as JSON
   logs [lines] [--renderer|--main]
 
-  click <target>   dblclick <target>   rightclick <target>
-  drag <from> <to>
+  click <target>   dblclick <target>   rightclick <target>   (--modifiers Control,Alt,Shift)
+  drag <from> <to> [--modifiers Control,Alt,Shift]
   type <text>                  inserts text into the focused element
   press <chord> [chord ...]    Escape, Control+z, Shift+Tab, v
   scroll <deltaY> [--at <target>]
@@ -185,16 +193,27 @@ async function clickCommand(
 	button: MouseButton,
 	clickCount: number
 ): Promise<void> {
-	const point = await resolveTarget(cdp, requireArgument(args, 0, 'target'), readRefs());
+	const { rest, value: modifiers } = takeOption(args, '--modifiers');
+	const point = await resolveTarget(cdp, requireArgument(rest, 0, 'target'), readRefs());
+	holdModifiers(parseModifiers(modifiers));
 	await click(cdp, point, button, clickCount);
+	holdModifiers([]);
 	print(`clicked ${point.x},${point.y}`);
+}
+
+function parseModifiers(value: string | undefined): string[] {
+	if (value === undefined) return [];
+	return value.split(',').filter((name) => name.length > 0);
 }
 
 async function dragCommand(cdp: CdpSession, args: string[]): Promise<void> {
 	const refs = readRefs();
-	const from = await resolveTarget(cdp, requireArgument(args, 0, 'from'), refs);
-	const to = await resolveTarget(cdp, requireArgument(args, 1, 'to'), refs);
+	const { rest, value: modifiers } = takeOption(args, '--modifiers');
+	const from = await resolveTarget(cdp, requireArgument(rest, 0, 'from'), refs);
+	const to = await resolveTarget(cdp, requireArgument(rest, 1, 'to'), refs);
+	holdModifiers(parseModifiers(modifiers));
 	await drag(cdp, from, to);
+	holdModifiers([]);
 	print(`dragged ${from.x},${from.y} -> ${to.x},${to.y}`);
 }
 

@@ -100,9 +100,8 @@ bun run qa wait "Export" [--gone] [--timeout 10000]
 | `css=.selector` | when nothing else fits |
 | `at=x,y` | a window point, for the canvas and anything without an element |
 
-Modifier-drags such as alt-duplicate or shift-constrain aren't supported by `drag` yet. Use `eval`
-on the debug hook, or extend `scripts/lib/input.ts` (the `modifiers` bitmask goes on each mouse
-event).
+Hold modifiers on a drag or click with `--modifiers Control,Alt,Shift` (for example
+`bun run qa drag at=600,300 at=800,450 --modifiers Alt`).
 
 ## Renderer state: `eval` and the debug hook
 

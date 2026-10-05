@@ -25,6 +25,13 @@ import {
 } from './editOps';
 import type { VectorEditState, VectorHit } from './editState';
 import type { Point } from './geometry';
+import {
+	dragAdvanced,
+	pressAdvanced,
+	regionHover,
+	releaseAdvanced,
+	toggleBucket
+} from './editAdvanced';
 import { drawNetworkOverlay } from './overlayDraw';
 import { moveVertices, segmentsAt, otherEnd } from './network';
 import type { VectorNetwork } from '../document/types';
@@ -213,6 +220,10 @@ export class VectorEditor {
 		this.gesture.press(event.screen);
 		const local = worldToDraft(space, event.world);
 		const hit = this.hitAt(event.world);
+		if (pressAdvanced(this, network, hit, local, event)) {
+			this.state.revision.bump();
+			return;
+		}
 		if (hit?.kind === 'vertex') {
 			this.pressVertex(network, hit.index, local, event.shiftKey);
 		} else if (hit?.kind === 'segment') {
@@ -258,7 +269,7 @@ export class VectorEditor {
 		if (!space) return;
 		const gesture = this.state.gesture;
 		if (!gesture) {
-			this.state.hover = this.hitAt(event.world);
+			this.state.hover = this.hoverAt(event.world);
 			this.state.revision.bump();
 			return;
 		}
@@ -271,6 +282,7 @@ export class VectorEditor {
 			const delta = { x: local.x - gesture.start.x, y: local.y - gesture.start.y };
 			this.state.preview = moveVertices(gesture.base, gesture.vertices, delta);
 		}
+		dragAdvanced(this, gesture, local, event.altKey);
 		this.state.revision.bump();
 	}
 
@@ -284,8 +296,15 @@ export class VectorEditor {
 		const preview = this.state.preview;
 		if (gesture.kind === 'move' && result === 'drag' && preview)
 			this.commit('Move vertices', preview);
+		releaseAdvanced(this, gesture, result);
 		this.state.preview = null;
 		this.state.revision.bump();
+	}
+
+	private hoverAt(world: Point): VectorHit | null {
+		const space = this.space();
+		if (!space || !this.state.bucket) return this.hitAt(world);
+		return regionHover(this, worldToDraft(space, world));
 	}
 
 	private finishMarquee(
@@ -335,6 +354,10 @@ export class VectorEditor {
 		if (event.key.toLowerCase() === 'j' && (event.ctrlKey || event.metaKey)) {
 			event.preventDefault();
 			this.joinSelected();
+			return true;
+		}
+		if (event.key.toLowerCase() === 'b' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+			toggleBucket(this);
 			return true;
 		}
 		const arrow = ARROWS[event.key];
@@ -389,7 +412,8 @@ export function editOverlay(editor: VectorEditor): OverlayContribution {
 				selectedSegments: state.selectedSegments,
 				hoverVertex: state.hover?.kind === 'vertex' ? state.hover.index : undefined,
 				hoverSegment: state.hover?.kind === 'segment' ? state.hover.index : undefined,
-				handleVertices: editor.handleVertices(network)
+				handleVertices: editor.handleVertices(network),
+				highlightRegion: state.hover?.kind === 'region' ? state.hover.index : undefined
 			});
 			drawMarquee(frame, state.marquee);
 		}

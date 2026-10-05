@@ -1,10 +1,19 @@
 import type { Context, Plugin } from '@neoworks/extension-system';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createNode } from '../../lib/document';
+import { createNode, parseNode } from '../../lib/document';
 import type { NodeId, VectorNetwork } from '../../lib/document';
 import { editingProviders } from '../../lib/editing/fixtures/editingFixture';
 import { describePlugin, mountPlugin, type MountedPlugin } from '../../lib/kernel/testing';
 import type { ToolKeyEvent, ToolPointerEvent } from '../../lib/tools/protocol';
+import corePanels from '../core-panels';
+import {
+	selectedMirroring,
+	selectedRadius,
+	setMirroringOnSelection,
+	setRadiusOnSelection
+} from '../../lib/vector/editAdvanced';
+import { VectorEditState } from '../../lib/vector/editState';
+import { VectorEditor } from '../../lib/vector/editTool';
 import coreTools from '../core-tools';
 import overlay from '../overlay';
 import vectorEdit from './index';
@@ -21,7 +30,7 @@ const fakeViewport = {
 } as Plugin;
 
 function providers(): Plugin[] {
-	return [...editingProviders(), coreTools, fakeViewport, overlay];
+	return [...editingProviders(), corePanels, coreTools, fakeViewport, overlay];
 }
 
 describePlugin('vector-edit', vectorEdit, {
@@ -29,11 +38,14 @@ describePlugin('vector-edit', vectorEdit, {
 	contributes: ({ ctx }) => {
 		expect(ctx.tools.get('vector-edit')).toBeDefined();
 		expect(ctx.tools.toolbarTools().map((entry) => entry.id)).not.toContain('vector-edit');
-		for (const id of ['delete', 'delete-and-heal', 'join', 'flatten', 'exit']) {
+		for (const id of ['delete', 'delete-and-heal', 'join', 'flatten', 'exit', 'paint-bucket']) {
 			expect(ctx.commands.has(`vector.${id}`)).toBe(true);
 		}
 		expect(ctx.overlay.contributions().map((entry) => entry.id)).toContain('vector-edit/network');
 		expect(ctx.menus.has('context/canvas')).toBe(true);
+		expect(ctx.panels.sectionRegistry.listAll().map((section) => section.id)).toContain(
+			'design/vector-vertex'
+		);
 	}
 });
 
@@ -84,7 +96,18 @@ async function mountEditor(
 	return { ctx, id: node.id };
 }
 
-function pointer(x: number, y: number, shiftKey = false, detail = 1): ToolPointerEvent {
+interface Held {
+	ctrlKey?: boolean;
+	altKey?: boolean;
+}
+
+function pointer(
+	x: number,
+	y: number,
+	shiftKey = false,
+	detail = 1,
+	held: Held = {}
+): ToolPointerEvent {
 	return {
 		screen: { x, y },
 		world: { x, y },
@@ -92,8 +115,8 @@ function pointer(x: number, y: number, shiftKey = false, detail = 1): ToolPointe
 		detail,
 		pointerId: 1,
 		shiftKey,
-		altKey: false,
-		ctrlKey: false,
+		altKey: held.altKey === true,
+		ctrlKey: held.ctrlKey === true,
 		metaKey: false
 	};
 }
@@ -261,5 +284,169 @@ describe('delete, heal and join', () => {
 		expect(networkOf(ctx, id).vertices).toHaveLength(3);
 		await ctx.commands.run('vector.exit');
 		expect(ctx.tools.activeId()).toBe('move');
+	});
+});
+
+function dragHeld(ctx: Context, from: [number, number], to: [number, number], held: Held): void {
+	ctx.tools.pointerDown(pointer(from[0], from[1], false, 1, held));
+	ctx.tools.pointerMove(pointer((from[0] + to[0]) / 2, (from[1] + to[1]) / 2, false, 1, held));
+	ctx.tools.pointerMove(pointer(to[0], to[1], false, 1, held));
+	ctx.tools.pointerUp(pointer(to[0], to[1], false, 1, held));
+}
+
+function clickHeld(ctx: Context, at: [number, number], held: Held): void {
+	ctx.tools.pointerDown(pointer(at[0], at[1], false, 1, held));
+	ctx.tools.pointerUp(pointer(at[0], at[1], false, 1, held));
+}
+
+/** A smooth path (0,100) (100,100 with mirrored handles) (200,100), placed at (200, 200). */
+function smoothPath(
+	mode: 'NONE' | 'ANGLE' | 'ANGLE_AND_LENGTH' = 'ANGLE_AND_LENGTH'
+): VectorNetwork {
+	return {
+		vertices: [
+			{ x: 0, y: 100 },
+			{ x: 100, y: 100, handleMirroring: mode },
+			{ x: 200, y: 100 }
+		],
+		segments: [
+			{ start: 0, end: 1, tangentEnd: { x: -30, y: 0 } },
+			{ start: 1, end: 2, tangentStart: { x: 30, y: 0 } }
+		]
+	};
+}
+
+describe('bend tool (Ctrl)', () => {
+	it('dragging a corner vertex converts it to a curve with mirrored handles', async () => {
+		const { ctx, id } = await mountEditor();
+		dragHeld(ctx, [300, 200], [300, 240], { ctrlKey: true });
+		const network = networkOf(ctx, id);
+		expect(network.segments[1].tangentStart).toEqual({ x: 0, y: 40 });
+		expect(network.segments[0].tangentEnd).toEqual({ x: 0, y: -40 });
+		expect(network.vertices[1].handleMirroring).toBe('ANGLE_AND_LENGTH');
+		expect(ctx.history.undo()).toBe(true);
+		expect(networkOf(ctx, id).segments[0].tangentEnd).toBeUndefined();
+	});
+
+	it('clicking a vertex with handles removes them', async () => {
+		const { ctx, id } = await mountEditor();
+		dragHeld(ctx, [300, 200], [300, 240], { ctrlKey: true });
+		clickHeld(ctx, [300, 200], { ctrlKey: true });
+		const network = networkOf(ctx, id);
+		expect(network.segments[0].tangentEnd).toBeUndefined();
+		expect(network.segments[1].tangentStart).toBeUndefined();
+	});
+
+	it('dragging a segment bends it so the curve follows the pointer', async () => {
+		const { ctx, id } = await mountEditor();
+		dragHeld(ctx, [300, 250], [340, 250], { ctrlKey: true });
+		const network = networkOf(ctx, id);
+		expect(network.segments[1].tangentStart).toBeDefined();
+		expect(network.segments[1].tangentEnd).toBeDefined();
+		expect(ctx.history.undo()).toBe(true);
+		expect(networkOf(ctx, id).segments[1].tangentStart).toBeUndefined();
+	});
+});
+
+describe('handles and mirroring', () => {
+	async function mountSmooth(
+		mode: 'NONE' | 'ANGLE' | 'ANGLE_AND_LENGTH'
+	): Promise<{ ctx: Context; id: NodeId }> {
+		const mounted = await mountEditor(smoothPath(mode));
+		click(mounted.ctx, 300, 300);
+		return mounted;
+	}
+
+	it('dragging a handle moves the opposite one per the mirroring mode', async () => {
+		const exact = await mountSmooth('ANGLE_AND_LENGTH');
+		drag(exact.ctx, [330, 300], [330, 340]);
+		const network = networkOf(exact.ctx, exact.id);
+		expect(network.segments[1].tangentStart).toEqual({ x: 30, y: 40 });
+		expect(network.segments[0].tangentEnd).toEqual({ x: -30, y: -40 });
+		await mounted?.cleanup();
+		mounted = undefined;
+		const free = await mountSmooth('NONE');
+		drag(free.ctx, [330, 300], [330, 340]);
+		expect(networkOf(free.ctx, free.id).segments[0].tangentEnd).toEqual({ x: -30, y: 0 });
+	});
+
+	it('Alt breaks the mirroring for one drag', async () => {
+		const { ctx, id } = await mountSmooth('ANGLE_AND_LENGTH');
+		dragHeld(ctx, [330, 300], [330, 340], { altKey: true });
+		const network = networkOf(ctx, id);
+		expect(network.segments[1].tangentStart).toEqual({ x: 30, y: 40 });
+		expect(network.segments[0].tangentEnd).toEqual({ x: -30, y: 0 });
+	});
+
+	it('Ctrl+click on a handle toggles between mirrored and straight', async () => {
+		const { ctx, id } = await mountSmooth('ANGLE_AND_LENGTH');
+		clickHeld(ctx, [330, 300], { ctrlKey: true });
+		expect(networkOf(ctx, id).vertices[1].handleMirroring).toBe('NONE');
+		clickHeld(ctx, [330, 300], { ctrlKey: true });
+		expect(networkOf(ctx, id).vertices[1].handleMirroring).toBe('ANGLE_AND_LENGTH');
+	});
+
+	it('the panel setters change mirroring and radius for the selected vertices', async () => {
+		const { ctx, id } = await mountSmooth('NONE');
+		const state = new VectorEditState();
+		const editor = new VectorEditor(ctx, state);
+		state.open(id);
+		state.selectVertices([1], false);
+		setMirroringOnSelection(editor, 'ANGLE');
+		expect(networkOf(ctx, id).vertices[1].handleMirroring).toBe('ANGLE');
+		expect(selectedMirroring(editor)).toBe('ANGLE');
+		setRadiusOnSelection(editor, 12);
+		expect(networkOf(ctx, id).vertices[1].cornerRadius).toBe(12);
+		expect(selectedRadius(editor)).toBe(12);
+		setRadiusOnSelection(editor, 0);
+		expect(networkOf(ctx, id).vertices[1].cornerRadius).toBeUndefined();
+	});
+});
+
+describe('paint bucket', () => {
+	function square(): VectorNetwork {
+		return {
+			vertices: [
+				{ x: 0, y: 0 },
+				{ x: 100, y: 0 },
+				{ x: 100, y: 100 },
+				{ x: 0, y: 100 }
+			],
+			segments: [
+				{ start: 0, end: 1 },
+				{ start: 1, end: 2 },
+				{ start: 2, end: 3 },
+				{ start: 3, end: 0 }
+			],
+			regions: [{ windingRule: 'NONZERO', loops: [[0, 1, 2, 3]] }]
+		};
+	}
+
+	it('B fills the region under the click, undo restores it, a second click clears it', async () => {
+		const { ctx, id } = await mountEditor(square());
+		ctx.tools.keyDown(key('b'));
+		click(ctx, 250, 250);
+		const filled = networkOf(ctx, id).regions?.[0].fills;
+		expect(filled).toHaveLength(1);
+		expect(filled?.[0]).toMatchObject({ type: 'SOLID', visible: true });
+		expect(ctx.history.undo()).toBe(true);
+		expect(networkOf(ctx, id).regions?.[0].fills).toBeUndefined();
+		expect(ctx.history.redo()).toBe(true);
+		click(ctx, 250, 250);
+		expect(networkOf(ctx, id).regions?.[0].fills).toBeUndefined();
+	});
+
+	it('clicking outside every region does nothing', async () => {
+		const { ctx, id } = await mountEditor(square());
+		ctx.tools.keyDown(key('b'));
+		click(ctx, 500, 500);
+		expect(networkOf(ctx, id).regions?.[0].fills).toBeUndefined();
+	});
+
+	it('the filled region is part of the stored node and validates', async () => {
+		const { ctx, id } = await mountEditor(square());
+		ctx.tools.keyDown(key('b'));
+		click(ctx, 250, 250);
+		expect(parseNode(ctx.document.require(id)).ok).toBe(true);
 	});
 });

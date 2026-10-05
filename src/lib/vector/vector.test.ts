@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createNode } from '../document/defaults';
 import { parseNode } from '../document/schema';
 import type { VectorNetwork } from '../document/types';
+import { vectorNetworkOutline } from '../document/outline';
+import { signedDistance } from '../document/shapeGeometry';
 import { expandCornerRadii } from './cornerRadius';
 import { fitFreehand } from './fit';
 import {
@@ -451,5 +453,58 @@ describe('freehand fitting', () => {
 				1
 			).segments
 		).toHaveLength(0);
+	});
+});
+
+describe('drawing and hit testing of vectors', () => {
+	const square: VectorNetwork = {
+		...polyline([0, 0], [40, 0], [40, 40], [0, 40], [0, 0]),
+		regions: [{ windingRule: 'NONZERO', loops: [[0, 1, 2, 3]] }]
+	};
+
+	it('regions with their own fills leave the node fill', () => {
+		const plain = vectorNetworkOutline(square);
+		expect(plain.regionFills).toBeUndefined();
+		expect(plain.closed).toBe(true);
+		const painted = vectorNetworkOutline({
+			...square,
+			regions: [
+				{
+					windingRule: 'NONZERO',
+					loops: [[0, 1, 2, 3]],
+					fills: [
+						{
+							type: 'SOLID',
+							visible: true,
+							opacity: 1,
+							blendMode: 'NORMAL',
+							color: { r: 1, g: 0, b: 0 }
+						}
+					]
+				}
+			]
+		});
+		expect(painted.regionFills).toHaveLength(1);
+		expect(painted.fill).toHaveLength(0);
+		expect(painted.closed).toBe(true);
+	});
+
+	it('a rounded corner changes the outline', () => {
+		const rounded = structuredClone(square);
+		rounded.vertices[1].cornerRadius = 10;
+		const commands = vectorNetworkOutline(rounded).stroke;
+		expect(commands.some((command) => command.op === 'cubic')).toBe(true);
+	});
+
+	it('vector nodes hit test against the path, not the bounding box', () => {
+		const node = createNode('VECTOR', {
+			width: 40,
+			height: 40,
+			network: polyline([0, 0], [40, 40]),
+			parentId: 'p',
+			index: 'a0'
+		});
+		expect(signedDistance(node, 20, 20)).toBeCloseTo(0);
+		expect(signedDistance(node, 40, 0)).toBeCloseTo(Math.hypot(20, 20));
 	});
 });
