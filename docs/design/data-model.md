@@ -40,6 +40,24 @@ as nodes). Renderer, hit testing, layers panel, plugins and AI handle them like 
 
 Open: exact list of property groups; cycle prevention (component containing its own instance).
 
+Implementation notes (`src/lib/document/components*.ts`, plugin `component-sync`):
+
+- A node's counterpart is its `componentRef`, or `mainComponentId` for an instance root. A nested
+  instance's nodes point at the node they were copied from, so counterparts chain (instance ->
+  outer main -> inner main) and a change propagates one level per `document/append` round.
+- The edits an instance root owns itself (`transform`, `visible`, `locked`, `layoutPositioning`,
+  `layoutSizing*`, `constraints`, `componentProperties`) are neither synced from the main nor
+  recorded as overrides.
+- `touched` is added to the user's own `set` in `document/before-apply`; sync, undo and redo never
+  mark anything. Run text is one property (`paragraphs`): an edit that changes the text marks
+  `text-content`, one that only changes styles marks `text-style`, and either blocks syncing it.
+- Deleting a main component leaves its instances; they keep `mainComponentId` and can restore the
+  main (`planRestoreMain`, new component with the old ids). Validation skips a missing main.
+- `componentPropertyReferences` on a main's layer says which component property drives its
+  `visible`, `characters` (text) or `mainComponent` (nested instance). Instances do not copy it.
+- Performance budget: a main edit with 500 instances propagates in one transaction in under
+  250 ms (test `propagates a main edit to 500 instances within the budget`).
+
 ## 3. Text — paragraphs of runs
 
 ```ts

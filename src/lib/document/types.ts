@@ -306,6 +306,7 @@ export interface ComponentPropertyDefinition {
 	variantOptions?: string[];
 	preferredValues?: { type: 'COMPONENT' | 'COMPONENT_SET'; key: string }[];
 }
+export type ComponentPropertyTarget = 'visible' | 'characters' | 'mainComponent';
 export interface ComponentPropertyValue {
 	type: ComponentPropertyType;
 	value: boolean | string;
@@ -351,6 +352,11 @@ export interface IdentityProps {
 	componentRef?: NodeId;
 	/** Overridden property groups; set on every node inside an instance. */
 	touched?: TouchedGroup[];
+	/**
+	 * On layers of a main component: component property keys that drive this layer, by what they
+	 * drive (`visible`, `characters`, `mainComponent`).
+	 */
+	componentPropertyReferences?: Partial<Record<ComponentPropertyTarget, string>>;
 }
 export interface BaseProps extends IdentityProps {
 	visible: boolean;

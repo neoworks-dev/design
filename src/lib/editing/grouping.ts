@@ -25,7 +25,13 @@ import {
 	type PositionedNode
 } from './selectionOps';
 
-export type WrapperKind = 'GROUP' | 'FRAME';
+export type WrapperKind = 'GROUP' | 'FRAME' | 'COMPONENT';
+
+const WRAPPER_PREFIX: Record<WrapperKind, string> = {
+	GROUP: 'Group',
+	FRAME: 'Frame',
+	COMPONENT: 'Component'
+};
 
 export interface WrapPlan {
 	changes: Change[];
@@ -128,7 +134,7 @@ export function planWrap(
 	if (parentId === null) return null;
 
 	const bounds = unionBounds(memberIds.map((id) => reader.cache.absoluteBounds(id)));
-	const prefix = kind === 'GROUP' ? 'Group' : 'Frame';
+	const prefix = WRAPPER_PREFIX[kind];
 	const wrapper = createNode(kind, {
 		id: wrapperId,
 		name: nextDefaultName(reader, parentId, prefix),

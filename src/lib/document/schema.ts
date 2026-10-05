@@ -321,7 +321,12 @@ const identityShape = {
 	pluginData: z.record(z.string(), stringRecord),
 	boundVariables: boundVariables.optional(),
 	componentRef: nodeId.optional(),
-	touched: z.array(touchedGroup).optional()
+	touched: z.array(touchedGroup).optional(),
+	componentPropertyReferences: strictObject({
+		visible: z.string().optional(),
+		characters: z.string().optional(),
+		mainComponent: z.string().optional()
+	}).optional()
 };
 const baseShape = {
 	...identityShape,

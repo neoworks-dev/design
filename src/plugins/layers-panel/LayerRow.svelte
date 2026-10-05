@@ -27,6 +27,8 @@
 	const hidden = $derived(node ? Reflect.get(node, 'visible') === false : false);
 	const locked = $derived(node ? Reflect.get(node, 'locked') === true : false);
 	const renaming = $derived(ctx.layers.renamingId === row.id);
+	// An instance layer that overrides something against its main component.
+	const overridden = $derived(node ? (node.touched?.length ?? 0) > 0 : false);
 
 	function onclick(event: MouseEvent): void {
 		ctx.layers.clickRow(row.id, {
@@ -101,6 +103,13 @@
 			/>
 		{:else}
 			<span class="min-w-0 flex-1 truncate" data-layer-name>{node.name}</span>
+			{#if overridden}
+				<span
+					class="bg-violet mr-1 size-1.5 shrink-0 rounded-full"
+					title="Overridden"
+					data-layer-overridden
+				></span>
+			{/if}
 		{/if}
 		<!-- Always visible while active, otherwise only on hover. -->
 		<button
