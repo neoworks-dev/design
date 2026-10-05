@@ -1,7 +1,6 @@
 import type { Context } from '@neoworks/extension-system';
 import type { PanelTabContribution } from '../../lib/registries/panels.svelte';
 import type { ToolContribution } from '../../lib/registries/tools.svelte';
-import FileTab from './FileTab.svelte';
 import PlaceholderText from './PlaceholderText.svelte';
 import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
 import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
@@ -11,10 +10,10 @@ import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 // shrinks to nothing.
 export default {
 	name: 'placeholder-shell',
-	inject: ['menus', 'panels', 'tools', 'inspectors'],
+	inject: ['panels', 'tools', 'inspectors'],
 	apply(ctx: Context): void {
 		const tabs: PanelTabContribution[] = [
-			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1', component: FileTab },
+			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1' },
 			{
 				id: 'assets',
 				side: 'left',
@@ -65,9 +64,6 @@ export default {
 				`placeholder section ${title}`
 			);
 		});
-
-		// The canvas input router emits the request; this stand-in opens the empty-canvas menu.
-		ctx.on('canvas/contextmenu', (event) => ctx.menus.openFromEvent('canvas-empty', event));
 
 		const tools: ToolContribution[] = [
 			{

@@ -47,12 +47,18 @@
 			{/if}
 			{#each sections as section (section.id)}
 				{@const collapsed = ctx.panels.isSectionCollapsed(section)}
-				<section class="border-line-faint border-b" data-panel-section={section.id}>
+				<section
+					class={[
+						'border-line-faint border-b',
+						section.fill && !collapsed && 'flex min-h-0 flex-1 flex-col'
+					]}
+					data-panel-section={section.id}
+				>
 					<h2 class="flex h-10 items-center">
 						<button
 							type="button"
 							aria-expanded={!collapsed}
-							class="text-muted hover:text-default flex h-full w-full items-center gap-1.5 px-3 text-left text-xs font-semibold"
+							class="text-muted hover:text-default flex h-full min-w-0 flex-1 items-center gap-1.5 px-3 text-left text-xs font-semibold"
 							onclick={() => ctx.panels.toggleSection(section)}
 						>
 							{#if collapsed}
@@ -62,9 +68,17 @@
 							{/if}
 							{section.title}
 						</button>
+						{#if section.actions}
+							<div class="flex shrink-0 items-center pr-2" data-panel-section-actions={section.id}>
+								<Contribution entry={section.actions} />
+							</div>
+						{/if}
 					</h2>
 					{#if !collapsed}
-						<div data-panel-section-body={section.id}>
+						<div
+							class={[section.fill && 'flex min-h-0 flex-1 flex-col']}
+							data-panel-section-body={section.id}
+						>
 							<Contribution entry={section.content} />
 						</div>
 					{/if}
