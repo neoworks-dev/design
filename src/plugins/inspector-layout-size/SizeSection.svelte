@@ -14,6 +14,7 @@
 	import { getKernel } from '../../lib/kernel/context';
 	import { currentSizing, sizingProps } from '../../lib/layout/sizing';
 	import type { Sizing } from '../../lib/layout/types';
+	import BindVariable from '../../lib/inspector-inputs/BindVariable.svelte';
 	import ConstraintWidget from './ConstraintWidget.svelte';
 	import DropdownField from '../../lib/ui/DropdownField.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
@@ -198,7 +199,11 @@
 			boundTo={widthVariable}
 			disabled={widthVariable !== undefined}
 			onchange={(value, gesture) => resizeTo('width', value, gesture)}
-		/>
+		>
+			{#snippet trailing()}
+				<BindVariable {nodes} property="width" scopes={['WIDTH_HEIGHT']} label="Width" />
+			{/snippet}
+		</NumberField>
 		<IconToggleButton
 			icon={proportions.value === true ? LinkSimpleHorizontalIcon : LinkSimpleHorizontalBreakIcon}
 			label="Constrain proportions"
@@ -214,7 +219,11 @@
 			boundTo={heightVariable}
 			disabled={heightVariable !== undefined}
 			onchange={(value, gesture) => resizeTo('height', value, gesture)}
-		/>
+		>
+			{#snippet trailing()}
+				<BindVariable {nodes} property="height" scopes={['WIDTH_HEIGHT']} label="Height" />
+			{/snippet}
+		</NumberField>
 	</div>
 
 	{#if showSizing}

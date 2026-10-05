@@ -75,6 +75,7 @@ import textLayout from './text-layout';
 import toolText from './tool-text';
 import titlebar from './titlebar';
 import variablesCore from './variables-core';
+import variablesUi from './variables-ui';
 import viewport from './viewport';
 import viewTools from './view-tools';
 import zoomMenu from './zoom-menu';
@@ -142,6 +143,7 @@ export const builtinPlugins: Plugin[] = [
 	home,
 	tabs,
 	variablesCore,
+	variablesUi,
 	coreContextKeys,
 	coreCommands,
 	coreKeymap,

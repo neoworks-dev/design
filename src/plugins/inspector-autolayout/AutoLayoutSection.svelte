@@ -9,10 +9,12 @@
 	import SidebarSimpleIcon from 'phosphor-svelte/lib/SidebarSimpleIcon';
 	import type { Node } from '../../lib/document';
 	import {
+		boundVariableName,
 		editSelection,
 		selectedNodes,
 		setSelectionProps
 	} from '../../lib/inspector-inputs/selectionEdit';
+	import BindVariable from '../../lib/inspector-inputs/BindVariable.svelte';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
 	import { isStackContainer } from '../../lib/layout/build';
@@ -258,8 +260,13 @@
 						value={spaceBetween ? null : spacing.value}
 						mixed={!spaceBetween && spacing.mixed}
 						placeholder="Auto"
+						boundTo={boundVariableName(ctx, nodes, 'itemSpacing')}
 						onchange={setSpacing}
-					/>
+					>
+						{#snippet trailing()}
+							<BindVariable {nodes} property="itemSpacing" scopes={['GAP']} label="Gap" />
+						{/snippet}
+					</NumberField>
 					<IconToggleButton
 						icon={ArrowsHorizontalIcon}
 						label="Auto spacing"
@@ -294,8 +301,18 @@
 							min={0}
 							value={value.value}
 							mixed={value.mixed}
+							boundTo={boundVariableName(ctx, nodes, `padding${entry.side}`)}
 							onchange={(next, gesture) => setPadding([entry.side], next, gesture)}
-						/>
+						>
+							{#snippet trailing()}
+								<BindVariable
+									{nodes}
+									property={`padding${entry.side}`}
+									scopes={['GAP']}
+									label={`Padding ${entry.side.toLowerCase()}`}
+								/>
+							{/snippet}
+						</NumberField>
 					{/each}
 				</div>
 			{:else}

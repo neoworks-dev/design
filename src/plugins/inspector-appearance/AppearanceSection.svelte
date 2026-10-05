@@ -9,6 +9,7 @@
 		selectedNodes,
 		setSelectionProps
 	} from '../../lib/inspector-inputs/selectionEdit';
+	import BindVariable from '../../lib/inspector-inputs/BindVariable.svelte';
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
 	import DropdownField from '../../lib/ui/DropdownField.svelte';
@@ -182,7 +183,16 @@
 				boundTo={radiusVariable}
 				disabled={radiusVariable !== undefined}
 				onchange={setRadius}
-			/>
+			>
+				{#snippet trailing()}
+					<BindVariable
+						{nodes}
+						property="cornerRadius"
+						scopes={['CORNER_RADIUS']}
+						label="Corner radius"
+					/>
+				{/snippet}
+			</NumberField>
 			<IconToggleButton
 				icon={SquareHalfIcon}
 				label="Independent corners"
