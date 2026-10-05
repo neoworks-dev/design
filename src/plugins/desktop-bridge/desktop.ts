@@ -271,6 +271,14 @@ export class DesktopService extends Service {
 		return typed(() => this.bridge.plugins.install(path));
 	}
 
+	pluginsCreate(
+		id: string,
+		name: string,
+		template: 'blank' | 'panel' | 'figma'
+	): Promise<PluginList> {
+		return typed(() => this.bridge.plugins.create(id, name, template));
+	}
+
 	/** A native dialog for a plugin folder or `.zip`, then install; `null` when cancelled. */
 	pluginsInstallFromDialog(kind: 'folder' | 'zip'): Promise<PluginList | null> {
 		return typed(() => this.bridge.plugins.installFromDialog(kind));

@@ -137,6 +137,7 @@ export function createBrowserBridge(): BrowserBridge {
 			setTrust: () => unavailable('trusting a project'),
 			readFile: () => unavailable('reading plugin files'),
 			install: () => unavailable('installing plugins'),
+			create: () => unavailable('creating plugins'),
 			installFromDialog: () => Promise.resolve(null),
 			remove: () => unavailable('removing plugins'),
 			reveal: () => unavailable('showing plugin folders'),

@@ -136,6 +136,7 @@ export function fakePluginsSection(
 ): DesktopBridge['plugins'] {
 	return {
 		install: () => Promise.resolve(list()),
+		create: () => Promise.resolve(list()),
 		installFromDialog: () => Promise.resolve(null),
 		remove: () => Promise.resolve(list()),
 		reveal: () => Promise.resolve(),

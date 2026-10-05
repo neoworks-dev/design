@@ -17,14 +17,23 @@
 import path from 'node:path';
 import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import { z } from 'zod';
-import type { DiscoveredPlugin, PluginList, PluginSourceKind, ProjectTrust } from '../bridge';
-import type { SenderHandle } from '../kernel/host';
+import type {
+	DiscoveredPlugin,
+	PluginList,
+	PluginReloadMessage,
+	PluginSourceKind,
+	ProjectTrust
+} from '../bridge';
+import { isValidPluginId, pluginTemplateFiles } from '../../src/lib/plugins/templates';
+import type { SenderHandle, WindowHandle } from '../kernel/host';
 import { IpcError, emitTo, route } from '../kernel/route';
 
 export const TRUST_FILE = 'plugin-trust.json';
 export const MANIFEST_FILE = 'manifest.json';
 const PROJECT_PLUGIN_PATH = ['.design', 'plugins'];
 const RESCAN_DELAY_MS = 150;
+/** Changes this soon after a plugin's build finished are the build's own output. */
+const BUILD_QUIET_MS = 800;
 /** A plugin's main module is source code; more than this is a mistake, not a plugin. */
 const MAX_PLUGIN_FILE_BYTES = 8 * 1024 * 1024;
 
@@ -64,6 +73,14 @@ function describeError(error: unknown): string {
 	return String(error);
 }
 
+/** The manifest's `build` command, when it names one. */
+function buildCommandOf(plugin: DiscoveredPlugin): string | null {
+	if (typeof plugin.manifest !== 'object' || plugin.manifest === null) return null;
+	const build: unknown = Reflect.get(plugin.manifest, 'build');
+	if (typeof build !== 'string' || build.trim() === '') return null;
+	return build;
+}
+
 /** The directory name an installed plugin gets: the folder or archive name, made safe. */
 export function installName(source: string): string {
 	const base = path.basename(source).replace(/\.zip$/i, '');
@@ -87,6 +104,12 @@ export class PluginDiscoveryService extends Service {
 	private readonly projectWatchers = new Map<number, { directory: string; stop: () => unknown }>();
 	private readonly asked = new Set<string>();
 	private rescanTimer: (() => unknown) | null = null;
+	private readonly changedPlugins = new Map<
+		string,
+		{ source: PluginSourceKind; directoryName: string }
+	>();
+	private readonly buildingUntil = new Map<string, number>();
+	private readonly building = new Set<string>();
 
 	constructor(
 		ctx: Context,
@@ -275,10 +298,65 @@ export class PluginDiscoveryService extends Service {
 		}
 		if (directory === null) return;
 		const stop = this.ctx.effect(
-			() => this.ctx.electron.pluginFiles.watch(directory, () => this.scheduleRescan()),
+			() =>
+				this.ctx.electron.pluginFiles.watch(directory, (relative) =>
+					this.noteChange('project', relative)
+				),
 			`plugins:watch project ${directory}`
 		);
 		this.projectWatchers.set(sender.id, { directory, stop });
+	}
+
+	/**
+	 * A file of a plugin changed: rescan, and reload the plugin once the burst of events is over
+	 * (after its `build` command, when it has one). Changes a build makes itself are ignored.
+	 */
+	noteChange(source: PluginSourceKind, relativePath: string): void {
+		const [directoryName] = relativePath.split(/[\\/]/);
+		if (directoryName !== '' && source !== 'builtin') {
+			const key = `${source}/${directoryName}`;
+			const quiet = this.buildingUntil.get(key);
+			const ignored = this.building.has(key) || (quiet !== undefined && Date.now() < quiet);
+			if (!ignored) this.changedPlugins.set(key, { source, directoryName });
+		}
+		this.scheduleRescan();
+	}
+
+	private async reloadChanged(): Promise<void> {
+		const changed = [...this.changedPlugins.values()];
+		this.changedPlugins.clear();
+		for (const entry of changed) await this.reloadPlugin(entry.source, entry.directoryName);
+	}
+
+	private async reloadPlugin(source: PluginSourceKind, directoryName: string): Promise<void> {
+		const key = `${source}/${directoryName}`;
+		const targets: { window: WindowHandle; plugin: DiscoveredPlugin }[] = [];
+		for (const window of this.ctx.electron.windows()) {
+			if (window.isDestroyed()) continue;
+			const list = await this.list(window.sender);
+			const plugin = list.plugins.find(
+				(candidate) => candidate.source === source && candidate.directoryName === directoryName
+			);
+			if (plugin !== undefined && plugin.trusted && plugin.manifest !== null) {
+				targets.push({ window, plugin });
+			}
+		}
+		if (targets.length === 0) return;
+		const message: PluginReloadMessage = { source, directoryName };
+		const command = buildCommandOf(targets[0].plugin);
+		if (command !== null) {
+			this.building.add(key);
+			try {
+				message.build = await this.ctx.electron.pluginFiles.runBuild(
+					targets[0].plugin.directory,
+					command
+				);
+			} finally {
+				this.building.delete(key);
+				this.buildingUntil.set(key, Date.now() + BUILD_QUIET_MS);
+			}
+		}
+		for (const target of targets) emitTo(target.window, 'plugins:reload', message);
 	}
 
 	/** Coalesce bursts of file events (an editor saving, a build writing several files). */
@@ -287,7 +365,9 @@ export class PluginDiscoveryService extends Service {
 		this.rescanTimer = this.ctx.effect(() => {
 			const handle = setTimeout(() => {
 				this.rescanTimer = null;
-				this.refreshAll().catch((error: unknown) => this.ctx.logger.error(error));
+				this.refreshAll()
+					.then(() => this.reloadChanged())
+					.catch((error: unknown) => this.ctx.logger.error(error));
 			}, RESCAN_DELAY_MS);
 			return () => clearTimeout(handle);
 		}, 'plugins:rescan');
@@ -335,6 +415,28 @@ export class PluginDiscoveryService extends Service {
 		});
 		if (picked === null || picked.length === 0) return null;
 		return this.install(sender, picked[0]);
+	}
+
+	/** Write a new plugin from a template into the user plugins directory. */
+	async create(
+		sender: SenderHandle,
+		id: string,
+		name: string,
+		template: 'blank' | 'panel' | 'figma'
+	): Promise<PluginList> {
+		if (!isValidPluginId(id)) throw new IpcError('INVALID_PAYLOAD', `"${id}" is not a valid id`);
+		const files = this.ctx.electron.pluginFiles;
+		await files.ensureDirectory(this.userDirectory);
+		if ((await files.listDirectories(this.userDirectory)).includes(id)) {
+			throw new IpcError('HANDLER_FAILED', `a plugin folder named "${id}" already exists`);
+		}
+		const destination = path.join(this.userDirectory, id);
+		for (const [relative, text] of Object.entries(pluginTemplateFiles(template, id, name))) {
+			await files.writeText(path.join(destination, relative), text);
+		}
+		const list = await this.list(sender);
+		this.publish(sender, list);
+		return list;
 	}
 
 	/** Delete a plugin of the user plugins directory (bundled and project plugins are not ours to delete). */
@@ -420,6 +522,9 @@ export const mainPluginsPlugin: Plugin.Object<PluginDiscoveryConfig> = {
 		route(ctx, 'plugins:installFromDialog', (request, event) =>
 			discovery.installFromDialog(event.sender, request.kind)
 		);
+		route(ctx, 'plugins:create', (request, event) =>
+			discovery.create(event.sender, request.id, request.name, request.template)
+		);
 		route(ctx, 'plugins:remove', (request, event) =>
 			discovery.remove(event.sender, request.directoryName)
 		);
@@ -435,12 +540,18 @@ export const mainPluginsPlugin: Plugin.Object<PluginDiscoveryConfig> = {
 			await ctx.electron.pluginFiles.ensureDirectory(discovery.userDirectory);
 			return () => {};
 		}, 'plugins:user directory');
-		const rescan = (): void => discovery.scheduleRescan();
-		for (const [label, directory] of [
-			['bundled', discovery.bundledDirectory],
+		const roots: [PluginSourceKind, string][] = [
+			['builtin', discovery.bundledDirectory],
 			['user', discovery.userDirectory]
-		]) {
-			ctx.effect(() => ctx.electron.pluginFiles.watch(directory, rescan), `plugins:watch ${label}`);
+		];
+		for (const [source, directory] of roots) {
+			ctx.effect(
+				() =>
+					ctx.electron.pluginFiles.watch(directory, (relative) =>
+						discovery.noteChange(source, relative)
+					),
+				`plugins:watch ${source}`
+			);
 		}
 
 		ctx.effect(

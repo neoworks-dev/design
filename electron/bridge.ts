@@ -274,6 +274,14 @@ export interface PluginList {
 	projectTrust: ProjectTrust | null;
 }
 
+/** A plugin's files changed on disk (and its `build` command ran, when it has one). */
+export interface PluginReloadMessage {
+	source: PluginSourceKind;
+	directoryName: string;
+	/** The result of the manifest's `build` command; absent when the plugin has none. */
+	build?: { ok: boolean; output: string };
+}
+
 /** A user's decisions on what plugins may do: by plugin id, permission to granted (true) or denied. */
 export type PluginPermissionDecisions = Record<string, Record<string, boolean>>;
 
@@ -424,6 +432,11 @@ export interface IpcContract {
 	'plugins:install': { payload: { path: string }; result: PluginList };
 	/** Ask for a plugin folder or `.zip` with a native dialog and install it; `null` when cancelled. */
 	'plugins:installFromDialog': { payload: { kind: 'folder' | 'zip' }; result: PluginList | null };
+	/** Write a new plugin from a template into the user plugins directory. */
+	'plugins:create': {
+		payload: { id: string; name: string; template: 'blank' | 'panel' | 'figma' };
+		result: PluginList;
+	};
 	/** Delete an installed plugin of the user plugins directory. */
 	'plugins:remove': { payload: { directoryName: string }; result: PluginList };
 	/** Show a plugin's folder in the OS file manager. */
@@ -466,6 +479,8 @@ export interface IpcEvents {
 	'ai:tool-call': AiToolCallMessage;
 	/** A plugin root changed (added, removed, edited) or the window's project did. */
 	'plugins:changed': PluginList;
+	/** The files of one user or project plugin changed: reload it. */
+	'plugins:reload': PluginReloadMessage;
 }
 export type IpcEventChannel = keyof IpcEvents;
 
@@ -479,7 +494,8 @@ export const EVENT_CHANNELS = [
 	'menu:command',
 	'ai:event',
 	'ai:tool-call',
-	'plugins:changed'
+	'plugins:changed',
+	'plugins:reload'
 ] as const;
 type MissingEventChannels = Exclude<IpcEventChannel, (typeof EVENT_CHANNELS)[number]>;
 export const eventChannelsAreExhaustive: MissingEventChannels extends never ? true : never = true;
@@ -591,6 +607,7 @@ export interface DesktopBridge {
 		setTrust(trusted: boolean): Promise<PluginList>;
 		readFile(source: PluginSourceKind, directoryName: string, file: string): Promise<string>;
 		install(path: string): Promise<PluginList>;
+		create(id: string, name: string, template: 'blank' | 'panel' | 'figma'): Promise<PluginList>;
 		installFromDialog(kind: 'folder' | 'zip'): Promise<PluginList | null>;
 		remove(directoryName: string): Promise<PluginList>;
 		reveal(source: PluginSourceKind, directoryName: string): Promise<void>;

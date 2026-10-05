@@ -19,6 +19,7 @@
 import { Service, type Context, type Fiber, type Plugin } from '@neoworks/extension-system';
 import {
 	PluginConnection,
+	type PluginLogLine,
 	type PluginRun,
 	type RunScope,
 	type WorkerFactory
@@ -125,6 +126,7 @@ interface HostHolder {
 	activations: Map<string, Promise<PluginConnection>>;
 	apis: Map<string, ApiNamespace>;
 	runScopes: Set<RunScope>;
+	logListeners: Set<(connection: PluginConnection, line: PluginLogLine) => void>;
 	eventPermissions: Map<string, PluginPermission>;
 }
 
@@ -158,6 +160,7 @@ export class PluginHostService extends Service {
 		activations: new Map(),
 		apis: new Map(),
 		runScopes: new Set(),
+		logListeners: new Set(),
 		eventPermissions: new Map()
 	};
 
@@ -212,6 +215,14 @@ export class PluginHostService extends Service {
 		this.holder.apis.set(namespace, methods);
 		return () => {
 			if (this.holder.apis.get(namespace) === methods) this.holder.apis.delete(namespace);
+		};
+	}
+
+	/** Hear every line any plugin writes to its console (`design.log`, errors). */
+	onLog(listener: (connection: PluginConnection, line: PluginLogLine) => void): () => void {
+		this.holder.logListeners.add(listener);
+		return () => {
+			this.holder.logListeners.delete(listener);
 		};
 	}
 
@@ -353,6 +364,9 @@ export class PluginHostService extends Service {
 				runTimeoutMs: limits.runTimeoutMs,
 				dispatch: (caller, method, params) => this.dispatch(caller, method, params),
 				runScopes: () => [...this.holder.runScopes],
+				onLog: (caller, line) => {
+					for (const listener of this.holder.logListeners) listener(caller, line);
+				},
 				onFatal: (caller, reason) => this.fail(caller.pluginId, reason)
 			});
 			ctx.effect(() => {
@@ -457,6 +471,7 @@ export class PluginHostService extends Service {
 			running: [...this.holder.connections.keys()].sort(),
 			apis: [...this.holder.apis.keys()].sort(),
 			runScopes: this.holder.runScopes.size,
+			logListeners: this.holder.logListeners.size,
 			eventPermissions: [...this.holder.eventPermissions.keys()].sort()
 		};
 	}

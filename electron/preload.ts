@@ -133,6 +133,7 @@ const bridge: DesktopBridge = {
 		readFile: (source, directoryName, file) =>
 			invoke('plugins:readFile', { source, directoryName, file }),
 		install: (path) => invoke('plugins:install', { path }),
+		create: (id, name, template) => invoke('plugins:create', { id, name, template }),
 		installFromDialog: (kind) => invoke('plugins:installFromDialog', { kind }),
 		remove: (directoryName) => invoke('plugins:remove', { directoryName }),
 		reveal: (source, directoryName) => invoke('plugins:reveal', { source, directoryName }),

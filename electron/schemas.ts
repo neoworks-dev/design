@@ -162,6 +162,11 @@ export const payloadSchemas: PayloadSchemas = {
 		file: z.string().min(1).max(1024)
 	}),
 	'plugins:install': z.strictObject({ path: z.string().min(1).max(4096) }),
+	'plugins:create': z.strictObject({
+		id: pluginIdSchema,
+		name: z.string().min(1).max(100),
+		template: z.enum(['blank', 'panel', 'figma'])
+	}),
 	'plugins:installFromDialog': z.strictObject({ kind: z.enum(['folder', 'zip']) }),
 	'plugins:remove': z.strictObject({ directoryName: z.string().min(1).max(255) }),
 	'plugins:reveal': z.strictObject({

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { deflateRawSync } from 'node:zlib';
@@ -164,5 +164,91 @@ describe('zip extraction', () => {
 		expect(() => readZip(buildZip([{ name: '../evil.js', text: '' }]))).toThrow(ZipError);
 		expect(() => readZip(buildZip([{ name: '/etc/passwd', text: '' }]))).toThrow(/unsafe path/);
 		expect(() => readZip(new Uint8Array(100))).toThrow(/not a zip/);
+	});
+});
+
+function reloadsOf(kernel: TestKernel): { directoryName: string; build?: { ok: boolean } }[] {
+	return kernel.host.openWindows[0].sent
+		.filter((message) => message.channel === 'plugins:reload')
+		.map((message) => message.payload as { directoryName: string; build?: { ok: boolean } });
+}
+
+function waitForWatchers(): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, 400));
+}
+
+describe('plugin development', () => {
+	it('tells the window to reload a plugin whose files changed', async () => {
+		const kernel = await boot();
+		kernel.host.setPluginFile(`${userRoot()}/tidy/manifest.json`, manifest);
+		await call(kernel, 'plugins:list');
+		kernel.host.setPluginFile(`${userRoot()}/tidy/main.js`, 'design.log.info("v2")');
+		await waitForWatchers();
+		expect(reloadsOf(kernel)).toEqual([{ source: 'user', directoryName: 'tidy' }]);
+		expect(kernel.host.builds).toEqual([]);
+	});
+
+	it('runs the manifest build command first and ignores the files the build writes', async () => {
+		const kernel = await boot();
+		const withBuild = JSON.stringify({
+			id: 'tidy',
+			name: 'Tidy',
+			version: '1.0.0',
+			build: 'bun run build'
+		});
+		kernel.host.setPluginFile(`${userRoot()}/tidy/manifest.json`, withBuild);
+		await call(kernel, 'plugins:list');
+		kernel.host.buildResult = { ok: false, output: 'src/main.ts(3,1): error TS2304' };
+		kernel.host.setPluginFile(`${userRoot()}/tidy/src/main.ts`, 'broken');
+		await waitForWatchers();
+		expect(kernel.host.builds).toEqual([
+			{ directory: `${userRoot()}/tidy`, command: 'bun run build' }
+		]);
+		expect(reloadsOf(kernel)).toEqual([
+			{
+				source: 'user',
+				directoryName: 'tidy',
+				build: { ok: false, output: 'src/main.ts(3,1): error TS2304' }
+			}
+		]);
+		kernel.host.setPluginFile(`${userRoot()}/tidy/main.js`, 'the build output');
+		await waitForWatchers();
+		expect(kernel.host.builds).toHaveLength(1);
+		expect(reloadsOf(kernel)).toHaveLength(1);
+	});
+
+	it('does not build or reload plugins of an untrusted project', async () => {
+		const kernel = await boot();
+		kernel.host.messageBoxResult = 1;
+		const project = path.join(directory, 'project');
+		const withBuild = JSON.stringify({
+			id: 'evil',
+			name: 'Evil',
+			version: '1.0.0',
+			build: 'rm -rf ~'
+		});
+		kernel.host.setPluginFile(`${project}/.design/plugins/evil/manifest.json`, withBuild);
+		mkdirSync(project, { recursive: true });
+		const created = (await kernel.host.invoke('store:create', {
+			path: path.join(project, 'a.ndesign')
+		})) as IpcResult<unknown>;
+		expect(created.ok).toBe(true);
+		await waitForWatchers();
+		kernel.host.setPluginFile(`${project}/.design/plugins/evil/main.js`, 'x');
+		await waitForWatchers();
+		expect(kernel.host.builds).toEqual([]);
+		expect(reloadsOf(kernel)).toEqual([]);
+	});
+
+	it('creates a plugin from a template and refuses to overwrite one', async () => {
+		const kernel = await boot();
+		const request = { id: 'my-tool', name: 'My Tool', template: 'panel' };
+		const created = await call(kernel, 'plugins:create', request);
+		expect(userNames(created)).toEqual(['my-tool']);
+		expect(kernel.host.pluginTree.get(`${userRoot()}/my-tool/main.js`)).toContain('my-tool.panel');
+		const again = await call(kernel, 'plugins:create', request);
+		expect(again.ok).toBe(false);
+		const invalid = await call(kernel, 'plugins:create', { ...request, id: 'Bad Id' });
+		expect(invalid.ok).toBe(false);
 	});
 });

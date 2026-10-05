@@ -82,6 +82,7 @@ import overlay from './overlay';
 import paintShaders from './paint-shaders';
 import pixelGrid from './pixel-grid';
 import pluginApi from './plugin-api';
+import pluginDevtools from './plugin-devtools';
 import pluginFigmaCompat from './plugin-figma-compat';
 import pluginHost from './plugin-host';
 import pluginManager from './plugin-manager';
@@ -275,5 +276,6 @@ export const builtinPlugins: Plugin[] = [
 	pluginStorage,
 	pluginFigmaCompat,
 	pluginManager,
+	pluginDevtools,
 	pluginUi
 ];

@@ -15,6 +15,7 @@ import {
 	screen,
 	shell
 } from 'electron';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ClipboardContent, ClipboardWrite } from '../bridge';
@@ -60,7 +61,9 @@ function createPluginFilesHost(): ElectronHost['pluginFiles'] {
 		},
 		watch: (directory, onChange) => {
 			try {
-				const watcher = fs.watch(directory, { recursive: true }, () => onChange());
+				const watcher = fs.watch(directory, { recursive: true }, (_event, name) => {
+					if (name !== null) onChange(String(name));
+				});
 				watcher.on('error', () => watcher.close());
 				return () => watcher.close();
 			} catch {
@@ -83,7 +86,22 @@ function createPluginFilesHost(): ElectronHost['pluginFiles'] {
 		},
 		remove: async (directory) => {
 			await fs.promises.rm(directory, { recursive: true, force: true });
-		}
+		},
+		writeText: async (file, text) => {
+			await fs.promises.mkdir(path.dirname(file), { recursive: true });
+			await fs.promises.writeFile(file, text);
+		},
+		runBuild: (directory, command) =>
+			new Promise((resolve) => {
+				execFile(
+					'/bin/sh',
+					['-c', command],
+					{ cwd: directory, timeout: 60_000, maxBuffer: 1024 * 1024 },
+					(error, stdout, stderr) => {
+						resolve({ ok: error === null, output: `${stdout}${stderr}`.trim() });
+					}
+				);
+			})
 	};
 }
 

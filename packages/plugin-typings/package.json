@@ -1,0 +1,12 @@
+{
+	"name": "@neoworks/plugin-typings",
+	"version": "0.1.0",
+	"description": "TypeScript typings for the design plugin API (the `design` global) and the manifest schema.",
+	"types": "index.d.ts",
+	"files": [
+		"index.d.ts",
+		"types",
+		"manifest.schema.json"
+	],
+	"license": "UNLICENSED"
+}

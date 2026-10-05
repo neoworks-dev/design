@@ -380,7 +380,13 @@ export class FakeHost implements ElectronHost {
 	/** Plugin files by absolute path (directories are implied); tests edit them with `setPluginFile`. */
 	readonly pluginTree = new Map<string, string>();
 	readonly pluginDirectories = new Set<string>();
-	readonly pluginWatchers = new Set<{ directory: string; onChange: () => void }>();
+	readonly pluginWatchers = new Set<{
+		directory: string;
+		onChange: (relativePath: string) => void;
+	}>();
+	/** Builds `runBuild` was asked for, and what it answers (tests set `buildResult`). */
+	readonly builds: { directory: string; command: string }[] = [];
+	buildResult: { ok: boolean; output: string } = { ok: true, output: 'built' };
 
 	readonly pluginFiles: ElectronHost['pluginFiles'] = {
 		listDirectories: (directory) => {
@@ -405,6 +411,14 @@ export class FakeHost implements ElectronHost {
 			return () => {
 				this.pluginWatchers.delete(watcher);
 			};
+		},
+		writeText: (file, text) => {
+			this.setPluginFile(file, text);
+			return Promise.resolve();
+		},
+		runBuild: (directory, command) => {
+			this.builds.push({ directory, command });
+			return Promise.resolve(this.buildResult);
 		},
 		install: (source, destination) => {
 			const files = this.installable(source);
@@ -447,7 +461,9 @@ export class FakeHost implements ElectronHost {
 		if (text === undefined) this.pluginTree.delete(file);
 		else this.pluginTree.set(file, text);
 		for (const watcher of Array.from(this.pluginWatchers)) {
-			if (file.startsWith(`${watcher.directory}/`)) watcher.onChange();
+			if (file.startsWith(`${watcher.directory}/`)) {
+				watcher.onChange(file.slice(watcher.directory.length + 1));
+			}
 		}
 	}
 
