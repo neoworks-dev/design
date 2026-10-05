@@ -260,7 +260,9 @@ function assertInstancesValid(store: DocumentStore, touchedNodes: Set<NodeId>): 
 	for (const instance of instancesAmong(store, touchedNodes)) {
 		if (instance.type !== 'INSTANCE') continue;
 		const main = store.getNode(instance.mainComponentId);
-		if (!main || main.type !== 'COMPONENT') {
+		// A deleted main leaves its instances behind: they can restore it (planRestoreMain).
+		if (!main) continue;
+		if (main.type !== 'COMPONENT') {
 			throw new InvalidChangeError(
 				`instance ${instance.id} refers to ${instance.mainComponentId}, which is not a component`,
 				-1

@@ -5,6 +5,7 @@ import type { Plugin } from '@neoworks/extension-system';
 import assetsStore from './assets-store';
 import canvasInput from './canvas-input';
 import canvaskit from './canvaskit';
+import componentSync from './component-sync';
 import coreCommands from './core-commands';
 import coreContextKeys from './core-context-keys';
 import coreKeymap from './core-keymap';
@@ -114,6 +115,7 @@ export const builtinPlugins: Plugin[] = [
 	textEdit,
 	textFormat,
 	documentPlugin,
+	componentSync,
 	documentScene,
 	selection,
 	spatial,
