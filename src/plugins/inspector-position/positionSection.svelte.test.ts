@@ -26,7 +26,7 @@ async function open(): Promise<PanelHarness> {
 describe('position section', () => {
 	it('shows with a selection only', async () => {
 		const panel = await open();
-		expect(panel.sectionIds()).toEqual(['design/page']);
+		expect(panel.sectionIds()).toEqual([]);
 		panel.select(['a']);
 		expect(panel.sectionIds()).toEqual(['design/position']);
 	});
