@@ -98,6 +98,7 @@ export class TextEditService extends Service {
 	private lastKind: EditKind | null = null;
 	private stickyX: number | null = null;
 	private applying = false;
+	private input: { focus(options?: FocusOptions): void } | null = null;
 
 	constructor(
 		ctx: Context,
@@ -203,6 +204,21 @@ export class TextEditService extends Service {
 			return collapsedAt(position);
 		}
 		return collapsedAt(documentEnd(node.paragraphs));
+	}
+
+	/** The layer registers its hidden input so other plugins can give the focus back to it. */
+	attachInput(element: { focus(options?: FocusOptions): void } | null): void {
+		this.input = element;
+	}
+
+	focusInput(): void {
+		this.input?.focus({ preventScroll: true });
+	}
+
+	/** The style delta pending at a collapsed caret (formatting without a selection). */
+	setTypingStyle(style: Partial<TextStyle> | null): void {
+		this.state.typingStyle = style;
+		this.state.activity += 1;
 	}
 
 	// ---------- selection ----------

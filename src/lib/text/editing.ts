@@ -252,8 +252,8 @@ function afterInsert(paragraphs: Paragraph[], start: TextPosition, text: string)
 
 /**
  * Replace the selection with `text` (line breaks start paragraphs). `typingStyle` is the style
- * delta pending on a collapsed caret (Ctrl+B with nothing selected); it sits on top of the style
- * of the surrounding run.
+ * delta pending on a collapsed caret (Ctrl+B with nothing selected); it is the complete style of
+ * the new text, built from the caret's own style plus the change.
  */
 export function replaceSelection(
 	paragraphs: Paragraph[],
@@ -263,7 +263,8 @@ export function replaceSelection(
 ): EditResult {
 	const range = selectionRange(selection);
 	const removed = isCollapsed(selection) ? paragraphs : deleteRange(paragraphs, range);
-	const style = { ...styleOfFirstSelected(paragraphs, selection), ...typingStyle };
+	const style =
+		typingStyle === undefined ? styleOfFirstSelected(paragraphs, selection) : typingStyle;
 	const result = insertText(removed, range.start, text, style);
 	return { paragraphs: result, selection: collapsedAt(afterInsert(result, range.start, text)) };
 }

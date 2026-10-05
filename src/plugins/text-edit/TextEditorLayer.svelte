@@ -96,7 +96,10 @@
 	const geometry = $derived(measure());
 
 	$effect(() => {
-		if (input) input.focus({ preventScroll: true });
+		if (!input) return;
+		input.focus({ preventScroll: true });
+		edit.attachInput(input);
+		return () => edit.attachInput(null);
 	});
 
 	// ---------- the hidden input ----------

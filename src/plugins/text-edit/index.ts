@@ -7,7 +7,7 @@ import TextEditorLayer from './TextEditorLayer.svelte';
 import { TextEditService, type MoveRequest, type MoveUnit } from './service';
 import { TextEditState } from './state.svelte';
 
-const EDITING = 'textEditing && !textComposing';
+const EDITING = 'textEditing && !textComposing && !textEditSuspended';
 
 interface MoveBinding {
 	key: string;
@@ -66,7 +66,8 @@ function bind(ctx: Context, key: string, command: string, args?: unknown): void 
 // while it runs, and the visible layer (caret, selection, IME underline and the hidden input) in
 // the `canvas-overlay` region. Other plugins start editing with the `text.edit` command:
 // `{ id, point?, selectAll? }` (the move tool on double click, Enter on a selected text), and
-// react to the kernel event `text-edit/stopped`. The layer is plain DOM until an overlay service
+// react to the kernel event `text-edit/stopped`. A plugin that puts its own field on screen while
+// editing (the link prompt) sets the context key `textEditSuspended`, which mutes the editing keys. The layer is plain DOM until an overlay service
 // exists to draw it.
 export default {
 	name: 'text-edit',
@@ -204,7 +205,7 @@ export default {
 				ctx.commands.register({
 					id: 'text.exit',
 					title: 'Stop editing text',
-					when: 'textEditing',
+					when: 'textEditing && !textEditSuspended',
 					run: () => edit.stop('escape')
 				}),
 			'command text.exit'
@@ -215,7 +216,7 @@ export default {
 					key: 'Escape',
 					command: 'text.exit',
 					scope: 'text-edit',
-					when: 'textEditing'
+					when: 'textEditing && !textEditSuspended'
 				}),
 			'keymap text.exit'
 		);

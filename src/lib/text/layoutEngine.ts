@@ -458,7 +458,8 @@ export class TextLayoutEngine {
 	): { skia: SkiaParagraph; x: number } {
 		const text = this.markerText(plan, listNumber);
 		const firstStep = plan.steps.find((step) => step.op === 'pushStyle');
-		const style = firstStep && firstStep.op === 'pushStyle' ? firstStep.style : node.defaultStyle;
+		const first = firstStep && firstStep.op === 'pushStyle' ? firstStep.style : node.defaultStyle;
+		const style: TextStyle = { ...first, textDecoration: 'NONE', hyperlink: undefined };
 		const builder = this.tracker.track(
 			this.kit.ParagraphBuilder.MakeFromFontProvider(
 				new this.kit.ParagraphStyle({ textAlign: this.kit.TextAlign.Left, textStyle: {} }),

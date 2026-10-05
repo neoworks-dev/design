@@ -72,7 +72,7 @@ describe('typing', () => {
 		]);
 	});
 
-	it('a typing style on a collapsed caret goes on top of the surrounding run', () => {
+	it('a typing style is the style of the text typed at a collapsed caret', () => {
 		const result = replaceSelection([paragraphOf('ab')], at(0, 1), 'X', BOLD);
 		expect(result.paragraphs[0].runs.map((run) => [run.text, run.style])).toEqual([
 			['a', {}],

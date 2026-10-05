@@ -341,7 +341,7 @@ export function joinParagraphs(paragraphs: Paragraph[], index: number): Paragrap
 	return deleteRange(paragraphs, { start: joinedAt, end: { paragraph: index + 1, offset: 0 } });
 }
 
-function mapStyleInRange(
+export function mapStyleInRange(
 	paragraphs: Paragraph[],
 	range: TextRange,
 	change: (style: Partial<TextStyle>) => Partial<TextStyle>

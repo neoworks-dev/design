@@ -34,6 +34,7 @@ import placeholderShell from './placeholder-shell';
 import renderer from './renderer';
 import sceneFixture from './scene-fixture';
 import textEdit from './text-edit';
+import textFormat from './text-format';
 import textLayout from './text-layout';
 import toolText from './tool-text';
 import titlebar from './titlebar';
@@ -63,6 +64,7 @@ export const builtinPlugins: Plugin[] = [
 	paintShaders,
 	textLayout,
 	textEdit,
+	textFormat,
 	documentPlugin,
 	documentScene,
 	selection,
