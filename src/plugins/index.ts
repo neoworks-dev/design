@@ -25,6 +25,7 @@ import appMenu from './app-menu';
 import boolean from './boolean';
 import clipboard from './clipboard';
 import colorPicker from './color-picker';
+import comments from './comments';
 import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
@@ -119,6 +120,7 @@ export const builtinPlugins: Plugin[] = [
 	documentScene,
 	selection,
 	spatial,
+	comments,
 	headlessRenderer,
 	hitTest,
 	snapping,

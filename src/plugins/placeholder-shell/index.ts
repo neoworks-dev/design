@@ -2,7 +2,6 @@ import type { Context } from '@neoworks/extension-system';
 import type { PanelTabContribution } from '../../lib/registries/panels.svelte';
 import type { ToolContribution } from '../../lib/registries/tools.svelte';
 import PlaceholderText from './PlaceholderText.svelte';
-import ChatCircleIcon from 'phosphor-svelte/lib/ChatCircleIcon';
 import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 
 // Stand-in content for the workbench regions until the real plugins (layers panel, property
@@ -74,14 +73,6 @@ export default {
 				group: 'create',
 				order: 12,
 				cursor: 'crosshair'
-			},
-			{
-				id: 'comment',
-				title: 'Comment',
-				icon: ChatCircleIcon,
-				shortcut: 'C',
-				group: 'view',
-				order: 21
 			}
 		];
 		for (const tool of tools) {
