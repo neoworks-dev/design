@@ -3,6 +3,7 @@ import type { NodeId } from '../../lib/document/types';
 import type { Size } from '../../lib/kernel/types';
 import type { SurfaceResetReason } from '../../lib/renderer/surface';
 import { FrameScheduler, type FrameDriver } from '../../lib/renderer/frameScheduler';
+import { PanSettle } from '../../lib/renderer/panSettle';
 import { DrawHookRegistry, type DrawHooks } from '../../lib/renderer/draw/hooks';
 import type { SceneChange, SceneSource } from '../../lib/renderer/sceneSource';
 import {
@@ -65,6 +66,7 @@ export class RendererService extends Service implements Renderer {
 	private shownPageId: NodeId | null = null;
 	private culling: SceneCulling | undefined;
 	private pixelPreviewOn = false;
+	private readonly panSettle = new PanSettle(() => this.requestFrame('pan-settled'));
 	/** What the backend draws with; features add their part through `registerDrawHooks`. */
 	readonly drawHooks = new DrawHookRegistry();
 
@@ -232,6 +234,7 @@ export class RendererService extends Service implements Renderer {
 	/** Cancels the pending animation frame; the plugin calls it on unload. */
 	stop(): void {
 		this.scheduler.stop();
+		this.panSettle.cancel();
 	}
 
 	snapshotState(): { source: boolean; canvas: boolean; framePending: boolean } {
@@ -269,12 +272,14 @@ export class RendererService extends Service implements Renderer {
 				pixelPreview: this.pixelPreviewOn,
 				view: this.viewProvider(),
 				size: target.size,
-				devicePixelRatio: target.devicePixelRatio
+				devicePixelRatio: target.devicePixelRatio,
+				panOnly: isPanOnly(reasons)
 			});
 		} catch (error) {
 			this.ctx.logger.error(error);
 		}
 		this.recordFrame(reasons, result, performance.now() - started);
+		this.panSettle.afterFrame(result.approximate === true);
 	}
 
 	private recordFrame(reasons: string[], result: FrameResult, milliseconds: number): void {
@@ -286,4 +291,10 @@ export class RendererService extends Service implements Renderer {
 		stats.lastReasons = reasons;
 		stats.lastResult = result;
 	}
+}
+
+/** Only the camera moved since the last frame (a zoom also changes the scale, which the backend checks). */
+function isPanOnly(reasons: readonly string[]): boolean {
+	if (reasons.length === 0) return false;
+	return reasons.every((reason) => reason === 'viewport');
 }

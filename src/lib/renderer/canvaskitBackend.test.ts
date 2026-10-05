@@ -163,3 +163,90 @@ describe('pixel preview', () => {
 		expect(tracker.liveCount).toBe(1);
 	});
 });
+
+describe('pan snapshot', () => {
+	function allPixels(surface: RenderSurface): number[] {
+		return [...surface.readPixels({ x: 0, y: 0, width: 120, height: 120 })];
+	}
+
+	function renderPair(view: { x: number; y: number; scale: number }): {
+		shifted: number[];
+		direct: number[];
+		fromSnapshot: boolean | undefined;
+	} {
+		const tracker = new SkiaTracker();
+		const source = sceneSource();
+		const size = { width: 120, height: 120 };
+		const panned = RenderSurface.offscreen(canvasKit, tracker, 120, 120);
+		const panning = new CanvasKitBackend(canvasKit, tracker, panned);
+		panning.render({ source, view: { x: 0, y: 0, scale: 1 }, size, devicePixelRatio: 1 });
+		panning.render({
+			source,
+			view: { x: 2, y: 3, scale: 1 },
+			size,
+			devicePixelRatio: 1,
+			panOnly: true
+		});
+		const result = panning.render({ source, view, size, devicePixelRatio: 1, panOnly: true });
+		const fresh = RenderSurface.offscreen(canvasKit, tracker, 120, 120);
+		const direct = new CanvasKitBackend(canvasKit, tracker, fresh);
+		direct.render({ source, view, size, devicePixelRatio: 1 });
+		const pixels = {
+			shifted: allPixels(panned),
+			direct: allPixels(fresh),
+			fromSnapshot: result.fromSnapshot
+		};
+		panning.dispose();
+		direct.dispose();
+		expect(tracker.liveCount).toBe(0);
+		return pixels;
+	}
+
+	it('pans by shifting the snapshot, pixel-identical to drawing the scene', () => {
+		const pair = renderPair({ x: 17, y: -11, scale: 1 });
+		expect(pair.fromSnapshot).toBe(true);
+		expect(pair.shifted).toEqual(pair.direct);
+	});
+
+	it('takes a new snapshot when the pan leaves the old one', () => {
+		const pair = renderPair({ x: 200, y: 0, scale: 1 });
+		expect(pair.fromSnapshot).toBe(true);
+		expect(pair.shifted).toEqual(pair.direct);
+	});
+
+	it('draws for real while zooming', () => {
+		const pair = renderPair({ x: 17, y: -11, scale: 2 });
+		expect(pair.fromSnapshot).toBeUndefined();
+		expect(pair.shifted).toEqual(pair.direct);
+	});
+
+	it('drops the snapshot on any frame that is not a pure pan', () => {
+		const tracker = new SkiaTracker();
+		const source = sceneSource();
+		const size = { width: 120, height: 120 };
+		const surface = RenderSurface.offscreen(canvasKit, tracker, 120, 120);
+		const backend = new CanvasKitBackend(canvasKit, tracker, surface);
+		backend.render({ source, view: { x: 0, y: 0, scale: 1 }, size, devicePixelRatio: 1 });
+		backend.render({
+			source,
+			view: { x: 1, y: 0, scale: 1 },
+			size,
+			devicePixelRatio: 1,
+			panOnly: true
+		});
+		const live = tracker.liveCount;
+		backend.render({ source, view: { x: 5, y: 0, scale: 1 }, size, devicePixelRatio: 1 });
+		expect(tracker.liveCount).toBeLessThan(live);
+		const after = backend.render({
+			source,
+			view: { x: 6, y: 0, scale: 1 },
+			size,
+			devicePixelRatio: 1,
+			panOnly: true
+		});
+		expect(after.fromSnapshot).toBe(true);
+		backend.invalidate('everything');
+		backend.dispose();
+		expect(tracker.liveCount).toBe(0);
+	});
+});

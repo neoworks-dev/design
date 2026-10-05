@@ -37,6 +37,11 @@ export interface FrameRequest {
 	/** Canvas size in CSS pixels. */
 	size: Size;
 	devicePixelRatio: number;
+	/**
+	 * Nothing but the camera's position changed since the last frame: the backend may shift an
+	 * earlier rendering instead of drawing the scene (see panSnapshot.ts).
+	 */
+	panOnly?: boolean;
 }
 
 export interface FrameResult {
@@ -49,6 +54,10 @@ export interface FrameResult {
 	/** Picture caches: containers replayed from a recording and containers recorded this frame. */
 	picturesReplayed?: number;
 	picturesRecorded?: number;
+	/** The frame is a shifted snapshot rather than a real rendering. */
+	fromSnapshot?: boolean;
+	/** The snapshot was shifted by a rounded amount: draw for real once the camera rests. */
+	approximate?: boolean;
 }
 
 export interface RenderBackend {
