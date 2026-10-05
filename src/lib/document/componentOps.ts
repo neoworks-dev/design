@@ -276,6 +276,25 @@ function propertyDefaultsFor(reader: DocumentReader, node: Node): Record<string,
 	return { componentProperties: reset };
 }
 
+function planResetNode(
+	reader: DocumentReader,
+	node: Node,
+	only: readonly TouchedGroup[] | undefined
+): Change[] {
+	const counterpart = counterpartOf(reader, node);
+	if (counterpart === undefined) return [];
+	const touched = touchedOf(node);
+	const groups = only === undefined ? touched : touched.filter((group) => only.includes(group));
+	const props: Record<string, unknown> = {};
+	if (only === undefined) Object.assign(props, propertyDefaultsFor(reader, node));
+	if (groups.length > 0) {
+		Object.assign(props, groupProps(counterpart, node, groups));
+		props.boundVariables = boundVariablesAfter(counterpart, node, groups);
+		props.touched = touched.filter((group) => !groups.includes(group));
+	}
+	return planSetProps(reader, node.id, props);
+}
+
 /**
  * Clear the overrides of `ids` and everything below them: each touched group takes the value of
  * the counterpart again. An instance root also gets its component properties back to defaults.
@@ -283,16 +302,21 @@ function propertyDefaultsFor(reader: DocumentReader, node: Node): Record<string,
 export function planResetOverrides(reader: DocumentReader, ids: readonly NodeId[]): Change[] {
 	const changes: Change[] = [];
 	for (const node of overriddenNodes(reader, ids)) {
-		const counterpart = counterpartOf(reader, node);
-		if (counterpart === undefined) continue;
-		const groups = touchedOf(node);
-		const props: Record<string, unknown> = { ...propertyDefaultsFor(reader, node) };
-		if (groups.length > 0) {
-			Object.assign(props, groupProps(counterpart, node, groups));
-			props.boundVariables = boundVariablesAfter(counterpart, node, groups);
-			props.touched = [];
-		}
-		changes.push(...planSetProps(reader, node.id, props));
+		changes.push(...planResetNode(reader, node, undefined));
+	}
+	return changes;
+}
+
+/** Reset only `groups` on the nodes `ids` themselves (not their descendants). */
+export function planResetGroups(
+	reader: DocumentReader,
+	ids: readonly NodeId[],
+	groups: readonly TouchedGroup[]
+): Change[] {
+	const changes: Change[] = [];
+	for (const id of ids) {
+		const node = reader.getNode(id);
+		if (node !== undefined) changes.push(...planResetNode(reader, node, groups));
 	}
 	return changes;
 }

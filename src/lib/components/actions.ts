@@ -7,10 +7,12 @@ import {
 	planCreateInstance,
 	planDetach,
 	planPushOverrides,
+	planResetGroups,
 	planResetOverrides,
 	planRestoreMain,
 	type Change,
-	type NodeId
+	type NodeId,
+	type TouchedGroup
 } from '../document';
 import { applyEdit } from '../editing/contribute';
 import { planCreateComponents } from '../editing/componentEdit';
@@ -78,6 +80,12 @@ function instanceIds(ctx: Context): NodeId[] {
 
 export function resetOverrides(ctx: Context, ids: readonly NodeId[] = ctx.selection.ids): void {
 	applyEdit(ctx, planResetOverrides(ctx.document.reader, ids), 'Reset overrides');
+}
+
+/** Reset some groups on the selected layers only. */
+export function resetGroups(ctx: Context, groups: readonly TouchedGroup[]): void {
+	const changes = planResetGroups(ctx.document.reader, ctx.selection.ids, groups);
+	applyEdit(ctx, changes, 'Reset override');
 }
 
 /** Reset every override of the instances the selection is in. */

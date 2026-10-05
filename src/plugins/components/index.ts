@@ -3,7 +3,10 @@ import {
 	createComponent,
 	createInstances,
 	detachInstances,
-	goToMain
+	goToMain,
+	pushOverrides,
+	resetOverrides,
+	restoreMainComponent
 } from '../../lib/components/actions';
 import { publishComponentContextKeys } from '../../lib/components/contextKeys';
 import { drawComponentLabels, LabelIndex, trackComponentLabels } from '../../lib/components/labels';
@@ -33,7 +36,8 @@ export default {
 		'contextKeys',
 		'inspectors',
 		'overlay',
-		'viewport'
+		'viewport',
+		'panels'
 	],
 	apply(ctx: Context): void {
 		publishComponentContextKeys(ctx);
@@ -107,6 +111,33 @@ export default {
 			when: 'selectionHasInstance',
 			run: () => goToMain(ctx),
 			menus: placements(3)
+		});
+		contributeCommand(ctx, {
+			id: 'components.reset-overrides',
+			title: 'Reset overrides',
+			when: 'selectionHasOverrides',
+			run: () => resetOverrides(ctx),
+			menus: placements(4)
+		});
+		contributeCommand(ctx, {
+			id: 'components.push-overrides',
+			title: 'Push overrides to main component',
+			when: 'selectionHasOverrides',
+			run: () => pushOverrides(ctx),
+			menus: placements(5)
+		});
+		contributeCommand(ctx, {
+			id: 'components.restore-main',
+			title: 'Restore main component',
+			when: 'selectionHasOrphan',
+			run: () => restoreMainComponent(ctx),
+			menus: placements(6)
+		});
+		contributeCommand(ctx, {
+			id: 'components.compare-with-main',
+			title: 'Compare with main component',
+			when: 'selectionHasInstance',
+			run: () => ctx.panels.activateTab('inspect')
 		});
 	}
 };

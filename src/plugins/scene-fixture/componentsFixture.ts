@@ -3,6 +3,7 @@
 // node specs; the instances are built by the sync engine itself, so the fixture exercises it.
 
 import {
+	applyChanges,
 	applyWithComponentSync,
 	DocumentStore,
 	planCreateInstance,
@@ -230,7 +231,8 @@ function instanceAt(
 		transform: translation(x, y)
 	});
 	applyWithComponentSync(store, plan.changes);
-	applyWithComponentSync(store, planSetProps(store, plan.rootId, { name }));
+	// A plain rename, not an override: the instance should start without any touched group.
+	applyChanges(store, planSetProps(store, plan.rootId, { name }));
 }
 
 function copyOf(store: DocumentStore, instanceId: string, ref: string): string {

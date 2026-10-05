@@ -29,6 +29,9 @@ describePlugin('components', components, {
 		expect(menuItems).toContain('context/canvas|components.detach');
 		expect(menuItems).toContain('context/layer|components.detach');
 		expect(menuItems).toContain('context/canvas|components.go-to-main');
+		for (const command of ['reset-overrides', 'push-overrides', 'restore-main']) {
+			expect(menuItems).toContain(`context/layer|components.${command}`);
+		}
 		expect(menuItems).toContain('context/layer|components.go-to-main');
 	}
 });
