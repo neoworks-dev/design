@@ -2,13 +2,15 @@
 // to the outline, stroke extents and the render-bounds outset. Pure; used by the hit tester and
 // by the spatial index.
 //
-// Exact today: rectangles and frames (per-corner radii), ellipses, lines. Everything else
-// (polygon, star, vector, text, boolean operation, slice) answers with its bounding box until its
-// geometry exists (vector networks, text layout): see `geometryKind`.
+// Exact today: rectangles and frames (per-corner radii), ellipses, lines and vector networks. Everything else
+// (polygon, star, text, boolean operation, slice) answers with its bounding box until its
+// geometry exists (text layout, boolean results): see `geometryKind`.
 
+import { expandCornerRadii } from '../vector/cornerRadius';
+import { networkSignedDistance } from '../vector/geometry';
 import type { Effect, Node, Stroke, StrokeWeights } from './types';
 
-export type GeometryKind = 'rounded-rect' | 'ellipse' | 'line' | 'box' | 'none';
+export type GeometryKind = 'rounded-rect' | 'ellipse' | 'line' | 'vector' | 'box' | 'none';
 
 export function geometryKind(node: Node): GeometryKind {
 	switch (node.type) {
@@ -23,6 +25,8 @@ export function geometryKind(node: Node): GeometryKind {
 			return 'ellipse';
 		case 'LINE':
 			return 'line';
+		case 'VECTOR':
+			return 'vector';
 		case 'PAGE':
 		case 'GROUP':
 			return 'none';
@@ -159,6 +163,9 @@ export function signedDistance(node: Node, localX: number, localY: number): numb
 			return ellipseDistance(width, height, localX, localY);
 		case 'line':
 			return segmentDistance(width, localX, localY);
+		case 'vector':
+			if (node.type !== 'VECTOR') return undefined;
+			return networkSignedDistance(expandCornerRadii(node.network), { x: localX, y: localY });
 		case 'box':
 			return roundedRectDistance([0, 0, 0, 0], width, height, localX, localY);
 		case 'none':

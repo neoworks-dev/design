@@ -44,6 +44,7 @@ import viewTools from './view-tools';
 import toolMove from './tool-move';
 import toolShapes from './tool-shapes';
 import toolFrame from './tool-frame';
+import toolPen from './tool-pen';
 import workbenchLayout from './workbench-layout';
 import grouping from './grouping';
 import mask from './mask';
@@ -92,6 +93,7 @@ export const builtinPlugins: Plugin[] = [
 	transformHandles,
 	toolShapes,
 	toolFrame,
+	toolPen,
 	workbenchLayout,
 	titlebar,
 	placeholderShell,

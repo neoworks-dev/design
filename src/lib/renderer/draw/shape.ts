@@ -4,7 +4,7 @@
 import type { Path } from 'canvaskit-wasm';
 import { cornerRadiiOf, nodeOutline, type CornerRadii, type Outline } from '../../document/outline';
 import type { Size } from '../../kernel/types';
-import type { SceneNode } from '../../document/types';
+import type { Paint, SceneNode } from '../../document/types';
 import type { DrawContext } from './context';
 import { skiaPath } from './skiaPath';
 
@@ -22,6 +22,8 @@ export interface NodeShape {
 	/** Null when the shape cannot be filled (a line, an open vector). */
 	fillPath: Path | null;
 	strokePath: Path;
+	/** Vector regions painted with fills of their own instead of the node's. */
+	regionFills: { path: Path; fills: Paint[] }[];
 	rectangle: RectangleGeometry | null;
 }
 
@@ -36,11 +38,16 @@ export function buildNodeShape(context: DrawContext, node: SceneNode): NodeShape
 		strokePath = skiaPath(context, outline.stroke, fillRule);
 	}
 	if (strokePath === null) return null;
+	const regionFills = (outline.regionFills ?? []).map((region) => ({
+		path: skiaPath(context, region.commands, region.fillRule),
+		fills: region.fills
+	}));
 	return {
 		outline,
 		size: { width: node.width, height: node.height },
 		fillPath,
 		strokePath,
+		regionFills,
 		rectangle: rectangleGeometry(node)
 	};
 }

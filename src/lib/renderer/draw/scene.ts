@@ -108,6 +108,9 @@ function drawOwnContent(context: DrawContext, node: SceneNode, shape: NodeShape)
 	context.hooks.drawEffectsBehind(context, node, shape);
 	let drawn = 0;
 	if (shape.fillPath) drawn += drawFills(context, node.fills, shape.fillPath, shape.size);
+	for (const region of shape.regionFills) {
+		drawn += drawFills(context, region.fills, region.path, shape.size);
+	}
 	context.hooks.drawEffectsInside(context, node, shape);
 	drawn += drawStrokes(context, node.strokes, shape);
 	if (drawn > 0) context.counters.drawnNodes += 1;
