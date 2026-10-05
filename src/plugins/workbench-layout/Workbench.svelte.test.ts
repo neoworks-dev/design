@@ -6,6 +6,7 @@ import coreCommands from '../core-commands';
 import coreContextKeys from '../core-context-keys';
 import coreKeymap from '../core-keymap';
 import coreMenus from '../core-menus';
+import coreInspectors from '../core-inspectors';
 import corePanels from '../core-panels';
 import coreRegions from '../core-regions';
 import coreTools from '../core-tools';
@@ -21,6 +22,7 @@ const providers = [
 	coreKeymap,
 	coreMenus,
 	corePanels,
+	coreInspectors,
 	coreTools
 ];
 
