@@ -16,6 +16,7 @@
 	const icon = $derived(node ? layerIcon(node) : undefined);
 	const componentColoured = $derived(node ? isComponentLike(node) : false);
 	// Instance children are real nodes linked to their main component: shown dimmed.
+	const dragged = $derived(ctx.layers.drag?.ids.includes(row.id) === true);
 	const linked = $derived(node ? node.componentRef !== undefined : false);
 
 	function onclick(event: MouseEvent): void {
@@ -45,7 +46,8 @@
 			'absolute right-0 left-0 flex h-7 cursor-default items-center pr-2 text-xs select-none',
 			selected ? 'bg-blue-soft text-default' : 'hover:bg-hover text-default',
 			componentColoured && 'text-violet',
-			linked && !componentColoured && 'text-muted'
+			linked && !componentColoured && 'text-muted',
+			dragged && 'opacity-50'
 		]}
 		style:top="{top}px"
 		style:padding-left="{row.depth * INDENT_PIXELS + 4}px"

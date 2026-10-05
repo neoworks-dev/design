@@ -4,10 +4,18 @@
 
 import { SvelteSet } from 'svelte/reactivity';
 import type { NodeId } from '../document';
+import type { ResolvedDrop } from './dropPlan';
+
+/** A layer drag in progress: what moves and where it would land (null when not allowed). */
+export interface LayerDrag {
+	ids: readonly NodeId[];
+	drop: ResolvedDrop | null;
+}
 
 export class LayersState {
 	readonly expanded = new SvelteSet<NodeId>();
 	renamingId = $state.raw<NodeId | null>(null);
+	drag = $state.raw<LayerDrag | null>(null);
 	/** Row that Shift+click extends the selection from. Not reactive. */
 	anchorId: NodeId | null = null;
 }

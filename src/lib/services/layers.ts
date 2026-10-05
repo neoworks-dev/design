@@ -4,7 +4,16 @@
 
 import { Service, type Context } from '@neoworks/extension-system';
 import type { NodeId } from '../document';
-import type { LayersState } from '../layers/layersState.svelte';
+import {
+	draggableIds,
+	dropZone,
+	type DropZone,
+	fractionInRow,
+	planLayerDrop,
+	resolveDrop,
+	rowIndexAt
+} from '../layers/dropPlan';
+import type { LayerDrag, LayersState } from '../layers/layersState.svelte';
 import { containersBelow, flattenLayers, rangeBetween, type LayerRow } from '../layers/tree';
 import type { DocumentService } from './document';
 import type { SelectionService } from './selection';
@@ -93,6 +102,63 @@ export class LayersService extends Service {
 		this.state.anchorId = id;
 		const mode = modifiers.toggleKey ? 'toggle' : 'replace';
 		this.selection.select([id], mode, { source: 'layers' });
+	}
+
+	// ---------- drag and drop ----------
+
+	/** Reactive: the drag in progress, or null. */
+	get drag(): LayerDrag | null {
+		return this.state.drag;
+	}
+
+	/**
+	 * Start dragging `rowId`: the whole selection when the row is part of it, else just the row.
+	 * Returns false when nothing there can be moved.
+	 */
+	beginDrag(rowId: NodeId): boolean {
+		const source = this.selection.has(rowId) ? this.selection.ids : [rowId];
+		const ids = draggableIds(this.document.reader, source);
+		if (ids.length === 0) return false;
+		this.state.drag = { ids, drop: null };
+		return true;
+	}
+
+	/** The pointer is at `contentY` in the row list, `pointerDepth` indent levels from its left. */
+	updateDrag(contentY: number, pointerDepth: number): void {
+		const drag = this.state.drag;
+		if (!drag) return;
+		const rows = this.rows();
+		const rowIndex = rowIndexAt(contentY, rows.length);
+		const row = rows.at(rowIndex);
+		// Below the last row the zone is not used: the drop goes under the last layer.
+		let zone: DropZone = 'after';
+		if (row) zone = dropZone(this.document.require(row.id), fractionInRow(contentY));
+		const drop = resolveDrop(
+			this.document.reader,
+			rows,
+			this.document.currentPageId,
+			rowIndex,
+			zone,
+			pointerDepth,
+			drag.ids
+		);
+		this.state.drag = { ids: drag.ids, drop };
+	}
+
+	cancelDrag(): void {
+		this.state.drag = null;
+	}
+
+	/** Apply the drop as one transaction (one undo step). Returns whether anything moved. */
+	commitDrag(): boolean {
+		const drag = this.state.drag;
+		this.state.drag = null;
+		if (!drag || drag.drop === null) return false;
+		const changes = planLayerDrop(this.document.reader, drag.ids, drag.drop.destination);
+		if (changes === null || changes.length === 0) return false;
+		this.document.apply(changes, { origin: 'user', label: 'Move layers' });
+		this.setExpanded(drag.drop.destination.parentId, true);
+		return true;
 	}
 
 	// ---------- rename ----------
