@@ -313,7 +313,11 @@ function planSetSync(reader: DocumentReader, index: CounterpartIndex, change: Ch
 	if (source === undefined) return [];
 	const copies = index.get(source.id);
 	if (copies === undefined) return [];
-	const keys = Object.keys(change.set);
+	let keys = Object.keys(change.set);
+	// A variant is named after its properties; its instances are named after the set.
+	if (source.type === 'COMPONENT' && variantSetOf(reader, source.id) !== undefined) {
+		keys = keys.filter((key) => key !== 'name');
+	}
 	const out: Change[] = [];
 	for (const copy of copies) {
 		const props = syncedProperties(source, copy, keys);
@@ -372,7 +376,7 @@ function planMoveSync(
 ): Change[] {
 	if (change.t !== 'move') return [];
 	const source = reader.getNode(change.id);
-	if (source === undefined || change.parent === null) return [];
+	if (source === undefined || source.type === 'COMPONENT' || change.parent === null) return [];
 	const out: Change[] = [];
 	for (const copy of index.get(source.id) ?? []) {
 		const containerId = containerOf(reader, copy);

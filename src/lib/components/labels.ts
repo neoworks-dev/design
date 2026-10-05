@@ -1,6 +1,6 @@
 // The purple labels over main components and component sets (Figma: a diamond and the name above
-// the top-left corner), drawn on the overlay in screen space. A set also gets an "N variants"
-// chip (the dashed purple frame itself is the set's own stroke, see componentVariants.ts).
+// the top-left corner), drawn on the overlay in screen space. Top-level mains and sets already have
+// their name from the frame tool's labels; the "N variants" chip of a set is the `variants` plugin's.
 
 import type { Context } from '@neoworks/extension-system';
 import type { Node, NodeId } from '../document';
@@ -67,50 +67,23 @@ function drawDiamond(frame: OverlayFrame, centerX: number, centerY: number, size
 	canvas.fill();
 }
 
-function drawChip(frame: OverlayFrame, text: string, x: number, y: number): void {
-	const canvas = frame.ctx;
-	const width = canvas.measureText(text).width + 12;
-	canvas.fillStyle = COMPONENT_PURPLE;
-	canvas.beginPath();
-	canvas.roundRect(x, y, width, 18, 9);
-	canvas.fill();
-	canvas.fillStyle = '#ffffff';
-	canvas.textBaseline = 'middle';
-	canvas.fillText(text, x + 6, y + 9.5);
-}
-
-function drawLabel(
-	ctx: Context,
-	frame: OverlayFrame,
-	label: ComponentLabel,
-	variantCount: number
-): void {
+function drawLabel(ctx: Context, frame: OverlayFrame, label: ComponentLabel): void {
+	if (label.named) return;
 	const bounds = frame.worldRectToScreen(ctx.document.absoluteBounds(label.id));
 	const canvas = frame.ctx;
 	canvas.font = LABEL_FONT;
 	canvas.textBaseline = 'alphabetic';
 	canvas.fillStyle = COMPONENT_PURPLE;
 	const baseline = bounds.y - LABEL_GAP;
-	if (!label.named) {
-		drawDiamond(frame, bounds.x + 5, baseline - 4, 4.5);
-		canvas.fillText(label.text, bounds.x + 14, baseline);
-	}
-	if (label.kind !== 'set') return;
-	const text = variantCount === 1 ? '1 variant' : `${variantCount} variants`;
-	drawChip(
-		frame,
-		text,
-		bounds.x + bounds.width - canvas.measureText(text).width - 12,
-		bounds.y - 24
-	);
+	drawDiamond(frame, bounds.x + 5, baseline - 4, 4.5);
+	canvas.fillText(label.text, bounds.x + 14, baseline);
 }
 
 /** Draw the labels; variants only once zoomed in far enough to read them. */
 export function drawComponentLabels(ctx: Context, frame: OverlayFrame, index: LabelIndex): void {
 	for (const label of index.labelsOnPage(ctx)) {
 		if (label.kind === 'variant' && frame.camera.scale < MIN_ZOOM_FOR_VARIANT_LABELS) continue;
-		const count = label.kind === 'set' ? ctx.document.children(label.id).length : 0;
-		drawLabel(ctx, frame, label, count);
+		drawLabel(ctx, frame, label);
 	}
 }
 
