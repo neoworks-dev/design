@@ -473,6 +473,8 @@ describe('startup', () => {
 		await settle();
 		expect(backend.calls).toEqual(['launchRequest']);
 		expect(mounted.ctx.fileSession.info).toBeNull();
+		// The home screen shows while no file is attached.
+		expect(mounted.ctx.contextKeys.get('document.closed')).toBe(true);
 		await mounted.cleanup();
 	});
 

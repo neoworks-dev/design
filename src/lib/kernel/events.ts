@@ -132,6 +132,13 @@ declare module '@neoworks/extension-system' {
 		'file/saved'(info: StoreInfo): void;
 
 		/**
+		 * Dispatch mode: parallel. The window is about to stop showing this file (another file opens,
+		 * a new one is made, the tab closes); its queue is already persisted and the document is
+		 * still the file's. The file-thumbnails plugin draws a pending preview now.
+		 */
+		'file/leaving'(info: StoreInfo): Promise<void> | void;
+
+		/**
 		 * Dispatch mode: emit. A file was renamed, moved (`to` is its new path) or trashed (`to` is
 		 * `null`), by this window or another. Tabs and the home screen follow it.
 		 */

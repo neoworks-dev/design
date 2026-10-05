@@ -35,7 +35,7 @@ const THUMBNAIL_DELAY_MS = 2000;
 
 // The preview the home screen shows for a file: drawn with the headless renderer a moment after
 // autosave went idle (so a burst of edits draws once) and stored in the file's `thumbnails` table
-// by main.
+// by main. A preview still pending when the file is left is drawn right away instead.
 export default {
 	name: 'file-thumbnails',
 	inject: ['headlessRenderer', 'document', 'fileSession', 'desktop'],
@@ -43,15 +43,23 @@ export default {
 		const delayMs = config?.delayMs ?? THUMBNAIL_DELAY_MS;
 		ctx.effect(() => {
 			let timer: ReturnType<typeof setTimeout> | undefined;
-			const dispose = ctx.on('file/saved', () => {
+			const drawNow = async (): Promise<void> => {
+				timer = undefined;
+				await storeThumbnail(ctx).catch((error: unknown) => ctx.logger.warn('thumbnail', error));
+			};
+			const stopSaved = ctx.on('file/saved', () => {
 				clearTimeout(timer);
-				timer = setTimeout(() => {
-					storeThumbnail(ctx).catch((error: unknown) => ctx.logger.warn('thumbnail', error));
-				}, delayMs);
+				timer = setTimeout(() => void drawNow(), delayMs);
+			});
+			const stopLeaving = ctx.on('file/leaving', async () => {
+				if (timer === undefined) return;
+				clearTimeout(timer);
+				await drawNow();
 			});
 			return () => {
 				clearTimeout(timer);
-				dispose();
+				stopSaved();
+				stopLeaving();
 			};
 		}, 'file-thumbnails/after-autosave');
 	}

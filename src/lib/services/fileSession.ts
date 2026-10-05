@@ -143,7 +143,7 @@ export class FileSessionService extends Service {
 	/** Stop persisting. Pending transactions are sent first so none are lost. */
 	async detach(): Promise<void> {
 		if (this.state.info === null) return;
-		await this.flush();
+		await this.leave(this.state.info);
 		this.state.info = null;
 		this.publishKeys();
 	}
@@ -308,7 +308,13 @@ export class FileSessionService extends Service {
 	/** Persist what is queued for the file about to be left; with no file there is nothing. */
 	private async settleQueue(): Promise<void> {
 		if (this.state.info === null) return;
+		await this.leave(this.state.info);
+	}
+
+	/** Persist what is queued and let listeners finish their work on the file before it goes. */
+	private async leave(info: StoreInfo): Promise<void> {
 		await this.flush();
+		await this.ctx.parallel('file/leaving', info);
 	}
 
 	/** Make a document main loaded the live one, and attach its file. */

@@ -90,6 +90,26 @@ describe('thumbnail after autosave', () => {
 		await mounted.cleanup();
 	});
 
+	it('draws a pending preview right away when the file is left', async () => {
+		const stored: Thumbnail[] = [];
+		const { providers } = fakes(true);
+		const mounted = await mountPlugin(fileThumbnails, {
+			providers,
+			config: { delayMs: 60_000 },
+			desktop: bridgeWith((thumbnail) => {
+				stored.push(thumbnail);
+				return Promise.resolve();
+			})
+		});
+		mounted.ctx.emit('file/saved', {} as never);
+		await mounted.ctx.parallel('file/leaving', {} as never);
+		expect(stored).toHaveLength(1);
+		// Nothing was pending any more: leaving again draws nothing.
+		await mounted.ctx.parallel('file/leaving', {} as never);
+		expect(stored).toHaveLength(1);
+		await mounted.cleanup();
+	});
+
 	it('stores nothing for an empty page', async () => {
 		const setThumbnail = vi.fn(() => Promise.resolve());
 		const { providers, exportNode } = fakes(false);
