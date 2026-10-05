@@ -21,6 +21,7 @@ import headlessRenderer from './headless-renderer';
 import documentPlugin from './document';
 import documentScene from './document-scene';
 import align from './align';
+import appMenu from './app-menu';
 import boolean from './boolean';
 import clipboard from './clipboard';
 import colorPicker from './color-picker';
@@ -124,6 +125,7 @@ export const builtinPlugins: Plugin[] = [
 	shortcuts,
 	coreMenus,
 	commandPalette,
+	appMenu,
 	paletteSources,
 	corePanels,
 	coreInspectors,

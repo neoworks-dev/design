@@ -8,6 +8,8 @@ import {
 	ClipboardItem,
 	dialog,
 	ipcMain,
+	Menu,
+	type MenuItemConstructorOptions,
 	net,
 	protocol,
 	screen,
@@ -282,6 +284,10 @@ export function createRealHost(): ElectronHost {
 		clipboard: {
 			read: () => readClipboard(),
 			write: (content) => writeClipboard(content)
+		},
+		menu: {
+			setApplicationMenu: (items) =>
+				Menu.setApplicationMenu(Menu.buildFromTemplate(items as MenuItemConstructorOptions[]))
 		},
 		screen: { workAreas: () => screen.getAllDisplays().map((display) => display.workArea) },
 		userData: {
