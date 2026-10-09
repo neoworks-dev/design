@@ -6,7 +6,7 @@
 
 {#if toolState.marquee}
 	<div
-		class="border-accent bg-accent/10 absolute border"
+		class="border-blue bg-blue/10 absolute border"
 		data-zoom-marquee
 		style:left="{toolState.marquee.x}px"
 		style:top="{toolState.marquee.y}px"

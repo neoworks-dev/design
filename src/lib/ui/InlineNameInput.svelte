@@ -55,7 +55,7 @@
 	type="text"
 	aria-label={ariaLabel}
 	data-inline-rename
-	class="bg-input border-accent text-default min-w-0 flex-1 rounded-sm border px-1 text-xs outline-none"
+	class="bg-input border-blue text-default min-w-0 flex-1 rounded-sm border px-1 text-xs outline-none"
 	{onkeydown}
 	onblur={() => commit(0)}
 	onpointerdown={(event) => event.stopPropagation()}

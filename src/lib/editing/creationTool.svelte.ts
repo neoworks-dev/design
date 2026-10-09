@@ -6,6 +6,7 @@ import type { Context } from '@neoworks/extension-system';
 import type { Matrix2x3, NodeId, Rect } from '../document/types';
 import { keyBetween } from '../document/fractionalIndex';
 import { identityMatrix } from '../document/matrix';
+import { rgbaCss } from '../ui/colorMath';
 import type { ToolContribution } from '../registries/tools.svelte';
 import {
 	boxPlacement,
@@ -32,6 +33,17 @@ export class CreationPreview {
 	shape = $state.raw<PreviewShape | null>(null);
 	/** The node type being drawn, for the overlay to pick an outline (ellipse is round). */
 	nodeType = $state('RECTANGLE');
+	/** CSS colour of the node's first visible solid fill, so the preview looks like the result. */
+	fill = $state<string | null>(null);
+}
+
+/** The fill the tool's nodes get, as CSS, from a node built the way the tool builds it. */
+function previewFill(spec: CreationToolSpec): string | null {
+	const sample = spec.build({ transform: identityMatrix(), width: 1, height: 1 }, spec.label);
+	if (!('fills' in sample)) return null;
+	const solid = sample.fills.find((paint) => paint.visible !== false && paint.type === 'SOLID');
+	if (solid === undefined || solid.type !== 'SOLID') return null;
+	return rgbaCss(solid.color, solid.opacity ?? 1);
 }
 
 export interface CreationToolSpec {
@@ -77,6 +89,7 @@ export function createCreationTool(
 	return {
 		onActivate(): void {
 			preview.nodeType = spec.nodeType;
+			preview.fill = previewFill(spec);
 		},
 		onPointerDown(event: ToolPointerEvent): void {
 			if (event.button !== PRIMARY_BUTTON) return;

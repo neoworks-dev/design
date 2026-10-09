@@ -152,7 +152,7 @@
 						oncontextmenu={(event) =>
 							ctx.menus.openFromEvent('asset-component', event, { id: entry.id })}
 					>
-						<DiamondIcon size={12} weight="fill" class="text-accent shrink-0" />
+						<DiamondIcon size={12} weight="fill" class="text-blue shrink-0" />
 						<span class="truncate">{entry.label}</span>
 					</button>
 				{/each}
@@ -256,7 +256,7 @@
 		style:top="{drag.y + 12}px"
 		data-asset-ghost
 	>
-		<DiamondIcon size={12} weight="fill" class="text-accent" />
+		<DiamondIcon size={12} weight="fill" class="text-blue" />
 		{drag.entry.label}
 		{#if drag.swap}<span class="text-muted" data-asset-swap-hint>swaps an instance</span>{/if}
 	</div>

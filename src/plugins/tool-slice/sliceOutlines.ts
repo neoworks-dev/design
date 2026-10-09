@@ -18,8 +18,8 @@ interface Outline {
 	selected: boolean;
 }
 
-function accentColor(): string {
-	const value = getComputedStyle(document.documentElement).getPropertyValue('--color-accent');
+function selectionColor(): string {
+	const value = getComputedStyle(document.documentElement).getPropertyValue('--color-blue');
 	if (value.trim() === '') return FALLBACK_COLOR;
 	return value.trim();
 }
@@ -91,7 +91,7 @@ export class SliceOutlines implements PointerClaimant {
 
 	draw(frame: OverlayFrame): void {
 		const canvas = frame.ctx;
-		const color = accentColor();
+		const color = selectionColor();
 		for (const outline of this.outlines()) {
 			const { x, y, width, height } = outline.box;
 			if (outline.selected) {

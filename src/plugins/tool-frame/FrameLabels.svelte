@@ -41,7 +41,7 @@
 		type="button"
 		class="pointer-events-auto absolute flex items-center gap-1 text-left text-xs leading-[18px]"
 		class:text-violet={label.component}
-		class:text-accent={!label.component && selectedIds.includes(label.id)}
+		class:text-blue={!label.component && selectedIds.includes(label.id)}
 		class:text-muted={!label.component && !selectedIds.includes(label.id)}
 		data-frame-label={label.id}
 		style:left="{label.x}px"

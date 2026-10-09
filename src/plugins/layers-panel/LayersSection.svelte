@@ -133,7 +133,7 @@
 				value={ctx.layers.filter.query}
 				oninput={(event) => ctx.layers.setQuery(event.currentTarget.value)}
 				onkeydown={onsearchkeydown}
-				class="bg-input border-line text-default placeholder:text-faint focus:border-accent h-7 w-full rounded-md border px-2 text-xs outline-none"
+				class="bg-input border-line text-default placeholder:text-faint focus:border-blue h-7 w-full rounded-md border px-2 text-xs outline-none"
 			/>
 			<div class="flex flex-wrap gap-1" role="group" aria-label="Filter by type">
 				{#each LAYER_TYPE_FILTERS as chip (chip.id)}
@@ -145,7 +145,7 @@
 						class={[
 							'rounded-full border px-2 py-0.5 text-[11px]',
 							active
-								? 'border-accent bg-blue-soft text-default'
+								? 'border-blue bg-blue-soft text-default'
 								: 'border-line text-muted hover:bg-hover'
 						]}
 						onclick={() => ctx.layers.toggleType(chip.id)}
