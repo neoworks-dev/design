@@ -146,7 +146,7 @@
 			onedit={editPaints}
 		/>
 		{#if hasStroke}
-			<div class="flex flex-col gap-1.5 px-3 pb-3" data-stroke-settings>
+			<div class="flex flex-col gap-1.5 px-4 pb-4" data-stroke-settings>
 				<div class="flex items-center gap-1">
 					<div class="min-w-0 flex-1" data-stroke-position>
 						<DropdownField

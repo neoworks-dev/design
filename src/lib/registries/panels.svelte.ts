@@ -70,6 +70,11 @@ export interface PanelSectionContribution {
 	/** Take the height left in the tab and scroll inside (the layers list). */
 	fill?: boolean;
 	/**
+	 * Reactive. While true the section shows only its (muted) title row and header actions, the
+	 * way Figma folds an empty Stroke or Effects section into one line with a "+".
+	 */
+	empty?: () => boolean;
+	/**
 	 * Context the component renders with. Defaults to the plugin calling `registerSection`;
 	 * services that register on behalf of a plugin (inspectors) pass that plugin's context.
 	 */
@@ -93,6 +98,7 @@ export interface PanelSection extends RegistryEntry {
 	visible?: () => boolean;
 	collapsedByDefault: boolean;
 	fill: boolean;
+	empty?: () => boolean;
 	content: RegionEntry;
 	actions?: RegionEntry;
 }
@@ -297,6 +303,7 @@ export class PanelsService extends Service {
 			visible: section.visible,
 			collapsedByDefault: section.collapsed === true,
 			fill: section.fill === true,
+			empty: section.empty,
 			content,
 			actions: contentEntry(`${id}/actions`, section.tab, section.actions, undefined, owner)
 		});

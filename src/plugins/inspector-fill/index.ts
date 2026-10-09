@@ -1,6 +1,7 @@
 import type { Context } from '@neoworks/extension-system';
 import { planSetProps, type Change, type Node } from '../../lib/document';
 import { applyEdit, contributeCommand } from '../../lib/editing/contribute';
+import { listsAreEmpty } from '../../lib/inspector-inputs/selectionEdit';
 import FillSection from './FillSection.svelte';
 import FillActions from './FillActions.svelte';
 
@@ -43,6 +44,7 @@ export default {
 					applies: (selection) =>
 						selection.count > 0 && selection.kinds.every((kind) => !NO_FILL_KINDS.includes(kind)),
 					component: FillSection,
+					empty: () => listsAreEmpty(ctx, 'fills'),
 					actions: FillActions
 				}),
 			'fill section'

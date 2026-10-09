@@ -1,18 +1,10 @@
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { PanelHarness, panelProviders } from '../../lib/editing/fixtures/panelHarness';
-import { describePlugin } from '../../lib/kernel/testing';
+import { PanelHarness } from '../../lib/editing/fixtures/panelHarness';
 import autolayout from '../autolayout';
 import { fakeTextLayout } from '../autolayout/fixtures/autolayoutFixture';
 import designPanel from '../design-panel';
 import inspectorAutolayout from './index';
-
-describePlugin('inspector-autolayout', inspectorAutolayout, {
-	providers: [...panelProviders(), fakeTextLayout(), autolayout],
-	contributes: ({ ctx }) => {
-		expect(ctx.panels.sectionRegistry.get('design/autolayout')).toBeDefined();
-	}
-});
 
 let harness: PanelHarness | undefined;
 
@@ -49,13 +41,13 @@ describe('auto layout section', () => {
 	it('shows for frames only, not for plain children of auto layout frames', async () => {
 		const panel = await open();
 		panel.select(['loose']);
-		expect(panel.sectionIds()).not.toContain('design/autolayout');
+		expect(panel.query('[data-toggle-group="Flow"]')).toBeNull();
 		panel.select(['a']);
-		expect(panel.sectionIds()).not.toContain('design/autolayout');
+		expect(panel.query('[data-toggle-group="Flow"]')).toBeNull();
 		panel.setProps('f', { layoutMode: 'HORIZONTAL' });
-		expect(panel.sectionIds()).not.toContain('design/autolayout');
+		expect(panel.query('[data-toggle-group="Flow"]')).toBeNull();
 		panel.select(['f']);
-		expect(panel.sectionIds()).toContain('design/autolayout');
+		expect(panel.query('[data-toggle-group="Flow"]')).not.toBeNull();
 		expect(panel.query('[data-toggle-group="Flow"]')).not.toBeNull();
 	});
 

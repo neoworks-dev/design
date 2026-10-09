@@ -7,6 +7,7 @@ import {
 	type PanelSide,
 	type PanelStorage
 } from '../../lib/registries/panels.svelte';
+import SidebarRail from './SidebarRail.svelte';
 import SidebarHost from './SidebarHost.svelte';
 
 function browserStorage(): PanelStorage | undefined {
@@ -43,6 +44,18 @@ export default {
 				`panels ${side} sidebar`
 			);
 		}
+
+		ctx.effect(
+			() =>
+				ctx.regions.register({
+					id: 'core-panels/left-rail',
+					region: 'left-rail',
+					component: SidebarRail,
+					props: { side: 'left' },
+					when: () => panels.tabs('left').length > 0
+				}),
+			'panels left rail'
+		);
 
 		if (storage) ctx.effect(() => persistPanelState(state, storage), 'panels/persist');
 		ctx.effect(() => publishModeKey(state, ctx.contextKeys), 'panels/mode key');

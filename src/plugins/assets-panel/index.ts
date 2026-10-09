@@ -1,3 +1,4 @@
+import PlusCircleIcon from 'phosphor-svelte/lib/PlusCircleIcon';
 import type { Context } from '@neoworks/extension-system';
 import { AssetsPanelState } from '../../lib/services/assetsPanelState.svelte';
 import { AssetsPanelService } from '../../lib/services/assetsPanel';
@@ -108,6 +109,7 @@ export default {
 					id: 'assets',
 					side: 'left',
 					title: 'Assets',
+					icon: PlusCircleIcon,
 					order: 1,
 					shortcut: 'Alt+2',
 					component: AssetsTab

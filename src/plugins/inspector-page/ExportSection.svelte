@@ -71,7 +71,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 px-3 pb-3" data-export-section>
+<div class="flex flex-col gap-2 px-4 pb-4" data-export-section>
 	<div class="flex justify-end">
 		<IconToggleButton icon={PlusIcon} label="Add export setting" onclick={add} />
 	</div>
@@ -83,7 +83,7 @@
 					aria-label="Export suffix"
 					placeholder="Suffix"
 					value={setting.suffix}
-					class="bg-input border-line text-default placeholder:text-faint h-7 min-w-0 flex-1 rounded-md border px-2 text-xs"
+					class="bg-input text-default placeholder:text-faint h-8 min-w-0 flex-1 rounded-md border border-transparent px-2 text-xs"
 					onchange={(event) =>
 						update(index, { suffix: event.currentTarget.value }, 'Change export suffix')}
 				/>

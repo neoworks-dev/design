@@ -1,5 +1,4 @@
 <script lang="ts">
-	import FileIcon from 'phosphor-svelte/lib/FileIcon';
 	import { getKernel } from '../../lib/kernel/context';
 	import { PAGE_ROW_HEIGHT } from '../../lib/pages/pageDrop';
 	import InlineNameInput from '../../lib/ui/InlineNameInput.svelte';
@@ -80,8 +79,8 @@
 			aria-selected={page.id === current}
 			data-page-row={page.id}
 			class={[
-				'mx-2 flex h-7 cursor-default items-center gap-2 rounded-md px-2 text-xs select-none',
-				page.id === current ? 'bg-blue-soft text-default' : 'text-muted hover:bg-hover',
+				'mx-2 flex h-7 cursor-default items-center gap-2 rounded-md px-2 text-sm select-none',
+				page.id === current ? 'bg-hover text-default font-semibold' : 'text-default hover:bg-hover',
 				drag?.pageId === page.id && 'opacity-50'
 			]}
 			onpointerdown={(event) => pointerdown(event, page.id)}
@@ -89,7 +88,6 @@
 			ondblclick={() => ctx.pagesPanel.startRename(page.id)}
 			oncontextmenu={(event) => ctx.menus.openFromEvent('page', event, { pageId: page.id })}
 		>
-			<FileIcon size={12} />
 			{#if ctx.pagesPanel.renamingId === page.id}
 				<InlineNameInput
 					value={page.name}

@@ -1,6 +1,8 @@
 import type { Context } from '@neoworks/extension-system';
 import type { PanelTabContribution } from '../../lib/registries/panels.svelte';
 import type { ToolContribution } from '../../lib/registries/tools.svelte';
+import FileIcon from 'phosphor-svelte/lib/FileIcon';
+import FileHeader from './FileHeader.svelte';
 import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 
 // Stand-in content for the workbench regions until the real plugins (layers panel, property
@@ -8,10 +10,18 @@ import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 // shrinks to nothing.
 export default {
 	name: 'placeholder-shell',
-	inject: ['panels', 'tools'],
+	inject: ['panels', 'tools', 'commands', 'contextKeys'],
 	apply(ctx: Context): void {
 		const tabs: PanelTabContribution[] = [
-			{ id: 'file', side: 'left', title: 'File', order: 0, shortcut: 'Alt+1' }
+			{
+				id: 'file',
+				side: 'left',
+				title: 'File',
+				icon: FileIcon,
+				order: 0,
+				shortcut: 'Alt+1',
+				component: FileHeader
+			}
 		];
 		for (const tab of tabs) {
 			ctx.effect(() => ctx.panels.registerTab(tab), `placeholder tab ${tab.id}`);

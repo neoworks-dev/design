@@ -153,9 +153,9 @@
 
 <div
 	class={[
-		'group bg-input border-line hover:border-line-strong focus-within:border-action flex h-7 min-w-0 items-center rounded-md border text-xs',
+		'group bg-input hover:border-line-strong focus-within:border-action flex h-8 min-w-0 items-center rounded-md border border-transparent text-xs',
 		disabled && 'opacity-50',
-		boundTo !== undefined && 'border-action'
+		boundTo !== undefined && 'border-action!'
 	]}
 	data-number-field={name}
 	data-mixed={mixed || undefined}
@@ -163,7 +163,7 @@
 >
 	<span
 		class={[
-			'text-faint flex h-full min-w-5 shrink-0 items-center justify-center px-1 select-none',
+			'text-muted flex h-full min-w-7 shrink-0 items-center justify-center pr-0.5 pl-1.5 select-none',
 			scrub && !disabled && 'cursor-ew-resize'
 		]}
 		data-number-label

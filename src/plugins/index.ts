@@ -56,7 +56,6 @@ import contextMenus from './context-menus';
 import designPanel from './design-panel';
 import duplicate from './duplicate';
 import inspectorAppearance from './inspector-appearance';
-import inspectorAutolayout from './inspector-autolayout';
 import layoutGrids from './layout-grids';
 import inspectPanel from './inspect-panel';
 import inspectorEffects from './inspector-effects';
@@ -117,6 +116,7 @@ import viewport from './viewport';
 import viewTools from './view-tools';
 import zoomMenu from './zoom-menu';
 import toolbar from './toolbar';
+import toolbarModes from './toolbar-modes';
 import toolMove from './tool-move';
 import toolImage from './tool-image';
 import toolScale from './tool-scale';
@@ -238,7 +238,6 @@ export const builtinPlugins: Plugin[] = [
 	inspectorPage,
 	inspectorPosition,
 	inspectorLayoutSize,
-	inspectorAutolayout,
 	inspectorAppearance,
 	inspectorTypography,
 	inspectorSelectionColors,
@@ -251,6 +250,7 @@ export const builtinPlugins: Plugin[] = [
 	inspectorEffects,
 	coreTools,
 	toolbar,
+	toolbarModes,
 	canvasInput,
 	viewTools,
 	zoomMenu,

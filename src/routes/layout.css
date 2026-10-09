@@ -19,6 +19,14 @@
 	--color-surface-raised: var(--surface-raised);
 }
 
+/* Inspector inputs one shade above the panel, like Figma's, instead of the design system's
+   sunken input colour. `bg-input` is `@theme inline` in `@neoworks-dev/ui`, so it reads
+   `--surface-input` directly: this restyles the package components (Select, Checkbox, ...) and
+   the app's own fields alike. */
+[data-panels-sidebar='right'] {
+	--surface-input: var(--surface-raised);
+}
+
 html,
 body {
 	width: 100%;

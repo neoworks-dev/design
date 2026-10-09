@@ -3,6 +3,8 @@ import { contributeCommand } from '../../lib/editing/contribute';
 import { drawLayoutGrids, type GridFrame } from '../../lib/layout-grids/draw';
 import { gridFrames, gridSnapLines } from '../../lib/layout-grids/frames';
 import { LayoutGridsState } from '../../lib/layout-grids/state.svelte';
+import { listsAreEmpty } from '../../lib/inspector-inputs/selectionEdit';
+import LayoutGridActions from './LayoutGridActions.svelte';
 import LayoutGridSection from './LayoutGridSection.svelte';
 
 const FRAME_TYPES = ['FRAME', 'SECTION', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE'];
@@ -71,7 +73,9 @@ export default {
 					title: 'Layout guide',
 					order: 70,
 					applies: (selection) => selection.count === 1 && FRAME_TYPES.includes(selection.kind),
-					component: LayoutGridSection
+					component: LayoutGridSection,
+					actions: LayoutGridActions,
+					empty: () => listsAreEmpty(ctx, 'layoutGrids')
 				}),
 			'layout-grids/section'
 		);

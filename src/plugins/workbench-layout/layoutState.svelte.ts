@@ -1,6 +1,9 @@
 // Reactive state of the workbench chrome: sidebar widths, collapsed sidebars and the hidden-UI
 // toggle. A plain class (not a Service) so it may hold runes; the service exposes it as a field.
 
+import { untrack } from 'svelte';
+import type { ContextKeysService } from '../../lib/registries/contextKeys.svelte';
+
 export type SidebarSide = 'left' | 'right';
 
 export interface LayoutStorage {
@@ -116,4 +119,30 @@ export function persistLayout(state: LayoutState, storage: LayoutStorage): () =>
 			storage.setItem(LAYOUT_STORAGE_KEY, state.serialize());
 		});
 	});
+}
+
+/**
+ * Publish `sidebar.left.collapsed` / `sidebar.right.collapsed` so plugins (the sidebar rail) can
+ * show the panel state without depending on this plugin. Returns the stop function.
+ */
+export function publishCollapsedKeys(
+	state: LayoutState,
+	contextKeys: ContextKeysService
+): () => void {
+	const disposers: Partial<Record<SidebarSide, () => void>> = {};
+	const sides: SidebarSide[] = ['left', 'right'];
+	const stop = $effect.root(() => {
+		for (const side of sides) {
+			$effect(() => {
+				const collapsed = state.isCollapsed(side);
+				const dispose = untrack(() => contextKeys.set(`sidebar.${side}.collapsed`, collapsed));
+				disposers[side] = dispose;
+				return dispose;
+			});
+		}
+	});
+	return () => {
+		stop();
+		for (const side of sides) disposers[side]?.();
+	};
 }

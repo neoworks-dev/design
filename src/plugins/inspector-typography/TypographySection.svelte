@@ -239,7 +239,7 @@
 	</button>
 {/snippet}
 
-<div class="flex flex-col gap-2 px-3 pb-3" data-typography-section>
+<div class="flex flex-col gap-2 px-4 pb-4" data-typography-section>
 	<div class="min-w-0">
 		<FontFamilyPicker {families} value={family} mixed={font.mixed} {missing} onchange={setFamily} />
 	</div>

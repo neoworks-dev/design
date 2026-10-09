@@ -59,6 +59,7 @@ describe('appearance section', () => {
 	it('edits corner smoothing in percent', async () => {
 		const panel = await open();
 		panel.select(['a']);
+		panel.click('button[aria-label="Independent corners"]');
 		panel.enter('Corner smoothing', '60');
 		expect(panel.ctx.document.require('a')).toMatchObject({ cornerSmoothing: 0.6 });
 	});
@@ -84,6 +85,7 @@ describe('appearance section', () => {
 		const panel = await open();
 		panel.setProps('b', { blendMode: 'MULTIPLY' });
 		panel.select(['a']);
+		panel.click('button[aria-label="Blend mode"]');
 		expect(panel.query('[data-blend-mode]')?.textContent).toContain('Pass through');
 		panel.select(['b']);
 		expect(panel.query('[data-blend-mode]')?.textContent).toContain('Multiply');

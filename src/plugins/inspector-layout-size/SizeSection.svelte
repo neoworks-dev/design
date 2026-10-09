@@ -26,6 +26,7 @@
 	import { currentSizing, sizingProps } from '../../lib/layout/sizing';
 	import type { Sizing } from '../../lib/layout/types';
 	import BindVariable from '../../lib/inspector-inputs/BindVariable.svelte';
+	import AutoLayoutControls from './AutoLayoutControls.svelte';
 	import ConstraintWidget from './ConstraintWidget.svelte';
 	import DropdownField from '../../lib/ui/DropdownField.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
@@ -229,8 +230,9 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 px-3 pb-3" data-size-section>
-	<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
+<div class="flex flex-col gap-2 px-4 pb-4" data-size-section>
+	<AutoLayoutControls part="flow" />
+	<div class="grid grid-cols-[1fr_1fr_32px] items-center gap-2">
 		<NumberField
 			label="W"
 			name="Width"
@@ -245,12 +247,6 @@
 				<BindVariable {nodes} property="width" scopes={['WIDTH_HEIGHT']} label="Width" />
 			{/snippet}
 		</NumberField>
-		<IconToggleButton
-			icon={proportions.value === true ? LinkSimpleHorizontalIcon : LinkSimpleHorizontalBreakIcon}
-			label="Constrain proportions"
-			pressed={proportions.value === true}
-			onclick={toggleProportions}
-		/>
 		<NumberField
 			label="H"
 			name="Height"
@@ -265,6 +261,13 @@
 				<BindVariable {nodes} property="height" scopes={['WIDTH_HEIGHT']} label="Height" />
 			{/snippet}
 		</NumberField>
+		<IconToggleButton
+			icon={proportions.value === true ? LinkSimpleHorizontalIcon : LinkSimpleHorizontalBreakIcon}
+			label="Constrain proportions"
+			filled
+			pressed={proportions.value === true}
+			onclick={toggleProportions}
+		/>
 	</div>
 
 	{#if showSizing || (showLimits && hiddenLimits.length > 0)}
@@ -286,6 +289,7 @@
 					<IconToggleButton
 						icon={DotsThreeIcon}
 						label="Add min or max size"
+						filled
 						pressed={limitMenuOpen}
 						onclick={() => (limitMenuOpen = !limitMenuOpen)}
 					/>
@@ -332,6 +336,8 @@
 			{/each}
 		</div>
 	{/if}
+
+	<AutoLayoutControls part="details" />
 
 	{#if showConstraints}
 		<div class="flex items-center gap-3" data-constraints>

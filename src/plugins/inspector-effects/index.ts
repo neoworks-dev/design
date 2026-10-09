@@ -1,4 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
+import { listsAreEmpty } from '../../lib/inspector-inputs/selectionEdit';
 import EffectsSection from './EffectsSection.svelte';
 import EffectsActions from './EffectsActions.svelte';
 
@@ -21,6 +22,7 @@ export default {
 					applies: (selection) =>
 						selection.count > 0 && selection.kinds.every((kind) => !NO_EFFECT_KINDS.includes(kind)),
 					component: EffectsSection,
+					empty: () => listsAreEmpty(ctx, 'effects'),
 					actions: EffectsActions
 				}),
 			'effects section'

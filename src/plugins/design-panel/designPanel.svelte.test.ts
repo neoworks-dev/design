@@ -20,21 +20,23 @@ afterEach(async () => {
 });
 
 describe('design panel shell', () => {
-	it('names the selection in the header', async () => {
+	it('names the selection by its type in the header', async () => {
 		harness = await PanelHarness.create(designPanel);
 		expect(harness.query('[data-node-header]')?.textContent).toContain('Page');
 		harness.select(['a']);
-		expect(harness.query('[data-node-header]')?.textContent).toContain('a');
+		const type = harness.ctx.document.require('a').type;
+		expect(harness.query('[data-node-header]')?.textContent?.toLowerCase()).toContain(
+			type.toLowerCase()
+		);
 		harness.select(['a', 'b']);
 		expect(harness.query('[data-node-header]')?.textContent).toContain('2 layers');
 	});
 
-	it('remembers collapsed sections', async () => {
+	it('shows sections Figma-style: a fixed title and the body, no collapse toggle', async () => {
 		harness = await PanelHarness.create(designPanel, [inspectorPage, colorPicker]);
-		const header = harness.query<HTMLButtonElement>(
-			'[data-panel-section="design/page"] button[aria-expanded]'
-		);
-		header?.click();
-		expect(harness.ctx.panels.state.sectionStates['design/page']).toBe(true);
+		const section = harness.query('[data-panel-section="design/page"]');
+		expect(section?.querySelector('h2')?.textContent).toContain('Page');
+		expect(section?.querySelector('button[aria-expanded]')).toBeNull();
+		expect(section?.querySelector('[data-panel-section-body]')).not.toBeNull();
 	});
 });

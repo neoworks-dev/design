@@ -284,7 +284,7 @@
 </script>
 
 {#if mixed || rows.length > 0}
-	<div class="flex flex-col gap-1.5 px-3 pb-3" data-paint-list={role} bind:this={list}>
+	<div class="flex flex-col gap-1.5 px-4 pb-4" data-paint-list={role} bind:this={list}>
 		{#if mixed}
 			<span class="text-muted text-xs" data-paint-mixed>Mixed</span>
 		{:else}
@@ -303,7 +303,7 @@
 						<DotsSixVerticalIcon size={12} />
 					</button>
 					<div
-						class="border-line bg-raised focus-within:border-action flex h-7 min-w-0 flex-1 items-center gap-1 rounded-md border pl-1.5"
+						class="bg-input focus-within:border-action flex h-8 min-w-0 flex-1 items-center gap-0.5 rounded-md border border-transparent pl-2"
 					>
 						<button
 							type="button"
@@ -350,7 +350,7 @@
 							aria-label="{noun} {row.index + 1} type"
 							title="Change type"
 							class={[
-								'text-muted hover:text-default flex h-full w-4 shrink-0 items-center justify-center',
+								'text-muted hover:text-default flex h-full w-3 shrink-0 items-center justify-center',
 								paint.type === 'SOLID' &&
 									'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'
 							]}
@@ -360,7 +360,7 @@
 							<CaretDownIcon size={10} />
 						</button>
 						<span class="bg-line h-3.5 w-px shrink-0"></span>
-						<div class="flex w-12 shrink-0 items-center pr-1.5 text-xs">
+						<div class="flex w-[46px] shrink-0 items-center pr-1.5 text-xs">
 							<input
 								aria-label="{noun} {row.index + 1} opacity"
 								inputmode="numeric"
@@ -377,9 +377,10 @@
 						</div>
 					</div>
 					<IconToggleButton
+						compact
 						icon={paint.visible ? EyeIcon : EyeSlashIcon}
 						label="Toggle {role} {row.index + 1} visibility"
-						pressed={paint.visible}
+						pressed={!paint.visible}
 						onclick={() =>
 							editPaint(
 								row.index,
@@ -388,6 +389,7 @@
 							)}
 					/>
 					<IconToggleButton
+						compact
 						icon={MinusIcon}
 						label="Remove {role} {row.index + 1}"
 						onclick={() =>

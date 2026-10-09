@@ -17,6 +17,7 @@
 		return ctx.regions.contributions(side).length > 0;
 	}
 
+	const hasRail = $derived(ctx.regions.contributions('left-rail').length > 0);
 	const showLeft = $derived(isSidebarShown('left'));
 	const showRight = $derived(isSidebarShown('right'));
 
@@ -44,6 +45,16 @@
 	{/if}
 
 	<div class="flex min-h-0 flex-1">
+		{#if hasRail && !layout.uiHidden}
+			<nav
+				class="border-line-faint bg-elevated flex shrink-0 border-r"
+				aria-label="Sidebar modes"
+				data-region="left-rail"
+			>
+				<RegionHost region="left-rail" />
+			</nav>
+		{/if}
+
 		{#if showLeft}
 			<div class="relative shrink-0" style:width="{layout.leftWidth}px">
 				<aside

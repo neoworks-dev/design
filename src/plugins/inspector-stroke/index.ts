@@ -1,6 +1,7 @@
 import type { Context } from '@neoworks/extension-system';
 import { planSetProps, type Change } from '../../lib/document';
 import { applyEdit, contributeCommand } from '../../lib/editing/contribute';
+import { listsAreEmpty } from '../../lib/inspector-inputs/selectionEdit';
 import StrokeSection from './StrokeSection.svelte';
 import StrokeActions from './StrokeActions.svelte';
 
@@ -42,6 +43,7 @@ export default {
 					applies: (selection) =>
 						selection.count > 0 && selection.kinds.every((kind) => !NO_STROKE_KINDS.includes(kind)),
 					component: StrokeSection,
+					empty: () => listsAreEmpty(ctx, 'strokes'),
 					actions: StrokeActions
 				}),
 			'stroke section'

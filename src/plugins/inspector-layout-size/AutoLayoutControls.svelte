@@ -34,6 +34,10 @@
 	import type { NumberGesture } from '../../lib/ui/numberField';
 	import ToggleGroup from '../../lib/ui/ToggleGroup.svelte';
 
+	// `flow` is the layout mode switch at the top of the Layout section; `details` the alignment,
+	// gap and padding shown below the size while auto layout is on.
+	let { part }: { part: 'flow' | 'details' } = $props();
+
 	const ctx = getKernel();
 
 	const nodes = $derived(selectedNodes(ctx));
@@ -206,7 +210,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 px-3 pb-3" data-autolayout-section>
+{#if part === 'flow'}
 	{#if canHaveLayout}
 		<ToggleGroup
 			name="Flow"
@@ -216,9 +220,9 @@
 			onchange={setFlow}
 		/>
 	{/if}
-
-	{#if hasLayout}
-		<div class="flex gap-2" data-autolayout-controls>
+{:else if hasLayout}
+	<div class="flex flex-col gap-2" data-autolayout-controls>
+		<div class="flex gap-2">
 			<AlignmentGrid
 				name="Alignment"
 				column={cell.value === null ? null : cell.value.column}
@@ -226,8 +230,8 @@
 				disabled={cell.mixed}
 				onchange={alignTo}
 			/>
-			<div class="flex min-w-0 flex-1 flex-col gap-1">
-				<div class="flex items-center gap-1">
+			<div class="flex min-w-0 flex-1 flex-col gap-2">
+				<div class="flex items-center gap-2">
 					<NumberField
 						label="Gap"
 						name="Item spacing"
@@ -246,6 +250,7 @@
 						icon={ArrowsHorizontalIcon}
 						label="Auto spacing"
 						title="Auto spacing: space between items"
+						filled
 						pressed={spaceBetween}
 						onclick={toggleAutoSpacing}
 					/>
@@ -265,9 +270,9 @@
 			</div>
 		</div>
 
-		<div class="flex items-start gap-1" data-padding>
+		<div class="flex items-start gap-2" data-padding>
 			{#if perSide}
-				<div class="grid flex-1 grid-cols-2 gap-1">
+				<div class="grid flex-1 grid-cols-2 gap-2">
 					{#each SIDES as entry (entry.side)}
 						{@const value = padding(entry.side)}
 						<NumberField
@@ -293,7 +298,7 @@
 			{:else}
 				{@const horizontal = pairValue(HORIZONTAL_PADDING)}
 				{@const vertical = pairValue(VERTICAL_PADDING)}
-				<div class="grid flex-1 grid-cols-2 gap-1">
+				<div class="grid flex-1 grid-cols-2 gap-2">
 					<NumberField
 						label="H"
 						name="Horizontal padding"
@@ -315,6 +320,7 @@
 			<IconToggleButton
 				icon={SidebarSimpleIcon}
 				label="Padding per side"
+				filled
 				pressed={perSide}
 				disabled={!symmetric}
 				onclick={() => (expandedByUser = !expandedByUser)}
@@ -335,5 +341,5 @@
 			Include strokes in layout
 			{#if strokesIncluded.mixed}<span class="text-muted">(Mixed)</span>{/if}
 		</label>
-	{/if}
-</div>
+	</div>
+{/if}

@@ -32,7 +32,8 @@ export default {
 					order: 90,
 					applies: (selection) => selection.count > 0,
 					component: ExportSection,
-					actions: ExportActions
+					actions: ExportActions,
+					empty: () => ctx.selection.ids.every((id) => ctx.export.settingsOf(id).length === 0)
 				}),
 			'export section'
 		);

@@ -1,9 +1,8 @@
 <script lang="ts">
-	import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
-	import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlashIcon';
-	import MaskHappyIcon from 'phosphor-svelte/lib/MaskHappyIcon';
+	import CheckerboardIcon from 'phosphor-svelte/lib/CheckerboardIcon';
+	import CornersOutIcon from 'phosphor-svelte/lib/CornersOutIcon';
 	import SquareHalfIcon from 'phosphor-svelte/lib/SquareHalfIcon';
-	import { BLEND_MODES, type Node } from '../../lib/document';
+	import type { Node } from '../../lib/document';
 	import {
 		boundVariableName,
 		selectedNodes,
@@ -16,14 +15,12 @@
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 	import NumberField from '../../lib/ui/NumberField.svelte';
 	import type { NumberGesture } from '../../lib/ui/numberField';
-	import SliderField from '../../lib/ui/SliderField.svelte';
-	import { cornersOf, uniformRadius, blendLabel, type Corners } from './corners';
+	import { cornersOf, uniformRadius, type Corners } from './corners';
 
 	const ctx = getKernel();
 
 	const nodes = $derived(selectedNodes(ctx));
 
-	const BLEND_OPTIONS = BLEND_MODES.map((mode) => ({ value: mode, label: blendLabel(mode) }));
 	const MASK_TYPES = [
 		{ value: 'ALPHA', label: 'Alpha' },
 		{ value: 'VECTOR', label: 'Vector' },
@@ -42,26 +39,8 @@
 		void ctx.commands.run('node.set-opacity', { value: percent / 100 });
 	}
 
-	// ---------- blend mode ----------
-
-	const blend = $derived(
-		sharedValue(nodes, (node) => ('blendMode' in node ? node.blendMode : null))
-	);
-
-	function setBlend(mode: string): void {
-		setSelectionProps(
-			ctx,
-			{ label: 'Change blend mode', mergeKey: 'inspector:blend', gesture: 'commit' },
-			(node) => {
-				if (!('blendMode' in node)) return {};
-				return { blendMode: mode };
-			}
-		);
-	}
-
 	// ---------- visibility and mask ----------
 
-	const visible = $derived(sharedValue(nodes, (node) => 'visible' in node && node.visible));
 	const masked = $derived(sharedValue(nodes, (node) => 'isMask' in node && node.isMask));
 	const maskType = $derived(
 		sharedValue(nodes, (node) => ('maskType' in node ? node.maskType : null))
@@ -123,59 +102,24 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 px-3 pb-3" data-appearance-section>
-	<SliderField
-		label="%"
-		name="Opacity"
-		min={0}
-		max={100}
-		value={opacity.value}
-		mixed={opacity.mixed}
-		disabled={opacityVariable !== undefined}
-		onchange={setOpacity}
-	/>
-
-	<div class="flex items-center gap-1">
-		<div class="min-w-0 flex-1" data-blend-mode>
-			<DropdownField
-				options={BLEND_OPTIONS}
-				value={blend.value}
-				mixed={blend.mixed}
-				onchange={setBlend}
-			/>
-		</div>
-		<IconToggleButton
-			icon={visible.value === true ? EyeIcon : EyeSlashIcon}
-			label="Visibility"
-			title={visible.value === true ? 'Hide' : 'Show'}
-			pressed={visible.value === true}
-			onclick={() => void ctx.commands.run('node.toggle-visibility')}
+<div class="flex flex-col gap-2 px-4 pb-4" data-appearance-section>
+	<div class="grid grid-cols-[1fr_1fr_32px] gap-2">
+		<NumberField
+			label="%"
+			icon={CheckerboardIcon}
+			name="Opacity"
+			unit="%"
+			min={0}
+			max={100}
+			value={opacity.value}
+			mixed={opacity.mixed}
+			disabled={opacityVariable !== undefined}
+			onchange={(value) => setOpacity(value)}
 		/>
-		{#if canMask}
-			<IconToggleButton
-				icon={MaskHappyIcon}
-				label="Use as mask"
-				pressed={masked.value === true}
-				onclick={() => void ctx.commands.run('mask.toggle')}
-			/>
-		{/if}
-	</div>
-
-	{#if canMask && masked.value === true}
-		<div data-mask-type>
-			<DropdownField
-				options={MASK_TYPES}
-				value={maskType.value}
-				mixed={maskType.mixed}
-				onchange={(type) => void ctx.commands.run(`mask.type-${type.toLowerCase()}`)}
-			/>
-		</div>
-	{/if}
-
-	{#if hasCorners}
-		<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-1" data-corner-radius>
+		{#if hasCorners}
 			<NumberField
 				label="⌜"
+				icon={CornersOutIcon}
 				name="Corner radius"
 				min={0}
 				value={radius.value}
@@ -196,9 +140,37 @@
 			<IconToggleButton
 				icon={SquareHalfIcon}
 				label="Independent corners"
+				title="Independent corners and smoothing"
+				filled
 				pressed={showPerCorner}
 				onclick={() => (perCorner = !perCorner)}
 			/>
+		{/if}
+	</div>
+
+	{#if canMask && masked.value === true}
+		<div data-mask-type>
+			<DropdownField
+				options={MASK_TYPES}
+				value={maskType.value}
+				mixed={maskType.mixed}
+				onchange={(type) => void ctx.commands.run(`mask.type-${type.toLowerCase()}`)}
+			/>
+		</div>
+	{/if}
+
+	{#if hasCorners && showPerCorner}
+		<div class="grid grid-cols-2 gap-2" data-corner-fields>
+			{#each CORNER_NAMES as cornerName, index (cornerName)}
+				<NumberField
+					label={['TL', 'TR', 'BR', 'BL'][index]}
+					name={cornerName}
+					min={0}
+					value={cornerValue(index)}
+					mixed={corners.mixed}
+					onchange={(value, gesture) => setCorner(index, value, gesture)}
+				/>
+			{/each}
 			<NumberField
 				label="~"
 				name="Corner smoothing"
@@ -210,19 +182,5 @@
 				onchange={setSmoothing}
 			/>
 		</div>
-		{#if showPerCorner}
-			<div class="grid grid-cols-2 gap-2" data-corner-fields>
-				{#each CORNER_NAMES as cornerName, index (cornerName)}
-					<NumberField
-						label={['TL', 'TR', 'BR', 'BL'][index]}
-						name={cornerName}
-						min={0}
-						value={cornerValue(index)}
-						mixed={corners.mixed}
-						onchange={(value, gesture) => setCorner(index, value, gesture)}
-					/>
-				{/each}
-			</div>
-		{/if}
 	{/if}
 </div>

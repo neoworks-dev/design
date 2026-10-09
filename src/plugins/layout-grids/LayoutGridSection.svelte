@@ -2,10 +2,8 @@
 	import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
 	import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlashIcon';
 	import MinusIcon from 'phosphor-svelte/lib/MinusIcon';
-	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import type { LayoutGrid } from '../../lib/document';
 	import { selectedNodes, setSelectionProps } from '../../lib/inspector-inputs/selectionEdit';
-	import StyleButton from '../../lib/inspector-inputs/StyleButton.svelte';
 	import { cssColor } from '../../lib/layout-grids/draw';
 	import { defaultGrid } from '../../lib/layout-grids/grids';
 	import { getKernel } from '../../lib/kernel/context';
@@ -71,10 +69,6 @@
 		);
 	}
 
-	function add(): void {
-		write((current) => [...current, defaultGrid('COLUMNS')], 'Add layout grid');
-	}
-
 	function remove(index: number): void {
 		write((current) => current.filter((_, position) => position !== index), 'Remove layout grid');
 	}
@@ -125,11 +119,7 @@
 </script>
 
 {#if frame !== undefined}
-	<div class="flex flex-col gap-2 px-3 pb-3" data-layout-grid-section>
-		<div class="flex justify-end">
-			<StyleButton target="grid" nodes={[frame]} />
-			<IconToggleButton icon={PlusIcon} label="Add layout grid" onclick={add} />
-		</div>
+	<div class="flex flex-col gap-2 px-4 pb-4" data-layout-grid-section>
 		{#each grids as grid, index (index)}
 			<div class="flex flex-col gap-1" data-layout-grid={index}>
 				<div class="flex items-center gap-1">
@@ -201,7 +191,7 @@
 					<button
 						type="button"
 						aria-label="Grid {index + 1} color"
-						class="border-line h-7 cursor-pointer rounded-md border"
+						class="border-line h-8 cursor-pointer rounded-md border"
 						style:background={cssColor(grid.color)}
 						onclick={(event) => openColor(event, index)}
 					></button>

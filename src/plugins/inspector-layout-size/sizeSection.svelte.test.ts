@@ -3,10 +3,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { describePlugin } from '../../lib/kernel/testing';
 import designPanel from '../design-panel';
 import { PanelHarness, panelProviders } from '../../lib/editing/fixtures/panelHarness';
+import autolayout from '../autolayout';
+import { fakeTextLayout } from '../autolayout/fixtures/autolayoutFixture';
 import inspectorLayoutSize from './index';
 
 describePlugin('inspector-layout-size', inspectorLayoutSize, {
-	providers: panelProviders(),
+	providers: [...panelProviders(), fakeTextLayout(), autolayout],
 	contributes: ({ ctx }) => {
 		expect(ctx.panels.sectionRegistry.get('design/layout-size')).toBeDefined();
 	}
@@ -20,7 +22,11 @@ afterEach(async () => {
 });
 
 async function open(): Promise<PanelHarness> {
-	harness = await PanelHarness.create(inspectorLayoutSize, [designPanel]);
+	harness = await PanelHarness.create(inspectorLayoutSize, [
+		designPanel,
+		fakeTextLayout(),
+		autolayout
+	]);
 	return harness;
 }
 

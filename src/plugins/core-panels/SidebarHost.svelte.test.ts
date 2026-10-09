@@ -117,17 +117,24 @@ describe('SidebarHost', () => {
 		expect(text()).toContain('Fill body');
 	});
 
-	it('collapsing a section hides its body and sets aria-expanded', async () => {
-		await renderRightSidebar();
-		const header = target?.querySelector<HTMLElement>(
-			'[data-panel-section="design/fill"] button[aria-expanded]'
-		);
-		expect(header?.getAttribute('aria-expanded')).toBe('true');
-		header?.click();
+	it('folds a section that reports itself empty to its title row', async () => {
+		const { ctx } = await renderRightSidebar();
+		ctx.panels.registerSection({
+			tab: 'design',
+			id: 'effects',
+			title: 'Effects',
+			order: 2,
+			component: PlaceholderText,
+			props: { text: 'Effects body' },
+			empty: () => true
+		});
 		flushSync();
-		expect(header?.getAttribute('aria-expanded')).toBe('false');
-		expect(text()).not.toContain('Fill body');
-		expect(text()).toContain('Stroke body');
+		const effects = target?.querySelector('[data-panel-section="design/effects"]');
+		expect(effects?.hasAttribute('data-folded')).toBe(true);
+		expect(effects?.textContent).toContain('Effects');
+		expect(text()).not.toContain('Effects body');
+		expect(text()).toContain('Fill body');
+		expect(target?.querySelector('button[aria-expanded]')).toBeNull();
 	});
 
 	it('renders nothing for a side without tabs', async () => {

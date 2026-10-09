@@ -5,13 +5,15 @@
 	import AlignLeftSimpleIcon from 'phosphor-svelte/lib/AlignLeftSimpleIcon';
 	import AlignRightSimpleIcon from 'phosphor-svelte/lib/AlignRightSimpleIcon';
 	import AlignTopSimpleIcon from 'phosphor-svelte/lib/AlignTopSimpleIcon';
+	import AngleIcon from 'phosphor-svelte/lib/AngleIcon';
+	import ArrowClockwiseIcon from 'phosphor-svelte/lib/ArrowClockwiseIcon';
 	import ArrowsHorizontalIcon from 'phosphor-svelte/lib/ArrowsHorizontalIcon';
 	import ArrowsVerticalIcon from 'phosphor-svelte/lib/ArrowsVerticalIcon';
 	import BroomIcon from 'phosphor-svelte/lib/BroomIcon';
 	import FlipHorizontalIcon from 'phosphor-svelte/lib/FlipHorizontalIcon';
 	import FlipVerticalIcon from 'phosphor-svelte/lib/FlipVerticalIcon';
 	import PushPinIcon from 'phosphor-svelte/lib/PushPinIcon';
-	import type { Component } from 'svelte';
+	import type { Component, ComponentProps } from 'svelte';
 	import type { Node } from '../../lib/document';
 	import { isAutoLayoutChild } from '../../lib/editing/selectionOps';
 	import { planMoveTo, planRotateTo, rotationDegrees } from '../../lib/inspector-inputs/geometry';
@@ -23,9 +25,12 @@
 	import { sharedValue } from '../../lib/inspector-inputs/values';
 	import { getKernel } from '../../lib/kernel/context';
 	import { isStackContainer } from '../../lib/layout/build';
+	import IconButtonGroup from '../../lib/ui/IconButtonGroup.svelte';
 	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 	import NumberField from '../../lib/ui/NumberField.svelte';
 	import type { NumberGesture } from '../../lib/ui/numberField';
+
+	type GroupButton = ComponentProps<typeof IconButtonGroup>['buttons'][number];
 
 	const ctx = getKernel();
 
@@ -140,27 +145,68 @@
 		void ctx.commands.run(command);
 	}
 
-	// Nine 28px buttons do not fit the 211px of a sidebar row: align on top, distribute below.
 	const layoutReason = 'Position is controlled by auto layout';
+
+	function commandButton(button: CommandButton): GroupButton {
+		const enough = nodes.length >= button.needs;
+		let title = button.label;
+		if (!enough) title = `${button.label}: select at least ${button.needs}`;
+		return {
+			label: button.label,
+			icon: button.icon,
+			disabled: !enough,
+			title,
+			onclick: () => run(button.command)
+		};
+	}
+
+	function alignGroup(commands: string[]): GroupButton[] {
+		return alignButtons.filter((button) => commands.includes(button.command)).map(commandButton);
+	}
+
+	const horizontalAlign = $derived(
+		alignGroup(['align.left', 'align.horizontal-center', 'align.right'])
+	);
+	const verticalAlign = $derived(
+		alignGroup(['align.top', 'align.vertical-center', 'align.bottom'])
+	);
+	const distributeGroup = $derived(
+		alignGroup(['align.distribute-horizontal', 'align.distribute-vertical', 'align.tidy-up'])
+	);
+
+	function rotateQuarterTurn(): void {
+		editSelection(
+			ctx,
+			{ label: 'Rotate 90 degrees', mergeKey: 'inspector:rotate-90', gesture: 'commit' },
+			(reader, node) =>
+				planRotateTo(reader, node.id, rotationDegrees(reader.cache.absoluteTransform(node.id)) + 90)
+		);
+	}
+
+	const transformGroup = $derived<GroupButton[]>([
+		{ label: 'Rotate 90 degrees', icon: ArrowClockwiseIcon, onclick: rotateQuarterTurn },
+		{
+			label: 'Flip horizontal',
+			icon: FlipHorizontalIcon,
+			onclick: () => run('node.flip-horizontal')
+		},
+		{ label: 'Flip vertical', icon: FlipVerticalIcon, onclick: () => run('node.flip-vertical') }
+	]);
 </script>
 
-<div class="flex flex-col gap-2 px-3 pb-3" data-position-section>
+<div class="flex flex-col gap-2 px-4 pb-4" data-position-section>
 	{#if showAlignment && alignButtons.length > 0}
-		<!-- Six columns: the align buttons fill the first row, distribute and tidy wrap below. -->
-		<div class="grid grid-cols-6 justify-items-center gap-y-0.5" data-alignment-row>
-			{#each alignButtons as button (button.command)}
-				{@const enough = nodes.length >= button.needs}
-				<IconToggleButton
-					icon={button.icon}
-					label={button.label}
-					disabled={!enough}
-					title={enough ? button.label : `${button.label}: select at least ${button.needs}`}
-					onclick={() => run(button.command)}
-				/>
-			{/each}
+		<div class="grid grid-cols-[1fr_1fr_32px] gap-2" data-alignment-row>
+			<IconButtonGroup name="Align horizontally" buttons={horizontalAlign} />
+			<IconButtonGroup name="Align vertically" buttons={verticalAlign} />
 		</div>
+		{#if nodes.length > 1 && distributeGroup.length > 0}
+			<div class="grid grid-cols-[1fr_1fr_32px] gap-2" data-distribute-row>
+				<IconButtonGroup name="Distribute" buttons={distributeGroup} />
+			</div>
+		{/if}
 	{/if}
-	<div class="grid grid-cols-2 gap-2">
+	<div class="grid grid-cols-[1fr_1fr_32px] gap-2">
 		<NumberField
 			label="X"
 			name="X position"
@@ -179,36 +225,31 @@
 			title={controlledByLayout ? layoutReason : undefined}
 			onchange={(value, gesture) => moveTo('y', value, gesture)}
 		/>
+		{#if inAutoLayout}
+			<span data-absolute-position class="flex">
+				<IconToggleButton
+					icon={PushPinIcon}
+					label="Absolute position"
+					title="Absolute position: place freely, ignoring the auto layout flow"
+					pressed={absolute}
+					filled
+					onclick={toggleAbsolute}
+				/>
+			</span>
+		{/if}
+	</div>
+	<div class="grid grid-cols-[1fr_1fr_32px] gap-2">
 		<NumberField
 			label="R"
+			icon={AngleIcon}
 			name="Rotation"
 			unit="°"
 			value={rotation.value}
 			mixed={rotation.mixed}
 			onchange={rotateTo}
 		/>
-		<div class="flex items-center gap-1">
-			<IconToggleButton
-				icon={FlipHorizontalIcon}
-				label="Flip horizontal"
-				onclick={() => run('node.flip-horizontal')}
-			/>
-			<IconToggleButton
-				icon={FlipVerticalIcon}
-				label="Flip vertical"
-				onclick={() => run('node.flip-vertical')}
-			/>
-			{#if inAutoLayout}
-				<span data-absolute-position class="flex">
-					<IconToggleButton
-						icon={PushPinIcon}
-						label="Absolute position"
-						title="Absolute position: place freely, ignoring the auto layout flow"
-						pressed={absolute}
-						onclick={toggleAbsolute}
-					/>
-				</span>
-			{/if}
+		<div class="col-span-2">
+			<IconButtonGroup name="Rotate and flip" buttons={transformGroup} />
 		</div>
 	</div>
 </div>

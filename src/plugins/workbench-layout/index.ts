@@ -1,5 +1,5 @@
 import type { Context } from '@neoworks/extension-system';
-import { persistLayout, type LayoutStorage } from './layoutState.svelte';
+import { persistLayout, publishCollapsedKeys, type LayoutStorage } from './layoutState.svelte';
 import { WorkbenchLayoutService } from './service';
 import Workbench from './Workbench.svelte';
 
@@ -17,7 +17,7 @@ export interface WorkbenchLayoutConfig {
 // Without this plugin the route shows its empty state.
 export default {
 	name: 'workbench-layout',
-	inject: ['regions', 'commands', 'keymap', 'menus'],
+	inject: ['regions', 'commands', 'keymap', 'menus', 'contextKeys'],
 	apply(ctx: Context, config?: WorkbenchLayoutConfig): void {
 		const storage = config?.storage ?? browserStorage();
 		const service = new WorkbenchLayoutService(ctx, storage);
@@ -31,6 +31,11 @@ export default {
 					component: Workbench
 				}),
 			'workbench-layout/root region'
+		);
+
+		ctx.effect(
+			() => publishCollapsedKeys(layout, ctx.contextKeys),
+			'workbench-layout/collapsed keys'
 		);
 
 		ctx.on('panels/tab-activated', (side) => layout.expandSidebar(side));

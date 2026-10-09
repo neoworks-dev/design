@@ -98,17 +98,17 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 px-3 pb-3" data-export-section>
+<div class="flex flex-col gap-2 px-4 pb-4" data-export-section>
 	{#each settings as setting, index (index)}
 		<div class="flex items-center gap-1.5" data-export-setting={index}>
 			<input
-				class="bg-input border-line text-default h-7 w-12 rounded border px-1.5 text-xs"
+				class="bg-input text-default h-8 w-12 rounded border border-transparent px-1.5 text-xs"
 				aria-label="Export size"
 				value={formatConstraint(setting.constraint)}
 				onchange={(event) => setSize(index, event.currentTarget.value, event.currentTarget)}
 			/>
 			<input
-				class="bg-input border-line text-default h-7 min-w-0 flex-1 rounded border px-1.5 text-xs"
+				class="bg-input text-default h-8 min-w-0 flex-1 rounded border border-transparent px-1.5 text-xs"
 				aria-label="Export suffix"
 				placeholder="Suffix"
 				value={setting.suffix}

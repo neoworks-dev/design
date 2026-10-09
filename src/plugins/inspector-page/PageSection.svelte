@@ -60,7 +60,7 @@
 	}
 </script>
 
-<div class="flex items-center gap-2 px-3 pb-3" data-page-section>
+<div class="flex items-center gap-2 px-4 pb-4" data-page-section>
 	{#if background === null}
 		<span class="text-faint text-xs">No background</span>
 	{:else}

@@ -1,8 +1,10 @@
 import type { Context } from '@neoworks/extension-system';
 import SizeSection from './SizeSection.svelte';
 
-// Width and height with the proportion lock, Fixed / Hug / Fill, min and max, clip content and
-// constraints. Hug and Fill are laid out by the `autolayout` plugin; this section only stores them.
+// The Layout section: auto layout mode, width and height with the proportion lock, Fixed / Hug /
+// Fill, min and max, auto layout alignment, spacing and padding (while it is on), constraints and
+// clip content. Every auto layout control writes ordinary properties and the `autolayout` plugin
+// reflows in the same transaction, so each edit is one undo step.
 export default {
 	name: 'inspector-layout-size',
 	inject: ['inspectors', 'document', 'selection', 'variables'],

@@ -1,8 +1,10 @@
 import type { Context } from '@neoworks/extension-system';
+import AppearanceActions from './AppearanceActions.svelte';
 import AppearanceSection from './AppearanceSection.svelte';
 
-// Opacity, blend mode, visibility, mask, corner radius and smoothing. Opacity, visibility and
-// mask go through the existing `node.*` and `mask.*` commands.
+// Opacity, corner radius (independent corners and smoothing on demand) in the body; visibility and
+// blend mode in the header. Opacity and visibility go through the `node.*` commands; the mask
+// toggle lives in the Design header (design-panel).
 export default {
 	name: 'inspector-appearance',
 	inject: ['inspectors', 'document', 'selection', 'variables', 'commands'],
@@ -15,7 +17,8 @@ export default {
 					title: 'Appearance',
 					order: 30,
 					applies: (selection) => selection.count > 0,
-					component: AppearanceSection
+					component: AppearanceSection,
+					actions: AppearanceActions
 				}),
 			'appearance section'
 		);

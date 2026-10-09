@@ -29,7 +29,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-1 px-3 pb-3" data-styles-section>
+<div class="flex flex-col gap-1 px-4 pb-4" data-styles-section>
 	{#each groups as group (group.path)}
 		{#if group.path !== ''}
 			<div class="text-faint pt-1 text-xs" data-style-group={group.path}>{group.path}</div>

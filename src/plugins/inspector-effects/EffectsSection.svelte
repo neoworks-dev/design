@@ -117,7 +117,7 @@
 
 {#if nodes.length > 0}
 	<div
-		class={['flex flex-col gap-1.5', hasRows && 'px-3 pb-3']}
+		class={['flex flex-col gap-1.5', hasRows && 'px-4 pb-4']}
 		data-effects-section
 		bind:this={list}
 	>
@@ -153,9 +153,10 @@
 						/>
 					</div>
 					<IconToggleButton
+						compact
 						icon={effect.visible ? EyeIcon : EyeSlashIcon}
 						label="Toggle effect {index + 1} visibility"
-						pressed={effect.visible}
+						pressed={!effect.visible}
 						onclick={() =>
 							editEffect(
 								index,
@@ -164,11 +165,13 @@
 							)}
 					/>
 					<IconToggleButton
+						compact
 						icon={SlidersIcon}
 						label="Effect {index + 1} settings"
 						onclick={(event) => openSettings(event, index)}
 					/>
 					<IconToggleButton
+						compact
 						icon={MinusIcon}
 						label="Remove effect {index + 1}"
 						onclick={() =>

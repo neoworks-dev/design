@@ -9,8 +9,8 @@
 	type="button"
 	aria-label="Add page"
 	title="Add page"
-	class="text-muted hover:bg-hover hover:text-default flex size-6 items-center justify-center rounded-md"
+	class="text-muted hover:bg-hover hover:text-default flex size-7 items-center justify-center rounded-md"
 	onclick={() => ctx.pagesPanel.add()}
 >
-	<PlusIcon size={14} />
+	<PlusIcon size={16} />
 </button>

@@ -18,7 +18,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-1 px-3 pb-3" data-variables-section>
+<div class="flex flex-col gap-1 px-4 pb-4" data-variables-section>
 	<div class="flex items-center justify-between">
 		<button
 			type="button"

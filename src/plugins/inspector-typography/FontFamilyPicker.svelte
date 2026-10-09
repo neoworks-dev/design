@@ -51,7 +51,7 @@
 		aria-label="Font family"
 		aria-expanded={open}
 		title={missing ? `${label} is not installed: a substitute is shown` : 'Font family'}
-		class="bg-input border-line text-default hover:bg-hover flex h-7 w-full items-center gap-1.5 rounded-md border px-2 text-xs"
+		class="bg-input text-default hover:bg-hover flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-xs"
 		onclick={() => (open = !open)}
 	>
 		<span class="min-w-0 flex-1 truncate text-left">{label}</span>

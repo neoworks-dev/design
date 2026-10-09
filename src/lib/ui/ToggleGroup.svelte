@@ -34,7 +34,7 @@
 <div
 	role="group"
 	aria-label={name}
-	class="bg-input border-line inline-flex h-7 items-center gap-0.5 rounded-md border p-0.5"
+	class="bg-input inline-flex h-8 items-center gap-0.5 rounded-md p-0.5"
 	data-toggle-group={name}
 >
 	{#each options as option (option.value)}
@@ -47,7 +47,9 @@
 			disabled={option.disabled}
 			class={[
 				'flex h-full min-w-6 flex-1 items-center justify-center rounded px-1.5 text-xs transition-colors disabled:opacity-40',
-				pressed ? 'bg-raised text-default' : 'text-muted hover:bg-hover hover:text-default'
+				pressed
+					? 'bg-canvas text-default shadow-sm'
+					: 'text-muted hover:bg-hover hover:text-default'
 			]}
 			onclick={() => onchange(option.value)}
 		>

@@ -2,7 +2,7 @@
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import { suffixForConstraint } from '../../lib/export/settings';
 	import { getKernel } from '../../lib/kernel/context';
-	import IconButton from '../../lib/ui/IconButton.svelte';
+	import IconToggleButton from '../../lib/ui/IconToggleButton.svelte';
 
 	const ctx = getKernel();
 
@@ -26,4 +26,4 @@
 	}
 </script>
 
-<IconButton icon={PlusIcon} label="Add export setting" onclick={addSetting} />
+<IconToggleButton icon={PlusIcon} label="Add export setting" onclick={addSetting} />
