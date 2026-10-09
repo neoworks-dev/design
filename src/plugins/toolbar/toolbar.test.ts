@@ -101,6 +101,27 @@ async function mountToolbar(): Promise<MountedPlugin> {
 	return mounted;
 }
 
+describe('toolbar modes', () => {
+	it('shows only the tools that list the current mode', async () => {
+		const { ctx } = await mountToolbar();
+		ctx.tools.register({ id: 'move', title: 'Move', modes: ['design', 'dev'] });
+		ctx.tools.register({ id: 'text', title: 'Text' });
+		ctx.contextKeys.set('mode', 'dev');
+		const dispose = ctx.toolbar.registerMode({
+			id: 'dev',
+			title: 'Dev',
+			icon: SquareIcon,
+			command: 'noop',
+			active: "mode == 'dev'"
+		});
+		expect(ctx.toolbar.currentModeId()).toBe('dev');
+		expect(ctx.toolbar.slots().map((slot) => slot.id)).toEqual(['tool:move']);
+		dispose();
+		expect(ctx.toolbar.currentModeId()).toBe('design');
+		expect(ctx.toolbar.slots().map((slot) => slot.id)).toEqual(['tool:move', 'tool:text']);
+	});
+});
+
 describe('toolbar slots', () => {
 	it('registering a tool adds its button and disposing removes it', async () => {
 		const { ctx } = await mountToolbar();

@@ -72,6 +72,7 @@ export default {
 					icon: ChatCircleIcon,
 					shortcut: 'C',
 					group: 'view',
+					modes: ['design', 'dev'],
 					order: 21,
 					cursor: 'crosshair',
 					onActivate: () => comments.setVisible(true),

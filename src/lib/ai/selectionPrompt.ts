@@ -4,13 +4,18 @@
 import type { Rect } from '../document';
 import type { Point } from '../tools/protocol';
 
+/** Menu whose items are the suggestions under the focused, empty prompt (plugins contribute). */
+export const PROMPT_SUGGESTIONS_MENU = 'ai/prompt-suggestions';
+/** Menu of the prompt's plus button. */
+export const PROMPT_ADD_MENU = 'ai/prompt-add';
+
 /** Side of the square sparkle button, in canvas pixels. */
 export const BUTTON_SIZE = 28;
 /** Space between the selection's corner and the button. */
 export const BUTTON_GAP = 8;
 /** Size of the prompt card that opens right of the button. */
-export const CARD_WIDTH = 300;
-export const CARD_HEIGHT = 124;
+export const CARD_WIDTH = 340;
+export const CARD_HEIGHT = 56;
 /** How far around the corner the pointer counts as heading for the button. */
 const HOT_ZONE_REACH = 64;
 const EDGE_MARGIN = 8;

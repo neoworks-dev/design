@@ -29,6 +29,7 @@ export default {
 					shortcut: 'V',
 					group: 'move',
 					toolbarGroup: 'move',
+					modes: ['design', 'dev'],
 					order: 0,
 					cursor: 'default',
 					...createMoveTool(ctx, state)

@@ -3,10 +3,13 @@
 // the chat conversation and the window's agent session, with the selection attached.
 
 import { Service, type Context } from '@neoworks/extension-system';
+import type { AiImage } from '../../../electron/bridge';
 import type { NodeId, Rect } from '../document';
 import { unionBounds } from '../editing/selectionOps';
 import type { AiEvent, AiRunStatus } from '../ai/types';
 import type { AiSelectionPromptState } from './aiSelectionPromptState.svelte';
+
+const MAXIMUM_IMAGES = 8;
 
 declare module '@neoworks/extension-system' {
 	interface Context {
@@ -18,7 +21,9 @@ declare module '@neoworks/extension-system' {
 export interface SelectionPromptChat {
 	readonly running: boolean;
 	readonly needsConsent: boolean;
-	askAboutSelection(prompt: string): string | undefined;
+	/** Whether the chosen provider takes pictures. */
+	readonly acceptsImages: boolean;
+	askAboutSelection(prompt: string, images?: readonly AiImage[]): string | undefined;
 }
 
 /** The parts of the `ai` service the prompt uses. */
@@ -106,6 +111,20 @@ export class AiSelectionPromptService extends Service {
 		return { running, answer };
 	}
 
+	get images(): readonly AiImage[] {
+		return this.state.images;
+	}
+
+	/** Whether the plus menu can attach pictures: the chosen provider takes them. */
+	get acceptsImages(): boolean {
+		return this.chat.acceptsImages;
+	}
+
+	/** Counts the requests to open the file picker; the card reacts to each change. */
+	get imagePickRequests(): number {
+		return this.state.imagePickRequests;
+	}
+
 	get canSend(): boolean {
 		return this.state.draft.trim() !== '' && !this.chat.running;
 	}
@@ -116,6 +135,7 @@ export class AiSelectionPromptService extends Service {
 		if (!this.available) return;
 		this.state.anchorIds = [...this.selection.ids];
 		this.state.draft = '';
+		this.state.images = [];
 		this.state.runId = null;
 		this.state.open = true;
 	}
@@ -123,6 +143,7 @@ export class AiSelectionPromptService extends Service {
 	close(): void {
 		this.state.open = false;
 		this.state.draft = '';
+		this.state.images = [];
 		this.state.runId = null;
 		this.state.anchorIds = [];
 	}
@@ -131,13 +152,28 @@ export class AiSelectionPromptService extends Service {
 		this.state.draft = text;
 	}
 
+	addImage(image: AiImage): void {
+		if (this.state.images.length >= MAXIMUM_IMAGES) return;
+		this.state.images = [...this.state.images, image];
+	}
+
+	removeImage(index: number): void {
+		this.state.images = this.state.images.filter((_, position) => position !== index);
+	}
+
+	/** Ask the open card to show its file picker for pictures. */
+	requestImagePicker(): void {
+		if (!this.state.open) return;
+		this.state.imagePickRequests += 1;
+	}
+
 	/**
 	 * Send the draft about the selection. Without consent the chat takes over: it opens with the
 	 * prompt waiting in its input, and the card closes.
 	 */
 	send(): boolean {
 		if (!this.canSend) return false;
-		const runId = this.chat.askAboutSelection(this.state.draft);
+		const runId = this.chat.askAboutSelection(this.state.draft, this.state.images);
 		if (runId === undefined) {
 			if (this.chat.needsConsent) {
 				this.openChat();
@@ -147,6 +183,7 @@ export class AiSelectionPromptService extends Service {
 		}
 		this.state.runId = runId;
 		this.state.draft = '';
+		this.state.images = [];
 		return true;
 	}
 

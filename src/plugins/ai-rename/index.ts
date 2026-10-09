@@ -1,5 +1,6 @@
 import type { Context } from '@neoworks/extension-system';
 import { z } from 'zod';
+import { PROMPT_SUGGESTIONS_MENU } from '../../lib/ai/selectionPrompt';
 import { contributeCommand } from '../../lib/editing/contribute';
 import { AiRenameService } from '../../lib/services/aiRename';
 import { AiRenameState } from '../../lib/services/aiRenameState.svelte';
@@ -69,7 +70,10 @@ export default {
 			title: 'Rename layers with AI',
 			when: 'hasSelection',
 			run: () => rename.renameLayers(),
-			menus: [{ menu: ACTIONS_MENU, group: '1_rename', order: 1 }]
+			menus: [
+				{ menu: ACTIONS_MENU, group: '1_rename', order: 1 },
+				{ menu: PROMPT_SUGGESTIONS_MENU, group: '1_suggestions', order: 1 }
+			]
 		});
 		for (const menu of MENUS_WITH_ACTIONS) {
 			ctx.effect(

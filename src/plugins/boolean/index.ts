@@ -146,6 +146,7 @@ export default {
 						id: 'boolean',
 						title: 'Boolean operation',
 						icon: UnionIcon,
+						when: "mode == 'design'",
 						submenu: TOOLBAR_BOOLEAN_MENU,
 						order: 50
 					}

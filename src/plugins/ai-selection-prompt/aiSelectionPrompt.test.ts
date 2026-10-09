@@ -153,6 +153,35 @@ describe('the AI button next to the selection', () => {
 	});
 });
 
+describe('the plus menu and its pictures', () => {
+	it('lists adding images and asks the open card for its file picker', async () => {
+		const { ctx } = await setup(() => Promise.resolve());
+		const prompt = ctx.aiSelectionPrompt;
+		expect(ctx.menus.resolve('ai/prompt-add').map((item) => item.id)).toEqual(['add-images']);
+		ctx.selection.select(firstNodeIds(ctx, 1));
+		const before = prompt.imagePickRequests;
+		prompt.requestImagePicker();
+		expect(prompt.imagePickRequests).toBe(before);
+		prompt.open();
+		await ctx.commands.run('ai-selection-prompt.add-images');
+		expect(prompt.imagePickRequests).toBe(before + 1);
+	});
+
+	it('sends the attached pictures with the prompt and clears them', async () => {
+		const { ctx, main } = await setup(() => Promise.resolve());
+		const prompt = ctx.aiSelectionPrompt;
+		ctx.selection.select(firstNodeIds(ctx, 1));
+		prompt.open();
+		prompt.addImage({ mimeType: 'image/png', data: 'AAAA' });
+		expect(prompt.images).toHaveLength(1);
+		prompt.setDraft('Match this look');
+		expect(prompt.send()).toBe(true);
+		expect(prompt.images).toEqual([]);
+		await vi.waitFor(() => expect(main.started).toHaveLength(1));
+		expect(ctx.aiChat.conversation().at(-1)?.images).toHaveLength(1);
+	});
+});
+
 describe('selection prompt placement', () => {
 	const canvas = { width: 1000, height: 800 };
 	const selection = { x: 100, y: 200, width: 300, height: 100 };

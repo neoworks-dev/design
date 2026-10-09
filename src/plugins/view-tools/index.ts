@@ -5,7 +5,7 @@ import ZoomMarquee from './ZoomMarquee.svelte';
 import { ViewToolState, createHandTool, createZoomTool } from './viewTools.svelte';
 
 // The hand tool (H, hold Space, middle-drag) and the zoom tool (Z) on the `viewport` service.
-// Hand is on the toolbar, zoom is shortcut only.
+// Hand is in the Move tool's dropdown, zoom is shortcut only.
 export default {
 	name: 'view-tools',
 	inject: ['tools', 'viewport'],
@@ -20,7 +20,10 @@ export default {
 					icon: HandIcon,
 					shortcut: 'H',
 					hold: 'Space',
-					group: 'view',
+					group: 'move',
+					toolbarGroup: 'move',
+					toolbar: false,
+					modes: ['design', 'dev'],
 					order: 20,
 					...createHandTool(ctx, toolState)
 				}),

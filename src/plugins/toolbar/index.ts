@@ -4,12 +4,19 @@ import { publishGroupMenus, ToolbarService, ToolbarState } from './service.svelt
 
 // The floating tool bar (region `toolbar`): one button per tool slot, where tools sharing a
 // `toolbarGroup` collapse into the last-used member plus a dropdown, the menu buttons contributed
-// to the `toolbar` menu (boolean operations), and the Design / Dev mode switch. Provides `toolbar`.
+// to the `toolbar` menu (boolean operations), and the mode switch (buttons contributed through `toolbar.registerMode`). Provides `toolbar`.
 export default {
 	name: 'toolbar',
 	inject: ['regions', 'tools', 'menus', 'commands', 'keymap', 'contextKeys'],
 	apply(ctx: Context): void {
-		const toolbar = new ToolbarService(ctx, ctx.tools, ctx.menus, new ToolbarState());
+		const toolbar = new ToolbarService(
+			ctx,
+			ctx.contextKeys,
+			ctx.commands,
+			ctx.tools,
+			ctx.menus,
+			new ToolbarState()
+		);
 
 		ctx.effect(
 			() =>

@@ -254,15 +254,16 @@ export class AiChatService extends Service {
 	 * It joins this conversation and the window's agent session like a typed message. Without
 	 * consent the prompt waits in the input with the selection attached, and `undefined` returns.
 	 */
-	askAboutSelection(prompt: string): string | undefined {
+	askAboutSelection(prompt: string, images: readonly AiImage[] = []): string | undefined {
 		const text = prompt.trim();
 		if (text === '' || this.running || !this.ai.available) return undefined;
 		const selection = this.context.selectionAttachment();
 		const attachments: AiAttachment[] = [];
 		if (selection !== undefined) attachments.push(selection);
-		const runId = this.start(text, attachments, []);
+		const runId = this.start(text, attachments, [...images]);
 		if (runId !== undefined) return runId;
 		this.state.draft = text;
+		images.forEach((image) => this.addImage(image));
 		this.state.attachSelection = true;
 		return undefined;
 	}

@@ -77,6 +77,8 @@ export interface ToolContribution {
 	 * dropdown even when `toolbar` is false.
 	 */
 	toolbarGroup?: string;
+	/** Toolbar modes in which the tool is shown (ids of `toolbar.registerMode`). Defaults to design. */
+	modes?: readonly string[];
 	order?: number;
 	/** Context-key expression; the tool is unavailable (and hidden) while false. */
 	when?: string;

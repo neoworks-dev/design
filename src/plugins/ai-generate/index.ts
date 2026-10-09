@@ -1,5 +1,6 @@
 import type { Context } from '@neoworks/extension-system';
 import { templateById, TEMPLATES, type TemplateId } from '../../lib/ai/generate';
+import { PROMPT_SUGGESTIONS_MENU } from '../../lib/ai/selectionPrompt';
 import { objectArguments } from '../../lib/editing/contribute';
 import { AiGenerateService } from '../../lib/services/aiGenerate';
 import { AiGenerateState } from '../../lib/services/aiGenerateState.svelte';
@@ -34,6 +35,7 @@ export default {
 		'viewport',
 		'variables',
 		'commands',
+		'menus',
 		'palette',
 		'panels',
 		'regions'
@@ -91,6 +93,19 @@ export default {
 					run: () => ctx.palette.open(SOURCE_ID)
 				}),
 			'command ai-generate.open'
+		);
+		ctx.effect(
+			() =>
+				ctx.menus.register({
+					menu: PROMPT_SUGGESTIONS_MENU,
+					item: {
+						id: 'ai-generate.open',
+						command: 'ai-generate.open',
+						group: '1_suggestions',
+						order: 0
+					}
+				}),
+			'prompt suggestion generate'
 		);
 		ctx.effect(
 			() =>

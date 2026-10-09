@@ -2,6 +2,7 @@ import type { Context } from '@neoworks/extension-system';
 import { z } from 'zod';
 import type { AiRunInfo } from '../../lib/ai/types';
 import { BATCH_OPERATIONS } from '../../lib/ai/batch';
+import { PROMPT_SUGGESTIONS_MENU } from '../../lib/ai/selectionPrompt';
 import { contributeCommand } from '../../lib/editing/contribute';
 import { AiBatchService, type BatchApplied } from '../../lib/services/aiBatch';
 import { AiBatchState } from '../../lib/services/aiBatchState.svelte';
@@ -93,7 +94,10 @@ export default {
 				id: `ai-batch.${operation.id}`,
 				title: operation.title,
 				run: () => batch.run(operation.id),
-				menus: [{ menu: ACTIONS_MENU, group: '2_batch', order: position }]
+				menus: [
+					{ menu: ACTIONS_MENU, group: '2_batch', order: position },
+					{ menu: PROMPT_SUGGESTIONS_MENU, group: '1_suggestions', order: 10 + position }
+				]
 			});
 		});
 
