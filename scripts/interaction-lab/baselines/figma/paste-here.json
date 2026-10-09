@@ -1,0 +1,151 @@
+{
+	"experiment": "paste-here",
+	"question": "Context menu \"Paste here\": is the top-left corner of the content put on the cursor, also near the view edge, and when does the view zoom (content larger than the safe area) or pan? (paste.md experiment 16)",
+	"recordedAt": "2026-10-09T01:09:16.029Z",
+	"results": [
+		{
+			"key": "100x80 content, cursor centre: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "100x80 content, cursor centre: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "100x80 content, cursor centre: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "100x80 content, cursor near the right edge: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "100x80 content, cursor near the right edge: view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "100x80 content, cursor near the right edge: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "100x80 content, cursor near the top left corner: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "100x80 content, cursor near the top left corner: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "100x80 content, cursor near the top left corner: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "100x80 content, cursor near the bottom edge: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "100x80 content, cursor near the bottom edge: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "100x80 content, cursor near the bottom edge: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "0.5 view content, cursor centre: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "0.5 view content, cursor centre: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "0.5 view content, cursor centre: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "0.5 view content, cursor near the right edge: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "0.5 view content, cursor near the right edge: view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "0.5 view content, cursor near the right edge: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "0.9 view wide content, cursor centre: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "0.9 view wide content, cursor centre: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "0.9 view wide content, cursor centre: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "0.9 view wide content, cursor near the right edge: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "0.9 view wide content, cursor near the right edge: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "0.9 view wide content, cursor near the right edge: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "0.9 view tall content, cursor centre: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "0.9 view tall content, cursor centre: view",
+			"value": "zoomed to fit, limited by height, margin 40 px"
+		},
+		{
+			"key": "0.9 view tall content, cursor centre: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "0.9 view tall content, cursor near the right edge: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "0.9 view tall content, cursor near the right edge: view",
+			"value": "zoomed to fit, limited by height, margin 40 px"
+		},
+		{
+			"key": "0.9 view tall content, cursor near the right edge: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "2 views content, cursor centre: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "2 views content, cursor centre: view",
+			"value": "zoomed to fit, limited by height, margin 40 px"
+		},
+		{
+			"key": "2 views content, cursor centre: top-left minus cursor",
+			"value": "0,0"
+		},
+		{
+			"key": "2 views content, cursor near the right edge: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "2 views content, cursor near the right edge: view",
+			"value": "zoomed to fit, limited by height, margin 40 px"
+		},
+		{
+			"key": "2 views content, cursor near the right edge: top-left minus cursor",
+			"value": "0,0"
+		}
+	]
+}

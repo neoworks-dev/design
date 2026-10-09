@@ -1,0 +1,79 @@
+{
+	"experiment": "selection-outline-sync",
+	"question": "Does the selection outline stay on the selected node through select, drag, release, nudge, undo, redo, zoom, wheel pan and Alt-duplicate? (pixel check of outline vs fill)",
+	"recordedAt": "2026-10-08T22:37:25.596Z",
+	"results": [
+		{
+			"key": "clicked A: immediately",
+			"value": "aligned"
+		},
+		{
+			"key": "clicked A: settled",
+			"value": "aligned"
+		},
+		{
+			"key": "mid-drag (+40,+20): immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "mid-drag (+40,+20): settled",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after drag release: immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after drag release: settled",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after 3 × ArrowRight: immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after 3 × ArrowRight: settled",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after Ctrl+Z: immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after Ctrl+Z: settled",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after Ctrl+Shift+Z: immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after Ctrl+Shift+Z: settled",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after zoom to 200 %: immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after zoom to 200 %: settled",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after wheel pan: immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after wheel pan: settled",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after Alt-drag duplicate (original A): immediately",
+			"value": "fill not visible"
+		},
+		{
+			"key": "after Alt-drag duplicate (original A): settled",
+			"value": "fill not visible"
+		}
+	]
+}

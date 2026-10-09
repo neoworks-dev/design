@@ -21,6 +21,7 @@
 		"format": "prettier --write .",
 		"lint:fix": "oxlint --type-aware --fix; eslint . --fix",
 		"qa": "bun scripts/qa.ts",
+		"interactions": "bun scripts/interactions.ts",
 		"proof": "bun scripts/proof.ts",
 		"plugin-typings": "bun scripts/plugin-typings.ts",
 		"test": "vitest run",

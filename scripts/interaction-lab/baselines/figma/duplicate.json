@@ -1,0 +1,351 @@
+{
+	"experiment": "duplicate",
+	"question": "Ctrl+D: which node types are pushed to the right of the original (gap 40) and which duplicate in place (frame, rectangle, text, component, group, rotated, several selected, nested)? Repeated duplicates, an occupied slot, an original out of view, and the view afterwards. (paste.md experiments 8, 9, 10, 11, 12)",
+	"recordedAt": "2026-10-09T00:59:11.532Z",
+	"results": [
+		{
+			"key": "frame: created",
+			"value": "S FRAME at 240,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "rectangle: created",
+			"value": "S RECTANGLE at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "rectangle: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rectangle: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rectangle: placement",
+			"value": "in place"
+		},
+		{
+			"key": "text: created",
+			"value": "S TEXT at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "text: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "text: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "text: placement",
+			"value": "in place"
+		},
+		{
+			"key": "component: created",
+			"value": "S COMPONENT at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "component: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "component: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "component: placement",
+			"value": "in place"
+		},
+		{
+			"key": "group: created",
+			"value": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S"
+		},
+		{
+			"key": "group: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "group: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "group: placement",
+			"value": "in place"
+		},
+		{
+			"key": "rotated frame: created",
+			"value": "S FRAME at 263,-35 size 223.01x182.45 in PAGE"
+		},
+		{
+			"key": "rotated frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rotated frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rotated frame: placement",
+			"value": "offset 263,-0.27"
+		},
+		{
+			"key": "two frames: created",
+			"value": "S FRAME at 0,0 size 200x150 in PAGE; T FRAME at 300,0 size 100x150 in PAGE"
+		},
+		{
+			"key": "two frames: selection",
+			"value": "S (new), T (new)"
+		},
+		{
+			"key": "two frames: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "two frames: placement",
+			"value": "in place"
+		},
+		{
+			"key": "rectangle inside a frame: created",
+			"value": "S RECTANGLE at 50,50 size 200x150 in P"
+		},
+		{
+			"key": "rectangle inside a frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rectangle inside a frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rectangle inside a frame: placement",
+			"value": "in place"
+		},
+		{
+			"key": "frame inside a frame: created",
+			"value": "S FRAME at 50,50 size 200x150 in P"
+		},
+		{
+			"key": "frame inside a frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame inside a frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame inside a frame: placement",
+			"value": "in place"
+		},
+		{
+			"key": "frame, duplicate 1 (copy stays selected): created",
+			"value": "S FRAME at 240,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, duplicate 1 (copy stays selected): selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, duplicate 1 (copy stays selected): view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, duplicate 2 (copy stays selected): created",
+			"value": "S FRAME at 480,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, duplicate 2 (copy stays selected): selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, duplicate 2 (copy stays selected): view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "frame, duplicate 3 (copy stays selected): created",
+			"value": "S FRAME at 720,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, duplicate 3 (copy stays selected): selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, duplicate 3 (copy stays selected): view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "frame, duplicate 4 (copy stays selected): created",
+			"value": "S FRAME at 960,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, duplicate 4 (copy stays selected): selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, duplicate 4 (copy stays selected): view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "frame, duplicate 5 (copy stays selected): created",
+			"value": "S FRAME at 1200,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, duplicate 5 (copy stays selected): selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, duplicate 5 (copy stays selected): view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "frame, original selected again, second duplicate: created",
+			"value": "S FRAME at 480,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, original selected again, second duplicate: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, original selected again, second duplicate: view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "frame, slot at 240 taken by a 300 wide frame: created",
+			"value": "S FRAME at 580,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, slot at 240 taken by a 300 wide frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, slot at 240 taken by a 300 wide frame: view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "frame, view starts -0.05 view widths right of the frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, view starts -0.05 view widths right of the frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, view starts -0.05 view widths right of the frame: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "frame, view starts -0.01 view widths right of the frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, view starts -0.01 view widths right of the frame: view",
+			"value": "panned, horizontally start at safe edge, vertically kept"
+		},
+		{
+			"key": "frame, view starts -0.01 view widths right of the frame: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "frame, view starts 0.01 view widths right of the frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, view starts 0.01 view widths right of the frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, view starts 0.01 view widths right of the frame: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "frame, view starts 0.05 view widths right of the frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, view starts 0.05 view widths right of the frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, view starts 0.05 view widths right of the frame: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "frame, view starts 1 view widths right of the frame: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, view starts 1 view widths right of the frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, view starts 1 view widths right of the frame: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "frame, view starts 1 view height below the frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, view starts 1 view height below the frame: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "rectangle, original out of view: created",
+			"value": "S RECTANGLE at 2900,2925 size 200x150 in PAGE"
+		},
+		{
+			"key": "rectangle, original out of view: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rectangle, original out of view: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rectangle, original out of view: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "group, original out of view: created",
+			"value": "S GROUP at 2900,2925 size 200x150 in PAGE; G1 RECTANGLE at 2900,2925 size 100x150 in S; G2 RECTANGLE at 3000,2925 size 100x150 in S"
+		},
+		{
+			"key": "group, original out of view: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "group, original out of view: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "group, original out of view: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "frame inside a frame, original out of view: created",
+			"value": "S FRAME at 2900,2925 size 200x150 in P"
+		},
+		{
+			"key": "frame inside a frame, original out of view: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame inside a frame, original out of view: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame inside a frame, original out of view: placement",
+			"value": "centred in view"
+		}
+	]
+}

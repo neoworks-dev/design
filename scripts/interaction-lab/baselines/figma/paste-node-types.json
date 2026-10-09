@@ -1,0 +1,231 @@
+{
+	"experiment": "paste-node-types",
+	"question": "Ctrl+V of one node with that node selected, and with nothing selected: which node types (frame, rectangle, text, component, group, nested) are pushed to the right of the original and which land on top of it? (paste.md experiment 6)",
+	"recordedAt": "2026-10-09T00:54:24.309Z",
+	"results": [
+		{
+			"key": "frame, selected: created",
+			"value": "S FRAME at 240,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, selected: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "frame, nothing selected: created",
+			"value": "S FRAME at 240,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "frame, nothing selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame, nothing selected: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "rectangle, selected: created",
+			"value": "S RECTANGLE at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "rectangle, selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rectangle, selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rectangle, selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "rectangle, nothing selected: created",
+			"value": "S RECTANGLE at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "rectangle, nothing selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rectangle, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rectangle, nothing selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "text, selected: created",
+			"value": "S TEXT at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "text, selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "text, selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "text, selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "text, nothing selected: created",
+			"value": "S TEXT at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "text, nothing selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "text, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "text, nothing selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "component, selected: created",
+			"value": "S COMPONENT at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "component, selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "component, selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "component, selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "component, nothing selected: created",
+			"value": "S COMPONENT at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "component, nothing selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "component, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "component, nothing selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "group, selected: created",
+			"value": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S"
+		},
+		{
+			"key": "group, selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "group, selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "group, selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "group, nothing selected: created",
+			"value": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S"
+		},
+		{
+			"key": "group, nothing selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "group, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "group, nothing selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "rectangle inside a frame, selected: created",
+			"value": "S RECTANGLE at 50,50 size 200x150 in P"
+		},
+		{
+			"key": "rectangle inside a frame, selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rectangle inside a frame, selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rectangle inside a frame, selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: created",
+			"value": "S RECTANGLE at 50,50 size 200x150 in P"
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "frame inside a frame, selected: created",
+			"value": "S FRAME at 50,50 size 200x150 in P"
+		},
+		{
+			"key": "frame inside a frame, selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame inside a frame, selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame inside a frame, selected: placement",
+			"value": "in place"
+		},
+		{
+			"key": "frame inside a frame, nothing selected: created",
+			"value": "S FRAME at 50,50 size 200x150 in P"
+		},
+		{
+			"key": "frame inside a frame, nothing selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "frame inside a frame, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame inside a frame, nothing selected: placement",
+			"value": "in place"
+		}
+	]
+}

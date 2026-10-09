@@ -1,0 +1,19 @@
+{
+	"experiment": "reparent-frame",
+	"comparedAt": "2026-10-09T01:20:40.571Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "grip near A right edge",
+			"figma": "→ Frame at pointer x 0, A -95..5 (center -45; Frame 0..400); → CDP lab at pointer x 405, A 310..410 (center 360; Frame 0..400)",
+			"app": "→ Frame at pointer x 0, A -95..5 (center -45; Frame 0..400); → CDP lab at pointer x 405, A 310..410 (center 360; Frame 0..400)",
+			"matches": true
+		},
+		{
+			"key": "grip near A left edge",
+			"figma": "→ Frame at pointer x 0, A -5..95 (center 45; Frame 0..400); → CDP lab at pointer x 405, A 400..500 (center 450; Frame 0..400)",
+			"app": "→ Frame at pointer x 0, A -5..95 (center 45; Frame 0..400); → CDP lab at pointer x 405, A 400..500 (center 450; Frame 0..400)",
+			"matches": true
+		}
+	]
+}

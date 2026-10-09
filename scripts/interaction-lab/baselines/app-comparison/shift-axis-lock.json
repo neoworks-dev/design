@@ -1,0 +1,73 @@
+{
+	"experiment": "shift-axis-lock",
+	"comparedAt": "2026-10-09T01:19:13.850Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "free move +40,+10",
+			"figma": "Δ+40,+10",
+			"app": "Δ+40,+10",
+			"matches": true
+		},
+		{
+			"key": "Shift pressed mid-drag",
+			"figma": "Δ+40,+0",
+			"app": "Δ+40,+0",
+			"matches": true
+		},
+		{
+			"key": "pointer now at +40,+35",
+			"figma": "Δ+40,+0",
+			"app": "Δ+40,+0",
+			"matches": true
+		},
+		{
+			"key": "pointer now at +40,+60",
+			"figma": "Δ+0,+60",
+			"app": "Δ+0,+60",
+			"matches": true
+		},
+		{
+			"key": "pointer now at +60,+60 (45°)",
+			"figma": "Δ+0,+60",
+			"app": "Δ+0,+60",
+			"matches": true
+		},
+		{
+			"key": "pointer now at +61,+60",
+			"figma": "Δ+61,+0",
+			"app": "Δ+61,+0",
+			"matches": true
+		},
+		{
+			"key": "pointer now at +70,+30",
+			"figma": "Δ+70,+0",
+			"app": "Δ+70,+0",
+			"matches": true
+		},
+		{
+			"key": "Shift released mid-drag",
+			"figma": "Δ+70,+30",
+			"app": "Δ+70,+30",
+			"matches": true
+		},
+		{
+			"key": "after mouse up",
+			"figma": "Δ+70,+30",
+			"app": "Δ+70,+30",
+			"matches": true
+		},
+		{
+			"key": "Shift held before press, move +3,+30",
+			"figma": "Δ+0,+30",
+			"app": "Δ+0,+30",
+			"matches": true
+		},
+		{
+			"key": "then +3,+30 → +30,+30",
+			"figma": "Δ+0,+30",
+			"app": "Δ+0,+30",
+			"matches": true
+		}
+	]
+}

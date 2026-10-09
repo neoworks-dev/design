@@ -7,6 +7,8 @@
 // types, because this plugin deliberately depends on none of them.
 
 import { FiberState, type Context, type Fiber } from '@neoworks/extension-system';
+import { createNode } from '../../lib/document/defaults';
+import { rebalancedKeys } from '../../lib/document/fractionalIndex';
 import type { BootReport } from '../../lib/kernel/boot.svelte';
 
 /** Services the surface exposes when they exist, under these exact names. */
@@ -58,6 +60,8 @@ export interface DesignDebug {
 	ctx: Context;
 	/** Every plugin fiber with its state and error, from live fibers and the boot report. */
 	plugins(): PluginDebugInfo[];
+	/** Pure node builders, so scripted scenes (`bun run interactions`) create nodes like the app. */
+	nodes: { create: typeof createNode; orderKeys: typeof rebalancedKeys };
 	/** The live services, by name; absent until their plugin is active. */
 	document?: unknown;
 	selection?: unknown;
@@ -144,6 +148,7 @@ export function createSurface(root: Context, sources: SurfaceSources): DesignDeb
 	const surface: DesignDebug = {
 		ctx: root,
 		plugins: () => collectPlugins(root, sources.bootReport()),
+		nodes: { create: createNode, orderKeys: rebalancedKeys },
 		summary: () => summarize(surface, collectPlugins(root, sources.bootReport()))
 	};
 	return surface;

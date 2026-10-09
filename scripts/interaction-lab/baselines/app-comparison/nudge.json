@@ -1,0 +1,85 @@
+{
+	"experiment": "nudge",
+	"comparedAt": "2026-10-09T01:19:47.536Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "ArrowRight →",
+			"figma": "Δ1,0 size 100×100",
+			"app": "Δ1,0 size 100×100",
+			"matches": true
+		},
+		{
+			"key": "ArrowDown →",
+			"figma": "Δ0,1 size 100×100",
+			"app": "Δ0,1 size 100×100",
+			"matches": true
+		},
+		{
+			"key": "Shift+ArrowRight →",
+			"figma": "Δ10,0 size 100×100",
+			"app": "Δ10,0 size 100×100",
+			"matches": true
+		},
+		{
+			"key": "Alt+ArrowRight →",
+			"figma": "Δ1,0 size 100×100",
+			"app": "Δ1,0 size 100×100",
+			"matches": true
+		},
+		{
+			"key": "Control+ArrowRight →",
+			"figma": "Δ0,0 size 101×100",
+			"app": "Δ0,0 size 101×100",
+			"matches": true
+		},
+		{
+			"key": "Control+Shift+ArrowRight →",
+			"figma": "Δ0,0 size 110×100",
+			"app": "Δ0,0 size 110×100",
+			"matches": true
+		},
+		{
+			"key": "ArrowRight at 400 % →",
+			"figma": "Δ1,0 size 100×100",
+			"app": "Δ1,0 size 100×100",
+			"matches": true
+		},
+		{
+			"key": "ArrowRight at 25 % →",
+			"figma": "Δ1,0 size 100×100",
+			"app": "Δ1,0 size 100×100",
+			"matches": true
+		},
+		{
+			"key": "from x+0.5,y+0.25, ArrowRight → position",
+			"figma": "1.5,0.25",
+			"app": "1.5,0.25",
+			"matches": true
+		},
+		{
+			"key": "3 × ArrowRight 50 ms apart, then Ctrl+Z until back",
+			"figma": "Δx 3 → 0",
+			"app": "Δx 3 → 0",
+			"matches": true
+		},
+		{
+			"key": "3 × ArrowRight 300 ms apart, then Ctrl+Z until back",
+			"figma": "Δx 3 → 0",
+			"app": "Δx 3 → 0",
+			"matches": true
+		},
+		{
+			"key": "3 × ArrowRight 1000 ms apart, then Ctrl+Z until back",
+			"figma": "Δx 3 → 2 → 1 → 0",
+			"app": "Δx 3 → 2 → 1 → 0",
+			"matches": true
+		},
+		{
+			"key": "3 × ArrowRight 2000 ms apart, then Ctrl+Z until back",
+			"figma": "Δx 3 → 2 → 1 → 0",
+			"app": "Δx 3 → 2 → 1 → 0",
+			"matches": true
+		}
+	]
+}

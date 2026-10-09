@@ -21,7 +21,9 @@ import {
 } from './virtualDisplay';
 
 export const projectRoot = path.resolve(import.meta.dirname, '../..');
-export const qaDirectory = path.join(projectRoot, '.qa');
+// DESIGN_QA_DIR (for example `.qa-sidebar`) gives a second, independent session, so two agents can
+// each drive their own instance.
+export const qaDirectory = path.join(projectRoot, process.env.DESIGN_QA_DIR ?? '.qa');
 export const shotsDirectory = path.join(qaDirectory, 'shots');
 export const mainLogPath = path.join(qaDirectory, 'main.log');
 const viteLogPath = path.join(qaDirectory, 'vite.log');

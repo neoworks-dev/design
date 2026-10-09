@@ -35,7 +35,13 @@ bun run build          # vite build + electron compile
 bun run check          # svelte-check + tsc on electron/
 bun run lint           # prettier + oxlint + eslint
 bun run qa <command>   # drive an isolated instance over CDP (see design-debug skill)
+bun run interactions <command>  # same interaction experiments on Figma and the app, compared
 ```
+
+Interaction parity: `scripts/interaction-lab/experiments/` drive Figma (a logged-in Chromium on a
+virtual display) and the app (QA session) with identical CDP input. Figma's measurements are
+committed baselines in `scripts/interaction-lab/baselines/figma/`; `bun run interactions check`
+compares the app against them without needing Figma.
 
 Electron code in `electron/*.ts` is bundled with `bun build` into `electron/dist/`. Dev mode is
 selected by `DEV_SERVER_URL`, **not** `NODE_ENV`: bun inlines `process.env.NODE_ENV` at build time.

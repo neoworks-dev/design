@@ -1,0 +1,235 @@
+{
+	"experiment": "paste-next-to",
+	"comparedAt": "2026-10-09T01:22:21.542Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "A selected, paste 1: created",
+			"figma": "A FRAME at 440,0 size 400x300 in PAGE",
+			"app": "A FRAME at 440,0 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 1: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 1: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 1: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 2: created",
+			"figma": "A FRAME at 880,0 size 400x300 in PAGE",
+			"app": "A FRAME at 880,0 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 2: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 2: view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 2: placement",
+			"figma": "right of original, gap 480",
+			"app": "right of original, gap 480",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 3: created",
+			"figma": "A FRAME at 1320,0 size 400x300 in PAGE",
+			"app": "A FRAME at 1320,0 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 3: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 3: view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "A selected, paste 3: placement",
+			"figma": "right of original, gap 920",
+			"app": "right of original, gap 920",
+			"matches": true
+		},
+		{
+			"key": "selection after Escape",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "nothing selected: created",
+			"figma": "A FRAME at 440,0 size 400x300 in PAGE",
+			"app": "A FRAME at 440,0 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "nothing selected: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "nothing selected: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "nothing selected, paste again (copy selected): created",
+			"figma": "A FRAME at 880,0 size 400x300 in PAGE",
+			"app": "A FRAME at 880,0 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "nothing selected, paste again (copy selected): selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "nothing selected, paste again (copy selected): view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "A copied, Different selected: created",
+			"figma": "A FRAME at -150,-50 size 400x300 in Different",
+			"app": "A FRAME at -150,-50 size 400x300 in Different",
+			"matches": true
+		},
+		{
+			"key": "A copied, Different selected: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "A copied, Different selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "A copied, Same size selected: created",
+			"figma": "A FRAME at 1440,500 size 400x300 in PAGE",
+			"app": "A FRAME at 1440,500 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "A copied, Same size selected: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "A copied, Same size selected: view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "slot at 440 taken by a 200 wide frame: created",
+			"figma": "A FRAME at 680,0 size 400x300 in PAGE",
+			"app": "A FRAME at 680,0 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "slot at 440 taken by a 200 wide frame: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "slot at 440 taken by a 200 wide frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "A and B copied, both selected: created",
+			"figma": "A FRAME at 0,0 size 400x300 in PAGE; B FRAME at 500,0 size 200x300 in PAGE",
+			"app": "A FRAME at 0,0 size 400x300 in PAGE; B FRAME at 500,0 size 200x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "A and B copied, both selected: selection",
+			"figma": "A (new), B (new)",
+			"app": "A (new), B (new)",
+			"matches": true
+		},
+		{
+			"key": "A and B copied, both selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "A and B copied, nothing selected: created",
+			"figma": "A FRAME at 0,0 size 400x300 in PAGE; B FRAME at 500,0 size 200x300 in PAGE",
+			"app": "A FRAME at 0,0 size 400x300 in PAGE; B FRAME at 500,0 size 200x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "A and B copied, nothing selected: selection",
+			"figma": "A (new), B (new)",
+			"app": "A (new), B (new)",
+			"matches": true
+		},
+		{
+			"key": "A and B copied, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "A copied, an unrelated rectangle selected: created",
+			"figma": "A FRAME at 0,0 size 400x300 in PAGE",
+			"app": "A FRAME at 0,0 size 400x300 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "A copied, an unrelated rectangle selected: selection",
+			"figma": "A (new)",
+			"app": "A (new)",
+			"matches": true
+		},
+		{
+			"key": "A copied, an unrelated rectangle selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		}
+	]
+}

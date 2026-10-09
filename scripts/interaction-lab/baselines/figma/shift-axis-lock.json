@@ -1,0 +1,51 @@
+{
+	"experiment": "shift-axis-lock",
+	"question": "What does Shift constrain during a move: which axes (incl. 45°), decided by what, and does pressing/releasing Shift mid-drag apply immediately? (moving.md experiment 5)",
+	"recordedAt": "2026-10-08T22:34:29.811Z",
+	"results": [
+		{
+			"key": "free move +40,+10",
+			"value": "Δ+40,+10"
+		},
+		{
+			"key": "Shift pressed mid-drag",
+			"value": "Δ+40,+0"
+		},
+		{
+			"key": "pointer now at +40,+35",
+			"value": "Δ+40,+0"
+		},
+		{
+			"key": "pointer now at +40,+60",
+			"value": "Δ+0,+60"
+		},
+		{
+			"key": "pointer now at +60,+60 (45°)",
+			"value": "Δ+0,+60"
+		},
+		{
+			"key": "pointer now at +61,+60",
+			"value": "Δ+61,+0"
+		},
+		{
+			"key": "pointer now at +70,+30",
+			"value": "Δ+70,+0"
+		},
+		{
+			"key": "Shift released mid-drag",
+			"value": "Δ+70,+30"
+		},
+		{
+			"key": "after mouse up",
+			"value": "Δ+70,+30"
+		},
+		{
+			"key": "Shift held before press, move +3,+30",
+			"value": "Δ+0,+30"
+		},
+		{
+			"key": "then +3,+30 → +30,+30",
+			"value": "Δ+0,+30"
+		}
+	]
+}

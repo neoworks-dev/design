@@ -1,0 +1,193 @@
+{
+	"experiment": "drag-threshold",
+	"comparedAt": "2026-10-09T01:18:55.480Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "zoom 1: one 1px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 1: one 2px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 1: one 3px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 1: one 4px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 1: one 5px move → ΔA.x",
+			"figma": "5",
+			"app": "5",
+			"matches": true
+		},
+		{
+			"key": "zoom 1: one 6px move → ΔA.x",
+			"figma": "6",
+			"app": "6",
+			"matches": true
+		},
+		{
+			"key": "zoom 1: one 8px move → ΔA.x",
+			"figma": "8",
+			"app": "8",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25: one 1px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25: one 2px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25: one 3px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25: one 4px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25: one 5px move → ΔA.x",
+			"figma": "20",
+			"app": "20",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25: one 6px move → ΔA.x",
+			"figma": "24",
+			"app": "24",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25: one 8px move → ΔA.x",
+			"figma": "32",
+			"app": "32",
+			"matches": true
+		},
+		{
+			"key": "zoom 4: one 1px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 4: one 2px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 4: one 3px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 4: one 4px move → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "zoom 4: one 5px move → ΔA.x",
+			"figma": "1",
+			"app": "1",
+			"matches": true
+		},
+		{
+			"key": "zoom 4: one 6px move → ΔA.x",
+			"figma": "2",
+			"app": "2",
+			"matches": true
+		},
+		{
+			"key": "zoom 4: one 8px move → ΔA.x",
+			"figma": "2",
+			"app": "2",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 1px → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 2px → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 3px → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 4px → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 5px → ΔA.x",
+			"figma": "5",
+			"app": "5",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 6px → ΔA.x",
+			"figma": "6",
+			"app": "6",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 7px → ΔA.x",
+			"figma": "7",
+			"app": "7",
+			"matches": true
+		},
+		{
+			"key": "1px steps: after 8px → ΔA.x",
+			"figma": "8",
+			"app": "8",
+			"matches": true
+		},
+		{
+			"key": "back at the press point while held → ΔA.x",
+			"figma": "0",
+			"app": "0",
+			"matches": true
+		},
+		{
+			"key": "then 2px right again → ΔA.x",
+			"figma": "2",
+			"app": "2",
+			"matches": true
+		}
+	]
+}

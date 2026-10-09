@@ -1,0 +1,199 @@
+{
+	"experiment": "paste-offscreen",
+	"question": "Ctrl+V of a frame whose original is panned out of view (to the right of it by 5 % to 160 % of the view width, and above it), with the original selected or not, at zoom 1 and 0.25: when does the copy stay, get pushed or get centred in the view? Also a push that ends beyond the view, at zoom 4. (paste.md experiments 4, 5)",
+	"recordedAt": "2026-10-09T00:56:19.758Z",
+	"results": [
+		{
+			"key": "zoom 1, nothing selected, view starts -0.05 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts -0.01 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.01 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.05 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.1 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.4 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 1.6 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, nothing selected, view ends 0.1 view heights above A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view starts -0.05 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 1, A selected, view starts -0.01 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.01 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.05 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.1 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.4 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view starts 1.6 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view starts 1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 1, A selected, view ends 0.1 view heights above A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts -0.05 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts -0.01 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.01 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.05 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.1 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.4 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 1.6 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view ends 0.1 view heights above A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts -0.05 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts -0.01 view widths right of A: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.01 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.05 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.1 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.4 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 1.6 view widths right of A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 1 view heights below A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 0.25, A selected, view ends 0.1 view heights above A: placement",
+			"value": "centred in view"
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.3 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.45 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.55 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.8 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.3 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.45 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.55 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.8 view widths beyond the right edge: placement",
+			"value": "right of original, gap 40"
+		}
+	]
+}

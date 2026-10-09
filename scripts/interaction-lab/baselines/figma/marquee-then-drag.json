@@ -1,0 +1,47 @@
+{
+	"experiment": "marquee-then-drag",
+	"question": "Marquee-select a whole frame (top-right to bottom-left, containing it), then drag from its middle: does the frame move, or the child under the pointer? (reported with the Menu overlay setup)",
+	"recordedAt": "2026-10-08T22:37:39.171Z",
+	"results": [
+		{
+			"key": "[press on empty frame middle] marquee around Frame selects",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on empty frame middle] after press",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on empty frame middle] while dragging 40px",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on empty frame middle] after release",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on empty frame middle] positions after",
+			"value": "Frame 40,300; C 40,40 in Frame"
+		},
+		{
+			"key": "[press on child C] marquee around Frame selects",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on child C] after press",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on child C] while dragging 40px",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on child C] after release",
+			"value": "Frame"
+		},
+		{
+			"key": "[press on child C] positions after",
+			"value": "Frame 40,300; C 40,40 in Frame"
+		}
+	]
+}

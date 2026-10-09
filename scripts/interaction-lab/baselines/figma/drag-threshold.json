@@ -1,0 +1,131 @@
+{
+	"experiment": "drag-threshold",
+	"question": "How far must the pointer travel before a press on a node becomes a move, does the node then jump by the full pointer delta, and does moving back re-arm the threshold? (moving.md experiments 1–3)",
+	"recordedAt": "2026-10-08T22:34:09.691Z",
+	"results": [
+		{
+			"key": "zoom 1: one 1px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 1: one 2px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 1: one 3px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 1: one 4px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 1: one 5px move → ΔA.x",
+			"value": "5"
+		},
+		{
+			"key": "zoom 1: one 6px move → ΔA.x",
+			"value": "6"
+		},
+		{
+			"key": "zoom 1: one 8px move → ΔA.x",
+			"value": "8"
+		},
+		{
+			"key": "zoom 0.25: one 1px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 0.25: one 2px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 0.25: one 3px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 0.25: one 4px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 0.25: one 5px move → ΔA.x",
+			"value": "20"
+		},
+		{
+			"key": "zoom 0.25: one 6px move → ΔA.x",
+			"value": "24"
+		},
+		{
+			"key": "zoom 0.25: one 8px move → ΔA.x",
+			"value": "32"
+		},
+		{
+			"key": "zoom 4: one 1px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 4: one 2px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 4: one 3px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 4: one 4px move → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "zoom 4: one 5px move → ΔA.x",
+			"value": "1"
+		},
+		{
+			"key": "zoom 4: one 6px move → ΔA.x",
+			"value": "2"
+		},
+		{
+			"key": "zoom 4: one 8px move → ΔA.x",
+			"value": "2"
+		},
+		{
+			"key": "1px steps: after 1px → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "1px steps: after 2px → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "1px steps: after 3px → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "1px steps: after 4px → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "1px steps: after 5px → ΔA.x",
+			"value": "5"
+		},
+		{
+			"key": "1px steps: after 6px → ΔA.x",
+			"value": "6"
+		},
+		{
+			"key": "1px steps: after 7px → ΔA.x",
+			"value": "7"
+		},
+		{
+			"key": "1px steps: after 8px → ΔA.x",
+			"value": "8"
+		},
+		{
+			"key": "back at the press point while held → ΔA.x",
+			"value": "0"
+		},
+		{
+			"key": "then 2px right again → ΔA.x",
+			"value": "2"
+		}
+	]
+}

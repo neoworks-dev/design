@@ -1,5 +1,5 @@
-// Minimal Chrome DevTools Protocol client for driving the Electron renderer.
-// Electron exposes CDP itself via --remote-debugging-port; no Playwright needed.
+// Minimal Chrome DevTools Protocol client for driving the Electron renderer or a Chromium tab.
+// Both expose CDP via --remote-debugging-port; no Playwright needed.
 
 interface Target {
 	type: string;
@@ -15,22 +15,30 @@ interface PendingCall {
 
 interface CdpResponse {
 	id?: number;
+	method?: string;
+	params?: Record<string, unknown>;
 	result?: unknown;
 	error?: { message: string };
 }
+
+type EventListener = (params: Record<string, unknown>) => void;
 
 export class CdpSession {
 	private socket: WebSocket;
 	private nextId = 1;
 	private pending = new Map<number, PendingCall>();
+	private listeners = new Map<string, Set<EventListener>>();
 
 	private constructor(socket: WebSocket) {
 		this.socket = socket;
 		socket.addEventListener('message', (event) => this.handleMessage(String(event.data)));
 	}
 
-	static async connect(port: number): Promise<CdpSession> {
-		const target = await findAppPage(port);
+	static async connect(
+		port: number,
+		matches: (target: Target) => boolean = isAppPage
+	): Promise<CdpSession> {
+		const target = await findPage(port, matches);
 		const socket = new WebSocket(target.webSocketDebuggerUrl);
 		await new Promise<void>((resolve, reject) => {
 			socket.addEventListener('open', () => resolve(), { once: true });
@@ -67,12 +75,27 @@ export class CdpSession {
 		return response.result.value;
 	}
 
+	/** Subscribes to a CDP event such as `Runtime.consoleAPICalled`; returns the unsubscriber. */
+	on(method: string, listener: EventListener): () => void {
+		let listeners = this.listeners.get(method);
+		if (!listeners) {
+			listeners = new Set();
+			this.listeners.set(method, listeners);
+		}
+		listeners.add(listener);
+		return () => listeners.delete(listener);
+	}
+
 	close(): void {
 		this.socket.close();
 	}
 
 	private handleMessage(raw: string): void {
 		const message: CdpResponse = JSON.parse(raw);
+		if (message.method) {
+			this.dispatchEvent(message.method, message.params || {});
+			return;
+		}
 		if (message.id === undefined) return;
 		const call = this.pending.get(message.id);
 		if (!call) return;
@@ -83,7 +106,15 @@ export class CdpSession {
 		}
 		call.resolve(message.result);
 	}
+
+	private dispatchEvent(method: string, params: Record<string, unknown>): void {
+		const listeners = this.listeners.get(method);
+		if (!listeners) return;
+		for (const listener of listeners) listener(params);
+	}
 }
+
+export type { Target };
 
 export async function listTargets(port: number): Promise<Target[]> {
 	const response = await fetch(`http://127.0.0.1:${port}/json/list`);
@@ -91,14 +122,14 @@ export async function listTargets(port: number): Promise<Target[]> {
 	return targets;
 }
 
-// The app window, never a detached devtools page.
-async function findAppPage(port: number): Promise<Target> {
+async function findPage(port: number, matches: (target: Target) => boolean): Promise<Target> {
 	const targets = await listTargets(port);
-	const page = targets.find((target) => isAppPage(target));
-	if (!page) throw new Error(`no app page among CDP targets on port ${port}`);
+	const page = targets.find(matches);
+	if (!page) throw new Error(`no matching page among CDP targets on port ${port}`);
 	return page;
 }
 
+// The app window, never a detached devtools page.
 export function isAppPage(target: Target): boolean {
 	return target.type === 'page' && !target.url.startsWith('devtools://');
 }

@@ -1,0 +1,265 @@
+{
+	"experiment": "nested-multi-drag",
+	"comparedAt": "2026-10-09T01:21:44.844Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "[C+D, clicks, press C after 800 ms] selected",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] after press",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] while dragging 30px",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] after release",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] positions after",
+			"figma": "C 70,40 in Frame; D 270,40 in Frame",
+			"app": "C 70,40 in Frame; D 270,40 in Frame",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] selected",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] after press",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] while dragging 30px",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] after release",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] positions after",
+			"figma": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"app": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"matches": true
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] selected",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] after press",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] while dragging 30px",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] after release",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] positions after",
+			"figma": "C 70,40 in Frame; D 270,40 in Frame",
+			"app": "C 70,40 in Frame; D 270,40 in Frame",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] selected",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] after press",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] while dragging 30px",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] after release",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] positions after",
+			"figma": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"app": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] selected",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] after press",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] while dragging 30px",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] after release",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] positions after",
+			"figma": "C 70,40 in Frame; D 270,40 in Frame",
+			"app": "C 70,40 in Frame; D 270,40 in Frame",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] selected",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] after press",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] while dragging 30px",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] after release",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] positions after",
+			"figma": "C 70,40 in Frame; D 270,40 in Frame",
+			"app": "C 70,40 in Frame; D 270,40 in Frame",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] selected",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] after press",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] while dragging 30px",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] after release",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] positions after",
+			"figma": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"app": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] selected",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] after press",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] while dragging 30px",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] after release",
+			"figma": "S1+S2",
+			"app": "S1+S2",
+			"matches": true
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] positions after",
+			"figma": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"app": "S1 10,10 in Stack; S2 80,10 in Stack",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D centre right after its Shift-click] after press",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D centre right after its Shift-click] while dragging 30px",
+			"figma": "C+D",
+			"app": "C+D",
+			"matches": true
+		},
+		{
+			"key": "[C+D, clicks, press D centre right after its Shift-click] positions after",
+			"figma": "C 40,40 in Frame; D 240,40 in Frame",
+			"app": "C 40,40 in Frame; D 240,40 in Frame",
+			"matches": true
+		}
+	]
+}

@@ -1,0 +1,61 @@
+{
+	"experiment": "snap-distance",
+	"comparedAt": "2026-10-09T01:20:08.682Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "zoom 1, approaching",
+			"figma": "snapped from -4 to 4 screen px around the edge",
+			"app": "snapped from -4 to 4 screen px around the edge",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, leaving",
+			"figma": "snapped from -4 to 4 screen px around the edge",
+			"app": "snapped from -4 to 4 screen px around the edge",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.5, approaching",
+			"figma": "snapped from -4 to 4 screen px around the edge",
+			"app": "snapped from -4 to 4 screen px around the edge",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.5, leaving",
+			"figma": "snapped from -4 to 4 screen px around the edge",
+			"app": "snapped from -4 to 4 screen px around the edge",
+			"matches": true
+		},
+		{
+			"key": "zoom 2, approaching",
+			"figma": "snapped from -5 to 4 screen px around the edge",
+			"app": "snapped from -5 to 4 screen px around the edge",
+			"matches": true
+		},
+		{
+			"key": "zoom 2, leaving",
+			"figma": "snapped from -5 to 4 screen px around the edge",
+			"app": "snapped from -5 to 4 screen px around the edge",
+			"matches": true
+		},
+		{
+			"key": "zoom 4, approaching",
+			"figma": "snapped from -2 to 1 screen px around the edge",
+			"app": "snapped from -6 to 5 screen px around the edge",
+			"matches": false
+		},
+		{
+			"key": "zoom 4, leaving",
+			"figma": "snapped from -2 to 1 screen px around the edge",
+			"app": "snapped from -6 to 5 screen px around the edge",
+			"matches": false
+		},
+		{
+			"key": "zoom 1, B below the viewport, approaching",
+			"figma": "never snapped",
+			"app": "never snapped",
+			"matches": true
+		}
+	]
+}

@@ -1,0 +1,15 @@
+{
+	"experiment": "reparent-frame",
+	"question": "While dragging a node across a frame, when does the frame become its parent and when does it stop being it: pointer inside, node center, or overlap? (moving.md experiment 14)",
+	"recordedAt": "2026-10-08T22:35:53.984Z",
+	"results": [
+		{
+			"key": "grip near A right edge",
+			"value": "→ Frame at pointer x 0, A -95..5 (center -45; Frame 0..400); → CDP lab at pointer x 405, A 310..410 (center 360; Frame 0..400)"
+		},
+		{
+			"key": "grip near A left edge",
+			"value": "→ Frame at pointer x 0, A -5..95 (center 45; Frame 0..400); → CDP lab at pointer x 405, A 400..500 (center 450; Frame 0..400)"
+		}
+	]
+}

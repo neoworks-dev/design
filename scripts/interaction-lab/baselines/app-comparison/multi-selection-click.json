@@ -1,0 +1,121 @@
+{
+	"experiment": "multi-selection-click",
+	"comparedAt": "2026-10-09T01:21:21.811Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "[clicks, body] press on A",
+			"figma": "A+B",
+			"app": "A+B",
+			"matches": true
+		},
+		{
+			"key": "[clicks, body] release without moving",
+			"figma": "A",
+			"app": "A",
+			"matches": true
+		},
+		{
+			"key": "[clicks, body] drag 30px from A, while held",
+			"figma": "A+B; A.x=30 B.x=330",
+			"app": "A+B; A.x=30 B.x=330",
+			"matches": true
+		},
+		{
+			"key": "[clicks, body] after release",
+			"figma": "A+B; A.x=30 B.x=330",
+			"app": "A+B; A.x=30 B.x=330",
+			"matches": true
+		},
+		{
+			"key": "[clicks, body] Shift+press on selected A",
+			"figma": "A+B",
+			"app": "A+B",
+			"matches": true
+		},
+		{
+			"key": "[clicks, body] Shift+release",
+			"figma": "B",
+			"app": "B",
+			"matches": true
+		},
+		{
+			"key": "[clicks, center] press on A",
+			"figma": "A+B",
+			"app": "A+B",
+			"matches": true
+		},
+		{
+			"key": "[clicks, center] release without moving",
+			"figma": "A+B",
+			"app": "A",
+			"matches": false
+		},
+		{
+			"key": "[clicks, center] drag 30px from A, while held",
+			"figma": "A+B; A.x=30 B.x=300",
+			"app": "A+B; A.x=30 B.x=330",
+			"matches": false
+		},
+		{
+			"key": "[clicks, center] after release",
+			"figma": "A+B; A.x=0 B.x=300",
+			"app": "A+B; A.x=30 B.x=330",
+			"matches": false
+		},
+		{
+			"key": "[clicks, center] Shift+press on selected A",
+			"figma": "A+B",
+			"app": "A+B",
+			"matches": true
+		},
+		{
+			"key": "[clicks, center] Shift+release",
+			"figma": "A+B",
+			"app": "B",
+			"matches": false
+		},
+		{
+			"key": "[api, body] press on A",
+			"figma": "A+B",
+			"app": "A+B",
+			"matches": true
+		},
+		{
+			"key": "[api, body] release without moving",
+			"figma": "A",
+			"app": "A",
+			"matches": true
+		},
+		{
+			"key": "[api, body] drag 30px from A, while held",
+			"figma": "A+B; A.x=30 B.x=330",
+			"app": "A+B; A.x=30 B.x=330",
+			"matches": true
+		},
+		{
+			"key": "[api, body] after release",
+			"figma": "A+B; A.x=30 B.x=330",
+			"app": "A+B; A.x=30 B.x=330",
+			"matches": true
+		},
+		{
+			"key": "[api, body] Shift+press on selected A",
+			"figma": "A+B",
+			"app": "A+B",
+			"matches": true
+		},
+		{
+			"key": "[api, body] Shift+release",
+			"figma": "B",
+			"app": "B",
+			"matches": true
+		},
+		{
+			"key": "Shift-click A then B from empty selection",
+			"figma": "A+B",
+			"app": "A+B",
+			"matches": true
+		}
+	]
+}

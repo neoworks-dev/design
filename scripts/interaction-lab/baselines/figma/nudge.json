@@ -1,0 +1,59 @@
+{
+	"experiment": "nudge",
+	"question": "Arrow-key nudge: step sizes with each modifier, fractional positions, zoom dependence and undo coalescing. (moving.md experiment 16)",
+	"recordedAt": "2026-10-08T22:34:58.982Z",
+	"results": [
+		{
+			"key": "ArrowRight →",
+			"value": "Δ1,0 size 100×100"
+		},
+		{
+			"key": "ArrowDown →",
+			"value": "Δ0,1 size 100×100"
+		},
+		{
+			"key": "Shift+ArrowRight →",
+			"value": "Δ10,0 size 100×100"
+		},
+		{
+			"key": "Alt+ArrowRight →",
+			"value": "Δ1,0 size 100×100"
+		},
+		{
+			"key": "Control+ArrowRight →",
+			"value": "Δ0,0 size 101×100"
+		},
+		{
+			"key": "Control+Shift+ArrowRight →",
+			"value": "Δ0,0 size 110×100"
+		},
+		{
+			"key": "ArrowRight at 400 % →",
+			"value": "Δ1,0 size 100×100"
+		},
+		{
+			"key": "ArrowRight at 25 % →",
+			"value": "Δ1,0 size 100×100"
+		},
+		{
+			"key": "from x+0.5,y+0.25, ArrowRight → position",
+			"value": "1.5,0.25"
+		},
+		{
+			"key": "3 × ArrowRight 50 ms apart, then Ctrl+Z until back",
+			"value": "Δx 3 → 0"
+		},
+		{
+			"key": "3 × ArrowRight 300 ms apart, then Ctrl+Z until back",
+			"value": "Δx 3 → 0"
+		},
+		{
+			"key": "3 × ArrowRight 1000 ms apart, then Ctrl+Z until back",
+			"value": "Δx 3 → 2 → 1 → 0"
+		},
+		{
+			"key": "3 × ArrowRight 2000 ms apart, then Ctrl+Z until back",
+			"value": "Δx 3 → 2 → 1 → 0"
+		}
+	]
+}

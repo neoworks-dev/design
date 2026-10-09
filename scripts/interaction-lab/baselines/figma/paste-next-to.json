@@ -1,0 +1,159 @@
+{
+	"experiment": "paste-next-to",
+	"question": "Ctrl+V of a top-level frame: when does the copy land next to the original (right edge + 40, repeated) and when on top of it? Selected vs Escape, repeated pastes, a different frame selected (other size, same size), two frames copied. (paste.md experiments 1, 2, 3, 7)",
+	"recordedAt": "2026-10-09T00:53:51.378Z",
+	"results": [
+		{
+			"key": "A selected, paste 1: created",
+			"value": "A FRAME at 440,0 size 400x300 in PAGE"
+		},
+		{
+			"key": "A selected, paste 1: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "A selected, paste 1: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "A selected, paste 1: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "A selected, paste 2: created",
+			"value": "A FRAME at 880,0 size 400x300 in PAGE"
+		},
+		{
+			"key": "A selected, paste 2: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "A selected, paste 2: view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "A selected, paste 2: placement",
+			"value": "right of original, gap 480"
+		},
+		{
+			"key": "A selected, paste 3: created",
+			"value": "A FRAME at 1320,0 size 400x300 in PAGE"
+		},
+		{
+			"key": "A selected, paste 3: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "A selected, paste 3: view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "A selected, paste 3: placement",
+			"value": "right of original, gap 920"
+		},
+		{
+			"key": "selection after Escape",
+			"value": "0"
+		},
+		{
+			"key": "nothing selected: created",
+			"value": "A FRAME at 440,0 size 400x300 in PAGE"
+		},
+		{
+			"key": "nothing selected: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "nothing selected: placement",
+			"value": "right of original, gap 40"
+		},
+		{
+			"key": "nothing selected, paste again (copy selected): created",
+			"value": "A FRAME at 880,0 size 400x300 in PAGE"
+		},
+		{
+			"key": "nothing selected, paste again (copy selected): selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "nothing selected, paste again (copy selected): view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "A copied, Different selected: created",
+			"value": "A FRAME at -150,-50 size 400x300 in Different"
+		},
+		{
+			"key": "A copied, Different selected: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "A copied, Different selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "A copied, Same size selected: created",
+			"value": "A FRAME at 1440,500 size 400x300 in PAGE"
+		},
+		{
+			"key": "A copied, Same size selected: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "A copied, Same size selected: view",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "slot at 440 taken by a 200 wide frame: created",
+			"value": "A FRAME at 680,0 size 400x300 in PAGE"
+		},
+		{
+			"key": "slot at 440 taken by a 200 wide frame: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "slot at 440 taken by a 200 wide frame: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "A and B copied, both selected: created",
+			"value": "A FRAME at 0,0 size 400x300 in PAGE; B FRAME at 500,0 size 200x300 in PAGE"
+		},
+		{
+			"key": "A and B copied, both selected: selection",
+			"value": "A (new), B (new)"
+		},
+		{
+			"key": "A and B copied, both selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "A and B copied, nothing selected: created",
+			"value": "A FRAME at 0,0 size 400x300 in PAGE; B FRAME at 500,0 size 200x300 in PAGE"
+		},
+		{
+			"key": "A and B copied, nothing selected: selection",
+			"value": "A (new), B (new)"
+		},
+		{
+			"key": "A and B copied, nothing selected: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "A copied, an unrelated rectangle selected: created",
+			"value": "A FRAME at 0,0 size 400x300 in PAGE"
+		},
+		{
+			"key": "A copied, an unrelated rectangle selected: selection",
+			"value": "A (new)"
+		},
+		{
+			"key": "A copied, an unrelated rectangle selected: view",
+			"value": "view unchanged"
+		}
+	]
+}

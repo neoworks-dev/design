@@ -1,0 +1,25 @@
+{
+	"experiment": "auto-layout-reorder",
+	"comparedAt": "2026-10-09T01:21:11.608Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "S1 dragged right along the stack",
+			"figma": "Stack[0] at pointer 541,340; Stack[1] at pointer 581,340; Stack[2] at pointer 651,340; CDP lab[4] at pointer 752,340; after release: CDP lab[4] at 760,310",
+			"app": "Stack[0] at pointer 541,340; Stack[1] at pointer 581,340; Stack[2] at pointer 651,340; CDP lab[4] at pointer 752,340; after release: CDP lab[4] at 760,310",
+			"matches": true
+		},
+		{
+			"key": "S2 dragged straight up",
+			"figma": "Stack[1] at pointer 610,339; CDP lab[4] at pointer 610,268; after release: CDP lab[4] at 580,160",
+			"app": "Stack[1] at pointer 610,339; CDP lab[4] at pointer 610,268; after release: CDP lab[4] at 580,160",
+			"matches": true
+		},
+		{
+			"key": "S2 dragged straight down",
+			"figma": "Stack[1] at pointer 610,341; CDP lab[4] at pointer 610,412; after release: CDP lab[4] at 580,460",
+			"app": "Stack[1] at pointer 610,341; CDP lab[4] at pointer 610,412; after release: CDP lab[4] at 580,460",
+			"matches": true
+		}
+	]
+}

@@ -1,0 +1,343 @@
+{
+	"experiment": "paste-node-types",
+	"comparedAt": "2026-10-09T01:25:33.852Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "frame, selected: created",
+			"figma": "S FRAME at 240,0 size 200x150 in PAGE",
+			"app": "S FRAME at 240,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, selected: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "frame, nothing selected: created",
+			"figma": "S FRAME at 240,0 size 200x150 in PAGE",
+			"app": "S FRAME at 240,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, nothing selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, nothing selected: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "rectangle, selected: created",
+			"figma": "S RECTANGLE at 0,0 size 200x150 in PAGE",
+			"app": "S RECTANGLE at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "rectangle, selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rectangle, selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rectangle, selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "rectangle, nothing selected: created",
+			"figma": "S RECTANGLE at 0,0 size 200x150 in PAGE",
+			"app": "S RECTANGLE at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "rectangle, nothing selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rectangle, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rectangle, nothing selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "text, selected: created",
+			"figma": "S TEXT at 0,0 size 200x150 in PAGE",
+			"app": "S TEXT at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "text, selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "text, selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "text, selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "text, nothing selected: created",
+			"figma": "S TEXT at 0,0 size 200x150 in PAGE",
+			"app": "S TEXT at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "text, nothing selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "text, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "text, nothing selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "component, selected: created",
+			"figma": "S COMPONENT at 0,0 size 200x150 in PAGE",
+			"app": "S COMPONENT at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "component, selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "component, selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "component, selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "component, nothing selected: created",
+			"figma": "S COMPONENT at 0,0 size 200x150 in PAGE",
+			"app": "S COMPONENT at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "component, nothing selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "component, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "component, nothing selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "group, selected: created",
+			"figma": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S",
+			"app": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S",
+			"matches": true
+		},
+		{
+			"key": "group, selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "group, selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "group, selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "group, nothing selected: created",
+			"figma": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S",
+			"app": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S",
+			"matches": true
+		},
+		{
+			"key": "group, nothing selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "group, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "group, nothing selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, selected: created",
+			"figma": "S RECTANGLE at 50,50 size 200x150 in P",
+			"app": "S RECTANGLE at 50,50 size 200x150 in P",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: created",
+			"figma": "S RECTANGLE at 50,50 size 200x150 in P",
+			"app": "S RECTANGLE at 50,50 size 200x150 in P",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame, nothing selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, selected: created",
+			"figma": "S FRAME at 50,50 size 200x150 in P",
+			"app": "S FRAME at 50,50 size 200x150 in P",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, nothing selected: created",
+			"figma": "S FRAME at 50,50 size 200x150 in P",
+			"app": "S FRAME at 50,50 size 200x150 in P",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, nothing selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, nothing selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, nothing selected: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		}
+	]
+}

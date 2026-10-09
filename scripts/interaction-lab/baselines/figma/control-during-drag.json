@@ -1,0 +1,19 @@
+{
+	"experiment": "control-during-drag",
+	"question": "What does holding Control during a move change: snapping, reparenting into frames, or both? (moving.md experiment 8)",
+	"recordedAt": "2026-10-08T22:35:33.276Z",
+	"results": [
+		{
+			"key": "Control held: approaching edge",
+			"value": "never snapped"
+		},
+		{
+			"key": "Control held: leaving edge",
+			"value": "never snapped"
+		},
+		{
+			"key": "Control held: drag across Frame",
+			"value": "parent never changed"
+		}
+	]
+}

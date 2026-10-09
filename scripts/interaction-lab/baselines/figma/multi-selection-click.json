@@ -1,0 +1,83 @@
+{
+	"experiment": "multi-selection-click",
+	"question": "With A and B selected, what does a press / release / drag on A do to the selection, and what does Shift-click on a selected node do? Pressing the center of A hits the smart-selection handle (A and B are evenly spaced), so A is pressed both there and on its body; the selection is made via real clicks and via the plugin API. (moving.md experiment 18, interactions.md §3)",
+	"recordedAt": "2026-10-08T22:36:37.695Z",
+	"results": [
+		{
+			"key": "[clicks, body] press on A",
+			"value": "A+B"
+		},
+		{
+			"key": "[clicks, body] release without moving",
+			"value": "A"
+		},
+		{
+			"key": "[clicks, body] drag 30px from A, while held",
+			"value": "A+B; A.x=30 B.x=330"
+		},
+		{
+			"key": "[clicks, body] after release",
+			"value": "A+B; A.x=30 B.x=330"
+		},
+		{
+			"key": "[clicks, body] Shift+press on selected A",
+			"value": "A+B"
+		},
+		{
+			"key": "[clicks, body] Shift+release",
+			"value": "B"
+		},
+		{
+			"key": "[clicks, center] press on A",
+			"value": "A+B"
+		},
+		{
+			"key": "[clicks, center] release without moving",
+			"value": "A+B"
+		},
+		{
+			"key": "[clicks, center] drag 30px from A, while held",
+			"value": "A+B; A.x=30 B.x=300"
+		},
+		{
+			"key": "[clicks, center] after release",
+			"value": "A+B; A.x=0 B.x=300"
+		},
+		{
+			"key": "[clicks, center] Shift+press on selected A",
+			"value": "A+B"
+		},
+		{
+			"key": "[clicks, center] Shift+release",
+			"value": "A+B"
+		},
+		{
+			"key": "[api, body] press on A",
+			"value": "A+B"
+		},
+		{
+			"key": "[api, body] release without moving",
+			"value": "A"
+		},
+		{
+			"key": "[api, body] drag 30px from A, while held",
+			"value": "A+B; A.x=30 B.x=330"
+		},
+		{
+			"key": "[api, body] after release",
+			"value": "A+B; A.x=30 B.x=330"
+		},
+		{
+			"key": "[api, body] Shift+press on selected A",
+			"value": "A+B"
+		},
+		{
+			"key": "[api, body] Shift+release",
+			"value": "B"
+		},
+		{
+			"key": "Shift-click A then B from empty selection",
+			"value": "A+B"
+		}
+	]
+}

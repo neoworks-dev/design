@@ -1,0 +1,133 @@
+{
+	"experiment": "paste-other-page",
+	"comparedAt": "2026-10-09T01:22:39.241Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "R on an empty second page: created",
+			"figma": "R RECTANGLE at 1150,860 size 100x80 in PAGE",
+			"app": "R RECTANGLE at 1150,860 size 100x80 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "R on an empty second page: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "R on an empty second page: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "R on an busy second page: created",
+			"figma": "R RECTANGLE at 1150,860 size 100x80 in PAGE",
+			"app": "R RECTANGLE at 1150,860 size 100x80 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "R on an busy second page: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "R on an busy second page: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "S on an empty second page: created",
+			"figma": "S FRAME at 0,0 size 200x150 in PAGE",
+			"app": "S FRAME at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "S on an empty second page: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "S on an empty second page: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "S on an busy second page: created",
+			"figma": "S FRAME at 1100,825 size 200x150 in PAGE",
+			"app": "S FRAME at 1100,825 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "S on an busy second page: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "S on an busy second page: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "T on an empty second page: created",
+			"figma": "T FRAME at 0,0 size 200x150 in PAGE",
+			"app": "T FRAME at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "T on an empty second page: selection",
+			"figma": "T (new)",
+			"app": "T (new)",
+			"matches": true
+		},
+		{
+			"key": "T on an empty second page: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "T on an busy second page: created",
+			"figma": "T FRAME at 1100,825 size 200x150 in PAGE",
+			"app": "T FRAME at 1100,825 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "T on an busy second page: selection",
+			"figma": "T (new)",
+			"app": "T (new)",
+			"matches": true
+		},
+		{
+			"key": "T on an busy second page: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "S on a page with S2 at the same place, S2 selected: created",
+			"figma": "S FRAME at 240,0 size 200x150 in PAGE",
+			"app": "S FRAME at 240,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "S on a page with S2 at the same place, S2 selected: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "S on a page with S2 at the same place, S2 selected: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		}
+	]
+}

@@ -1,0 +1,51 @@
+{
+	"experiment": "alt-duplicate",
+	"question": "Alt-drag duplicate: when is the copy created (press, threshold, release), which node moves, and what happens when Alt is pressed or released mid-drag? (moving.md experiment 6)",
+	"recordedAt": "2026-10-08T22:34:33.229Z",
+	"results": [
+		{
+			"key": "Alt held, pressed",
+			"value": "page children 4, selection original"
+		},
+		{
+			"key": "Alt held, moved 3px (below threshold)",
+			"value": "page children 4, selection original"
+		},
+		{
+			"key": "Alt held, moved 40px",
+			"value": "page children 5, selection copy 1"
+		},
+		{
+			"key": "selection position after 40px",
+			"value": "Δ+40,+0"
+		},
+		{
+			"key": "Alt released mid-drag",
+			"value": "page children 5, selection copy 1"
+		},
+		{
+			"key": "Alt pressed again mid-drag",
+			"value": "page children 5, selection copy 1"
+		},
+		{
+			"key": "mouse up",
+			"value": "page children 5, selection copy 1"
+		},
+		{
+			"key": "first node named \"A\" after",
+			"value": "original at 0,0"
+		},
+		{
+			"key": "plain drag, then Alt pressed",
+			"value": "page children 6, selection copy 2"
+		},
+		{
+			"key": "…moved 20px further",
+			"value": "page children 6, selection copy 2"
+		},
+		{
+			"key": "mouse up",
+			"value": "page children 6, selection copy 2"
+		}
+	]
+}

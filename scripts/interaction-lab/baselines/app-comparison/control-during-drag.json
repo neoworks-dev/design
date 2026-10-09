@@ -1,0 +1,25 @@
+{
+	"experiment": "control-during-drag",
+	"comparedAt": "2026-10-09T01:20:21.713Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "Control held: approaching edge",
+			"figma": "never snapped",
+			"app": "never snapped",
+			"matches": true
+		},
+		{
+			"key": "Control held: leaving edge",
+			"figma": "never snapped",
+			"app": "never snapped",
+			"matches": true
+		},
+		{
+			"key": "Control held: drag across Frame",
+			"figma": "parent never changed",
+			"app": "parent never changed",
+			"matches": true
+		}
+	]
+}

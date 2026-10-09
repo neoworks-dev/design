@@ -1,0 +1,73 @@
+{
+	"experiment": "double-click",
+	"comparedAt": "2026-10-09T01:19:10.432Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "A clicked twice, 100 ms apart",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked twice, 300 ms apart",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked twice, 450 ms apart",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked twice, 600 ms apart",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked twice, 800 ms apart",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked twice 100 ms apart, second 3px right",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked twice 100 ms apart, second 6px right",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked twice 100 ms apart, second 10px right",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "A clicked, Escape, clicked again 100 ms later",
+			"figma": "A → A",
+			"app": "A → A",
+			"matches": true
+		},
+		{
+			"key": "C (inside Frame) clicked twice, 100 ms apart",
+			"figma": "C → C",
+			"app": "C → C",
+			"matches": true
+		},
+		{
+			"key": "S1 (inside Stack) clicked twice, 100 ms apart",
+			"figma": "S1 → S1",
+			"app": "S1 → S1",
+			"matches": true
+		}
+	]
+}

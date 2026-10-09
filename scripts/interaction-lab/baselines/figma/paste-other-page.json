@@ -1,0 +1,91 @@
+{
+	"experiment": "paste-other-page",
+	"question": "Ctrl+V on another page of the same file: where does the content land (original coordinates, centre of the view, page origin) for an empty and a non-empty page, a rectangle and a frame, and does a frame get pushed? (paste.md experiment 17, same file)",
+	"recordedAt": "2026-10-09T00:58:43.597Z",
+	"results": [
+		{
+			"key": "R on an empty second page: created",
+			"value": "R RECTANGLE at 1150,860 size 100x80 in PAGE"
+		},
+		{
+			"key": "R on an empty second page: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "R on an empty second page: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "R on an busy second page: created",
+			"value": "R RECTANGLE at 1150,860 size 100x80 in PAGE"
+		},
+		{
+			"key": "R on an busy second page: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "R on an busy second page: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "S on an empty second page: created",
+			"value": "S FRAME at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "S on an empty second page: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "S on an empty second page: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "S on an busy second page: created",
+			"value": "S FRAME at 1100,825 size 200x150 in PAGE"
+		},
+		{
+			"key": "S on an busy second page: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "S on an busy second page: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "T on an empty second page: created",
+			"value": "T FRAME at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "T on an empty second page: selection",
+			"value": "T (new)"
+		},
+		{
+			"key": "T on an empty second page: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "T on an busy second page: created",
+			"value": "T FRAME at 1100,825 size 200x150 in PAGE"
+		},
+		{
+			"key": "T on an busy second page: selection",
+			"value": "T (new)"
+		},
+		{
+			"key": "T on an busy second page: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "S on a page with S2 at the same place, S2 selected: created",
+			"value": "S FRAME at 240,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "S on a page with S2 at the same place, S2 selected: selection",
+			"value": "S (new)"
+		},
+		{
+			"key": "S on a page with S2 at the same place, S2 selected: view",
+			"value": "view unchanged"
+		}
+	]
+}

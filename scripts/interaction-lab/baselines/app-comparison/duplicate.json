@@ -1,0 +1,523 @@
+{
+	"experiment": "duplicate",
+	"comparedAt": "2026-10-09T01:24:08.179Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "frame: created",
+			"figma": "S FRAME at 240,0 size 200x150 in PAGE",
+			"app": "S FRAME at 240,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "rectangle: created",
+			"figma": "S RECTANGLE at 0,0 size 200x150 in PAGE",
+			"app": "S RECTANGLE at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "rectangle: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rectangle: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rectangle: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "text: created",
+			"figma": "S TEXT at 0,0 size 200x150 in PAGE",
+			"app": "S TEXT at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "text: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "text: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "text: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "component: created",
+			"figma": "S COMPONENT at 0,0 size 200x150 in PAGE",
+			"app": "S COMPONENT at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "component: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "component: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "component: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "group: created",
+			"figma": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S",
+			"app": "S GROUP at 0,0 size 200x150 in PAGE; G1 RECTANGLE at 0,0 size 100x150 in S; G2 RECTANGLE at 100,0 size 100x150 in S",
+			"matches": true
+		},
+		{
+			"key": "group: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "group: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "group: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "rotated frame: created",
+			"figma": "S FRAME at 263,-35 size 223.01x182.45 in PAGE",
+			"app": "S FRAME at 263,-35 size 223.01x182.45 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "rotated frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rotated frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rotated frame: placement",
+			"figma": "offset 263,-0.27",
+			"app": "offset 263,-0.27",
+			"matches": true
+		},
+		{
+			"key": "two frames: created",
+			"figma": "S FRAME at 0,0 size 200x150 in PAGE; T FRAME at 300,0 size 100x150 in PAGE",
+			"app": "S FRAME at 0,0 size 200x150 in PAGE; T FRAME at 300,0 size 100x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "two frames: selection",
+			"figma": "S (new), T (new)",
+			"app": "S (new), T (new)",
+			"matches": true
+		},
+		{
+			"key": "two frames: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "two frames: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame: created",
+			"figma": "S RECTANGLE at 50,50 size 200x150 in P",
+			"app": "S RECTANGLE at 50,50 size 200x150 in P",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rectangle inside a frame: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame: created",
+			"figma": "S FRAME at 50,50 size 200x150 in P",
+			"app": "S FRAME at 50,50 size 200x150 in P",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame: placement",
+			"figma": "in place",
+			"app": "in place",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 1 (copy stays selected): created",
+			"figma": "S FRAME at 240,0 size 200x150 in PAGE",
+			"app": "S FRAME at 240,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 1 (copy stays selected): selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 1 (copy stays selected): view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 2 (copy stays selected): created",
+			"figma": "S FRAME at 480,0 size 200x150 in PAGE",
+			"app": "S FRAME at 480,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 2 (copy stays selected): selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 2 (copy stays selected): view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 3 (copy stays selected): created",
+			"figma": "S FRAME at 720,0 size 200x150 in PAGE",
+			"app": "S FRAME at 720,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 3 (copy stays selected): selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 3 (copy stays selected): view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 4 (copy stays selected): created",
+			"figma": "S FRAME at 960,0 size 200x150 in PAGE",
+			"app": "S FRAME at 960,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 4 (copy stays selected): selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 4 (copy stays selected): view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 5 (copy stays selected): created",
+			"figma": "S FRAME at 1200,0 size 200x150 in PAGE",
+			"app": "S FRAME at 1200,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 5 (copy stays selected): selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, duplicate 5 (copy stays selected): view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "frame, original selected again, second duplicate: created",
+			"figma": "S FRAME at 480,0 size 200x150 in PAGE",
+			"app": "S FRAME at 480,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, original selected again, second duplicate: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, original selected again, second duplicate: view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "frame, slot at 240 taken by a 300 wide frame: created",
+			"figma": "S FRAME at 580,0 size 200x150 in PAGE",
+			"app": "S FRAME at 580,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "frame, slot at 240 taken by a 300 wide frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, slot at 240 taken by a 300 wide frame: view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts -0.05 view widths right of the frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts -0.05 view widths right of the frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts -0.05 view widths right of the frame: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts -0.01 view widths right of the frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts -0.01 view widths right of the frame: view",
+			"figma": "panned, horizontally start at safe edge, vertically kept",
+			"app": "panned, horizontally start at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts -0.01 view widths right of the frame: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 0.01 view widths right of the frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 0.01 view widths right of the frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 0.01 view widths right of the frame: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 0.05 view widths right of the frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 0.05 view widths right of the frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 0.05 view widths right of the frame: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 1 view widths right of the frame: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 1 view widths right of the frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 1 view widths right of the frame: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 1 view height below the frame: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame, view starts 1 view height below the frame: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "rectangle, original out of view: created",
+			"figma": "S RECTANGLE at 2900,2925 size 200x150 in PAGE",
+			"app": "S RECTANGLE at 2900,2925 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "rectangle, original out of view: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "rectangle, original out of view: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "rectangle, original out of view: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "group, original out of view: created",
+			"figma": "S GROUP at 2900,2925 size 200x150 in PAGE; G1 RECTANGLE at 2900,2925 size 100x150 in S; G2 RECTANGLE at 3000,2925 size 100x150 in S",
+			"app": "S GROUP at 2900,2925 size 200x150 in PAGE; G1 RECTANGLE at 2900,2925 size 100x150 in S; G2 RECTANGLE at 3000,2925 size 100x150 in S",
+			"matches": true
+		},
+		{
+			"key": "group, original out of view: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "group, original out of view: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "group, original out of view: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, original out of view: created",
+			"figma": "S FRAME at 2900,2925 size 200x150 in P",
+			"app": "S FRAME at 2900,2925 size 200x150 in P",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, original out of view: selection",
+			"figma": "S (new)",
+			"app": "S (new)",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, original out of view: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame inside a frame, original out of view: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		}
+	]
+}

@@ -1,0 +1,43 @@
+{
+	"experiment": "escape-and-undo",
+	"question": "Does Escape mid-drag restore the original position (and drop an Alt copy)? Is a multi-step drag one undo step? (moving.md experiment 7)",
+	"recordedAt": "2026-10-08T22:34:38.657Z",
+	"results": [
+		{
+			"key": "Escape with button held",
+			"value": "A not selected"
+		},
+		{
+			"key": "pointer moved further after Escape",
+			"value": "A not selected"
+		},
+		{
+			"key": "A after release",
+			"value": "60,30"
+		},
+		{
+			"key": "Alt-drag: page children before Escape",
+			"value": "5"
+		},
+		{
+			"key": "Alt-drag: page children after Escape",
+			"value": "5"
+		},
+		{
+			"key": "Alt-drag: page children after release",
+			"value": "5"
+		},
+		{
+			"key": "after two drags",
+			"value": "80,50"
+		},
+		{
+			"key": "after one Ctrl+Z",
+			"value": "80,0"
+		},
+		{
+			"key": "after two Ctrl+Z",
+			"value": "0,0"
+		}
+	]
+}

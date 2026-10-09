@@ -1,0 +1,439 @@
+{
+	"experiment": "paste-destination",
+	"comparedAt": "2026-10-09T01:25:02.752Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "filled frame, R disjoint from F on both axes: created",
+			"figma": "R RECTANGLE at 250,160 size 100x80 in F",
+			"app": "R RECTANGLE at 250,160 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R disjoint from F on both axes: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R disjoint from F on both axes: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R overlaps F in x only: created",
+			"figma": "R RECTANGLE at 100,160 size 100x80 in F",
+			"app": "R RECTANGLE at 100,160 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R overlaps F in x only: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R overlaps F in x only: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R overlaps F in y only: created",
+			"figma": "R RECTANGLE at 250,100 size 100x80 in F",
+			"app": "R RECTANGLE at 250,100 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R overlaps F in y only: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R overlaps F in y only: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R wider than F: created",
+			"figma": "R RECTANGLE at -100,160 size 800x80 in F",
+			"app": "R RECTANGLE at -100,160 size 800x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R wider than F: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R wider than F: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R taller than F: created",
+			"figma": "R RECTANGLE at 250,-50 size 100x500 in F",
+			"app": "R RECTANGLE at 250,-50 size 100x500 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R taller than F: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R taller than F: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R inside F: created",
+			"figma": "R RECTANGLE at 100,100 size 100x80 in F",
+			"app": "R RECTANGLE at 100,100 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R inside F: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R inside F: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R sticks out of F on the right: created",
+			"figma": "R RECTANGLE at 550,350 size 100x80 in F",
+			"app": "R RECTANGLE at 550,350 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R sticks out of F on the right: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R sticks out of F on the right: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R left of F touching its edge: created",
+			"figma": "R RECTANGLE at 250,100 size 100x80 in F",
+			"app": "R RECTANGLE at 250,100 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R left of F touching its edge: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, R left of F touching its edge: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, left half out of view, R in the visible half: created",
+			"figma": "R RECTANGLE at 350,100 size 100x80 in F",
+			"app": "R RECTANGLE at 350,100 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, left half out of view, R in the visible half: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, left half out of view, R in the visible half: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "filled frame, left half out of view, R in the hidden half: created",
+			"figma": "R RECTANGLE at 100,100 size 100x80 in F",
+			"app": "R RECTANGLE at 100,100 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "filled frame, left half out of view, R in the hidden half: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "filled frame, left half out of view, R in the hidden half: view",
+			"figma": "panned, horizontally start at safe edge, vertically kept",
+			"app": "panned, horizontally start at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "F copied with F selected, left half out of view: created",
+			"figma": "F FRAME at 640,0 size 600x400 in PAGE; K RECTANGLE at 650,10 size 20x20 in F",
+			"app": "F FRAME at 640,0 size 600x400 in PAGE; K RECTANGLE at 650,10 size 20x20 in F",
+			"matches": true
+		},
+		{
+			"key": "F copied with F selected, left half out of view: selection",
+			"figma": "F (new)",
+			"app": "F (new)",
+			"matches": true
+		},
+		{
+			"key": "F copied with F selected, left half out of view: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "empty frame, E in view: created",
+			"figma": "R RECTANGLE at 400,360 size 100x80 in E",
+			"app": "R RECTANGLE at 400,360 size 100x80 in E",
+			"matches": true
+		},
+		{
+			"key": "empty frame, E in view: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty frame, E in view: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "empty frame, E out of view: created",
+			"figma": "R RECTANGLE at 2950,2960 size 100x80 in PAGE",
+			"app": "R RECTANGLE at 2950,2960 size 100x80 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "empty frame, E out of view: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty frame, E out of view: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "empty frame, R copied from inside it: created",
+			"figma": "R RECTANGLE at 350,350 size 100x80 in E",
+			"app": "R RECTANGLE at 350,350 size 100x80 in E",
+			"matches": true
+		},
+		{
+			"key": "empty frame, R copied from inside it: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty frame, R copied from inside it: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "empty frame, R cut from inside it: created",
+			"figma": "R RECTANGLE at 350,350 size 100x80 in E",
+			"app": "R RECTANGLE at 350,350 size 100x80 in E",
+			"matches": true
+		},
+		{
+			"key": "empty frame, R cut from inside it: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty frame, R cut from inside it: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "empty page, R small: created",
+			"figma": "R RECTANGLE at 500,500 size 100x80 in PAGE",
+			"app": "R RECTANGLE at 500,500 size 100x80 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "empty page, R small: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty page, R small: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "empty page, R large: created",
+			"figma": "R RECTANGLE at 500,500 size 3000x2000 in PAGE",
+			"app": "R RECTANGLE at 500,500 size 3000x2000 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "empty page, R large: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty page, R large: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "empty page, R tall: created",
+			"figma": "R RECTANGLE at 500,500 size 100x3000 in PAGE",
+			"app": "R RECTANGLE at 500,500 size 100x3000 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "empty page, R tall: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty page, R tall: view",
+			"figma": "zoomed to fit, limited by height, margin 40 px",
+			"app": "zoomed to fit, limited by height, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "empty page, R cut, view moved away: created",
+			"figma": "R RECTANGLE at 4950,4960 size 100x80 in PAGE",
+			"app": "R RECTANGLE at 4950,4960 size 100x80 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "empty page, R cut, view moved away: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "empty page, R cut, view moved away: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from the page at 100,100: created",
+			"figma": "R RECTANGLE at 1250,1160 size 100x80 in F",
+			"app": "R RECTANGLE at 1250,1160 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from the page at 100,100: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from the page at 100,100: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 0,0 (50,50 inside it): created",
+			"figma": "R RECTANGLE at 1050,1050 size 100x80 in F",
+			"app": "R RECTANGLE at 1050,1050 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 0,0 (50,50 inside it): selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 0,0 (50,50 inside it): view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 1000,0 (50,50 inside it): created",
+			"figma": "R RECTANGLE at 1050,1050 size 100x80 in F",
+			"app": "R RECTANGLE at 1050,1050 size 100x80 in F",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 1000,0 (50,50 inside it): selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 1000,0 (50,50 inside it): view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "empty page, frame cut, view on it: created",
+			"figma": "T FRAME at 0,0 size 200x150 in PAGE",
+			"app": "T FRAME at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "empty page, frame cut, view on it: selection",
+			"figma": "T (new)",
+			"app": "T (new)",
+			"matches": true
+		},
+		{
+			"key": "empty page, frame cut, view on it: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "empty page, frame cut, view moved away: created",
+			"figma": "T FRAME at 0,0 size 200x150 in PAGE",
+			"app": "T FRAME at 0,0 size 200x150 in PAGE",
+			"matches": true
+		},
+		{
+			"key": "empty page, frame cut, view moved away: selection",
+			"figma": "T (new)",
+			"app": "T (new)",
+			"matches": true
+		},
+		{
+			"key": "empty page, frame cut, view moved away: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		}
+	]
+}

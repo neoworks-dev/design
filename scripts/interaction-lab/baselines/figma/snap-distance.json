@@ -1,0 +1,43 @@
+{
+	"experiment": "snap-distance",
+	"question": "Edge snapping between siblings: how close (in screen px) must an edge come before it snaps, does it depend on zoom, is there hysteresis, and does an off-screen node still attract? (moving.md experiment 10)",
+	"recordedAt": "2026-10-08T22:35:19.648Z",
+	"results": [
+		{
+			"key": "zoom 1, approaching",
+			"value": "snapped from -4 to 4 screen px around the edge"
+		},
+		{
+			"key": "zoom 1, leaving",
+			"value": "snapped from -4 to 4 screen px around the edge"
+		},
+		{
+			"key": "zoom 0.5, approaching",
+			"value": "snapped from -4 to 4 screen px around the edge"
+		},
+		{
+			"key": "zoom 0.5, leaving",
+			"value": "snapped from -4 to 4 screen px around the edge"
+		},
+		{
+			"key": "zoom 2, approaching",
+			"value": "snapped from -5 to 4 screen px around the edge"
+		},
+		{
+			"key": "zoom 2, leaving",
+			"value": "snapped from -5 to 4 screen px around the edge"
+		},
+		{
+			"key": "zoom 4, approaching",
+			"value": "snapped from -2 to 1 screen px around the edge"
+		},
+		{
+			"key": "zoom 4, leaving",
+			"value": "snapped from -2 to 1 screen px around the edge"
+		},
+		{
+			"key": "zoom 1, B below the viewport, approaching",
+			"value": "never snapped"
+		}
+	]
+}

@@ -1,0 +1,73 @@
+{
+	"experiment": "alt-duplicate",
+	"comparedAt": "2026-10-09T01:19:16.867Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "Alt held, pressed",
+			"figma": "page children 4, selection original",
+			"app": "page children 4, selection original",
+			"matches": true
+		},
+		{
+			"key": "Alt held, moved 3px (below threshold)",
+			"figma": "page children 4, selection original",
+			"app": "page children 4, selection original",
+			"matches": true
+		},
+		{
+			"key": "Alt held, moved 40px",
+			"figma": "page children 5, selection copy 1",
+			"app": "page children 5, selection copy 1",
+			"matches": true
+		},
+		{
+			"key": "selection position after 40px",
+			"figma": "Δ+40,+0",
+			"app": "Δ+40,+0",
+			"matches": true
+		},
+		{
+			"key": "Alt released mid-drag",
+			"figma": "page children 5, selection copy 1",
+			"app": "page children 5, selection copy 1",
+			"matches": true
+		},
+		{
+			"key": "Alt pressed again mid-drag",
+			"figma": "page children 5, selection copy 1",
+			"app": "page children 5, selection copy 1",
+			"matches": true
+		},
+		{
+			"key": "mouse up",
+			"figma": "page children 5, selection copy 1",
+			"app": "page children 6, selection copy 2",
+			"matches": false
+		},
+		{
+			"key": "first node named \"A\" after",
+			"figma": "original at 0,0",
+			"app": "original at 0,0",
+			"matches": true
+		},
+		{
+			"key": "plain drag, then Alt pressed",
+			"figma": "page children 6, selection copy 2",
+			"app": "page children 6, selection copy 2",
+			"matches": true
+		},
+		{
+			"key": "…moved 20px further",
+			"figma": "page children 6, selection copy 2",
+			"app": "page children 6, selection copy 2",
+			"matches": true
+		},
+		{
+			"key": "mouse up",
+			"figma": "page children 6, selection copy 2",
+			"app": "page children 6, selection copy 2",
+			"matches": true
+		}
+	]
+}

@@ -12,7 +12,7 @@ node_modules/
 
 /electron/dist
 
-/.qa
+/.qa*
 
 # Mobbin reference images are licensed to us, not redistributable (public repo).
 /docs/references/

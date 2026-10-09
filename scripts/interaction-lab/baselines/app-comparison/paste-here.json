@@ -1,0 +1,223 @@
+{
+	"experiment": "paste-here",
+	"comparedAt": "2026-10-09T01:23:04.182Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "100x80 content, cursor centre: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor centre: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor centre: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the right edge: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the right edge: view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the right edge: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the top left corner: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the top left corner: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the top left corner: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the bottom edge: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the bottom edge: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "100x80 content, cursor near the bottom edge: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "0.5 view content, cursor centre: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "0.5 view content, cursor centre: view",
+			"figma": "view unchanged",
+			"app": "view unchanged",
+			"matches": true
+		},
+		{
+			"key": "0.5 view content, cursor centre: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "0.5 view content, cursor near the right edge: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "0.5 view content, cursor near the right edge: view",
+			"figma": "panned, horizontally end at safe edge, vertically kept",
+			"app": "panned, horizontally end at safe edge, vertically kept",
+			"matches": true
+		},
+		{
+			"key": "0.5 view content, cursor near the right edge: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "0.9 view wide content, cursor centre: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "0.9 view wide content, cursor centre: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "0.9 view wide content, cursor centre: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "0.9 view wide content, cursor near the right edge: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "0.9 view wide content, cursor near the right edge: view",
+			"figma": "zoomed to fit, limited by width, margin 40 px",
+			"app": "zoomed to fit, limited by width, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "0.9 view wide content, cursor near the right edge: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "0.9 view tall content, cursor centre: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "0.9 view tall content, cursor centre: view",
+			"figma": "zoomed to fit, limited by height, margin 40 px",
+			"app": "zoomed to fit, limited by height, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "0.9 view tall content, cursor centre: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "0.9 view tall content, cursor near the right edge: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "0.9 view tall content, cursor near the right edge: view",
+			"figma": "zoomed to fit, limited by height, margin 40 px",
+			"app": "zoomed to fit, limited by height, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "0.9 view tall content, cursor near the right edge: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "2 views content, cursor centre: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "2 views content, cursor centre: view",
+			"figma": "zoomed to fit, limited by height, margin 40 px",
+			"app": "zoomed to fit, limited by height, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "2 views content, cursor centre: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		},
+		{
+			"key": "2 views content, cursor near the right edge: selection",
+			"figma": "R (new)",
+			"app": "R (new)",
+			"matches": true
+		},
+		{
+			"key": "2 views content, cursor near the right edge: view",
+			"figma": "zoomed to fit, limited by height, margin 40 px",
+			"app": "zoomed to fit, limited by height, margin 40 px",
+			"matches": true
+		},
+		{
+			"key": "2 views content, cursor near the right edge: top-left minus cursor",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		}
+	]
+}

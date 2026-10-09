@@ -1,0 +1,61 @@
+{
+	"experiment": "escape-and-undo",
+	"comparedAt": "2026-10-09T01:19:24.239Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "Escape with button held",
+			"figma": "A not selected",
+			"app": "A not selected",
+			"matches": true
+		},
+		{
+			"key": "pointer moved further after Escape",
+			"figma": "A not selected",
+			"app": "A not selected",
+			"matches": true
+		},
+		{
+			"key": "A after release",
+			"figma": "60,30",
+			"app": "60,30",
+			"matches": true
+		},
+		{
+			"key": "Alt-drag: page children before Escape",
+			"figma": "5",
+			"app": "5",
+			"matches": true
+		},
+		{
+			"key": "Alt-drag: page children after Escape",
+			"figma": "5",
+			"app": "5",
+			"matches": true
+		},
+		{
+			"key": "Alt-drag: page children after release",
+			"figma": "5",
+			"app": "5",
+			"matches": true
+		},
+		{
+			"key": "after two drags",
+			"figma": "80,50",
+			"app": "80,0",
+			"matches": false
+		},
+		{
+			"key": "after one Ctrl+Z",
+			"figma": "80,0",
+			"app": "80,0",
+			"matches": true
+		},
+		{
+			"key": "after two Ctrl+Z",
+			"figma": "0,0",
+			"app": "0,0",
+			"matches": true
+		}
+	]
+}

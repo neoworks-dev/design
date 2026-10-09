@@ -1,0 +1,51 @@
+{
+	"experiment": "double-click",
+	"question": "When do two clicks count as a double-click (time and distance), what does a double-click on a rectangle and on a frame child do, and does Escape between the clicks reset it? (moving.md experiment 4)",
+	"recordedAt": "2026-10-08T22:34:26.009Z",
+	"results": [
+		{
+			"key": "A clicked twice, 100 ms apart",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked twice, 300 ms apart",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked twice, 450 ms apart",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked twice, 600 ms apart",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked twice, 800 ms apart",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked twice 100 ms apart, second 3px right",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked twice 100 ms apart, second 6px right",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked twice 100 ms apart, second 10px right",
+			"value": "A → A"
+		},
+		{
+			"key": "A clicked, Escape, clicked again 100 ms later",
+			"value": "A → A"
+		},
+		{
+			"key": "C (inside Frame) clicked twice, 100 ms apart",
+			"value": "C → C"
+		},
+		{
+			"key": "S1 (inside Stack) clicked twice, 100 ms apart",
+			"value": "S1 → S1"
+		}
+	]
+}

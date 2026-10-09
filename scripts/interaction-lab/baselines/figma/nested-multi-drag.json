@@ -1,0 +1,179 @@
+{
+	"experiment": "nested-multi-drag",
+	"question": "With two children of the same frame selected (C+D in a plain frame, S1+S2 in auto layout), does pressing one and dragging move both, or does the selection collapse to the pressed one?",
+	"recordedAt": "2026-10-08T22:37:08.753Z",
+	"results": [
+		{
+			"key": "[C+D, clicks, press C after 800 ms] selected",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] after press",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] while dragging 30px",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] after release",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 800 ms] positions after",
+			"value": "C 70,40 in Frame; D 270,40 in Frame"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] selected",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] after press",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] while dragging 30px",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] after release",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 800 ms] positions after",
+			"value": "S1 10,10 in Stack; S2 80,10 in Stack"
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] selected",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] after press",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] while dragging 30px",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] after release",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, api, press C after 800 ms] positions after",
+			"value": "C 70,40 in Frame; D 270,40 in Frame"
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] selected",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] after press",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] while dragging 30px",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] after release",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, api, press S1 after 800 ms] positions after",
+			"value": "S1 10,10 in Stack; S2 80,10 in Stack"
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] selected",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] after press",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] while dragging 30px",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] after release",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press C after 100 ms] positions after",
+			"value": "C 70,40 in Frame; D 270,40 in Frame"
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] selected",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] after press",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] while dragging 30px",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] after release",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press D after 100 ms] positions after",
+			"value": "C 70,40 in Frame; D 270,40 in Frame"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] selected",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] after press",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] while dragging 30px",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] after release",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S1 after 100 ms] positions after",
+			"value": "S1 10,10 in Stack; S2 80,10 in Stack"
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] selected",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] after press",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] while dragging 30px",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] after release",
+			"value": "S1+S2"
+		},
+		{
+			"key": "[S1+S2, clicks, press S2 after 100 ms] positions after",
+			"value": "S1 10,10 in Stack; S2 80,10 in Stack"
+		},
+		{
+			"key": "[C+D, clicks, press D centre right after its Shift-click] after press",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press D centre right after its Shift-click] while dragging 30px",
+			"value": "C+D"
+		},
+		{
+			"key": "[C+D, clicks, press D centre right after its Shift-click] positions after",
+			"value": "C 40,40 in Frame; D 240,40 in Frame"
+		}
+	]
+}

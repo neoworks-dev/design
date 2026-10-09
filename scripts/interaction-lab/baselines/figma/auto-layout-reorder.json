@@ -1,0 +1,19 @@
+{
+	"experiment": "auto-layout-reorder",
+	"question": "Dragging inside a horizontal auto-layout frame: at which pointer positions does the child change index, is the order live during the drag, and how far out must it go to leave the stack? (moving.md experiment 15)",
+	"recordedAt": "2026-10-08T22:36:26.206Z",
+	"results": [
+		{
+			"key": "S1 dragged right along the stack",
+			"value": "Stack[0] at pointer 541,340; Stack[1] at pointer 581,340; Stack[2] at pointer 651,340; CDP lab[4] at pointer 752,340; after release: CDP lab[4] at 760,310"
+		},
+		{
+			"key": "S2 dragged straight up",
+			"value": "Stack[1] at pointer 610,339; CDP lab[4] at pointer 610,268; after release: CDP lab[4] at 580,160"
+		},
+		{
+			"key": "S2 dragged straight down",
+			"value": "Stack[1] at pointer 610,341; CDP lab[4] at pointer 610,412; after release: CDP lab[4] at 580,460"
+		}
+	]
+}

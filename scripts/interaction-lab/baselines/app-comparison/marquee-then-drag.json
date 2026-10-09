@@ -1,0 +1,67 @@
+{
+	"experiment": "marquee-then-drag",
+	"comparedAt": "2026-10-09T01:22:01.030Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "[press on empty frame middle] marquee around Frame selects",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on empty frame middle] after press",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on empty frame middle] while dragging 40px",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on empty frame middle] after release",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on empty frame middle] positions after",
+			"figma": "Frame 40,300; C 40,40 in Frame",
+			"app": "Frame 40,300; C 40,40 in Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on child C] marquee around Frame selects",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on child C] after press",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on child C] while dragging 40px",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on child C] after release",
+			"figma": "Frame",
+			"app": "Frame",
+			"matches": true
+		},
+		{
+			"key": "[press on child C] positions after",
+			"figma": "Frame 40,300; C 40,40 in Frame",
+			"app": "Frame 40,300; C 40,40 in Frame",
+			"matches": true
+		}
+	]
+}

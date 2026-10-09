@@ -1,0 +1,295 @@
+{
+	"experiment": "paste-offscreen",
+	"comparedAt": "2026-10-09T01:27:20.633Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "zoom 1, nothing selected, view starts -0.05 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts -0.01 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.01 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.05 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.1 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.4 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 1.6 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 0.1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view starts 1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, nothing selected, view ends 0.1 view heights above A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts -0.05 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts -0.01 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.01 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.05 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.1 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.4 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts 1.6 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts 0.1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view starts 1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 1, A selected, view ends 0.1 view heights above A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts -0.05 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts -0.01 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.01 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.05 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.1 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.4 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 1.6 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 0.1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view starts 1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, nothing selected, view ends 0.1 view heights above A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts -0.05 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts -0.01 view widths right of A: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.01 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.05 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.1 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.4 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 1.6 view widths right of A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 0.1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view starts 1 view heights below A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 0.25, A selected, view ends 0.1 view heights above A: placement",
+			"figma": "centred in view",
+			"app": "centred in view",
+			"matches": true
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.3 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.45 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.55 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 4, A selected, push ends 0.8 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.3 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.45 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.55 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		},
+		{
+			"key": "zoom 8, A selected, push ends 0.8 view widths beyond the right edge: placement",
+			"figma": "right of original, gap 40",
+			"app": "right of original, gap 40",
+			"matches": true
+		}
+	]
+}

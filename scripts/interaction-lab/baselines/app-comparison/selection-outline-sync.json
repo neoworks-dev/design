@@ -1,0 +1,115 @@
+{
+	"experiment": "selection-outline-sync",
+	"comparedAt": "2026-10-09T01:21:53.139Z",
+	"error": null,
+	"rows": [
+		{
+			"key": "clicked A: immediately",
+			"figma": "aligned",
+			"app": "outline corner offset -5,-36 px from the fill",
+			"matches": false
+		},
+		{
+			"key": "clicked A: settled",
+			"figma": "aligned",
+			"app": "aligned",
+			"matches": true
+		},
+		{
+			"key": "mid-drag (+40,+20): immediately",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "mid-drag (+40,+20): settled",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after drag release: immediately",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after drag release: settled",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after 3 × ArrowRight: immediately",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after 3 × ArrowRight: settled",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after Ctrl+Z: immediately",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after Ctrl+Z: settled",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after Ctrl+Shift+Z: immediately",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after Ctrl+Shift+Z: settled",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after zoom to 200 %: immediately",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after zoom to 200 %: settled",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after wheel pan: immediately",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after wheel pan: settled",
+			"figma": "fill not visible",
+			"app": "aligned",
+			"matches": false
+		},
+		{
+			"key": "after Alt-drag duplicate (original A): immediately",
+			"figma": "fill not visible",
+			"app": "no outline",
+			"matches": false
+		},
+		{
+			"key": "after Alt-drag duplicate (original A): settled",
+			"figma": "fill not visible",
+			"app": "no outline",
+			"matches": false
+		}
+	]
+}

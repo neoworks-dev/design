@@ -88,7 +88,8 @@ export async function scroll(
 		x: point.x,
 		y: point.y,
 		deltaX,
-		deltaY
+		deltaY,
+		modifiers: heldModifiers
 	});
 }
 
@@ -96,8 +97,18 @@ export async function typeText(cdp: CdpSession, text: string): Promise<void> {
 	await cdp.send('Input.insertText', { text });
 }
 
+/**
+ * Chromium's editing commands. A key event only triggers copy, cut or paste (and so the page's
+ * clipboard events) when it carries the matching command.
+ */
+export type EditingCommand = 'copy' | 'cut' | 'paste' | 'selectAll';
+
 // Presses one chord such as "Control+Shift+z", "Escape" or "v".
-export async function pressChord(cdp: CdpSession, chord: string): Promise<void> {
+export async function pressChord(
+	cdp: CdpSession,
+	chord: string,
+	commands: EditingCommand[] = []
+): Promise<void> {
 	const parts = chord.split('+');
 	const keyName = parts[parts.length - 1];
 	const modifierNames = parts.slice(0, -1);
@@ -115,7 +126,8 @@ export async function pressChord(cdp: CdpSession, chord: string): Promise<void> 
 	await cdp.send('Input.dispatchKeyEvent', {
 		...base,
 		type: text ? 'keyDown' : 'rawKeyDown',
-		text
+		text,
+		commands
 	});
 	await cdp.send('Input.dispatchKeyEvent', { ...base, type: 'keyUp' });
 }
@@ -127,7 +139,29 @@ export function holdModifiers(names: string[]): void {
 	heldModifiers = names.reduce((bits, name) => bits | modifierBit(name), 0);
 }
 
-async function mouse(
+export async function keyDown(cdp: CdpSession, name: string): Promise<void> {
+	const key = describeKey(name);
+	await cdp.send('Input.dispatchKeyEvent', {
+		type: 'rawKeyDown',
+		key: key.key,
+		code: key.code,
+		windowsVirtualKeyCode: key.keyCode,
+		modifiers: heldModifiers
+	});
+}
+
+export async function keyUp(cdp: CdpSession, name: string): Promise<void> {
+	const key = describeKey(name);
+	await cdp.send('Input.dispatchKeyEvent', {
+		type: 'keyUp',
+		key: key.key,
+		code: key.code,
+		windowsVirtualKeyCode: key.keyCode,
+		modifiers: heldModifiers
+	});
+}
+
+export async function mouse(
 	cdp: CdpSession,
 	type: string,
 	point: Point,

@@ -1,0 +1,71 @@
+{
+	"experiment": "paste-view",
+	"question": "After Ctrl+V of content that stays in place (original visible, nothing selected): when does the view pan, by how much, and when does it zoom to the content (larger than the safe area, covering it, strips)? (paste.md experiment 18, function 7674)",
+	"recordedAt": "2026-10-09T01:09:56.245Z",
+	"results": [
+		{
+			"key": "zoom 1, 0.5 x 0.5 view in the middle",
+			"value": "view unchanged"
+		},
+		{
+			"key": "zoom 1, 0.8 x 0.8 view in the middle",
+			"value": "view unchanged"
+		},
+		{
+			"key": "zoom 1, 0.9 x 0.9 view in the middle",
+			"value": "zoomed to fit, limited by height, margin 40 px"
+		},
+		{
+			"key": "zoom 1, 1.2 x 1.2 view in the middle",
+			"value": "zoomed to fit, limited by height, margin 40 px"
+		},
+		{
+			"key": "zoom 1, 3 x 0.2 view strip in the middle",
+			"value": "view unchanged"
+		},
+		{
+			"key": "zoom 1, 2 x 0.5 view in the middle",
+			"value": "view unchanged"
+		},
+		{
+			"key": "zoom 1, 0.2 x 3 view strip in the middle",
+			"value": "view unchanged"
+		},
+		{
+			"key": "zoom 1, small, 1 % of the width inside the left edge",
+			"value": "panned, horizontally start at safe edge, vertically kept"
+		},
+		{
+			"key": "zoom 1, small, straddling the left edge",
+			"value": "panned, horizontally start at safe edge, vertically kept"
+		},
+		{
+			"key": "zoom 1, small, straddling the right edge",
+			"value": "panned, horizontally end at safe edge, vertically kept"
+		},
+		{
+			"key": "zoom 1, small, straddling the top edge",
+			"value": "panned, horizontally kept, vertically start at safe edge"
+		},
+		{
+			"key": "zoom 1, small, straddling the bottom edge",
+			"value": "panned, horizontally kept, vertically end at safe edge"
+		},
+		{
+			"key": "zoom 1, wide, hanging 10 % of the width out of the right edge",
+			"value": "view unchanged"
+		},
+		{
+			"key": "zoom 0.25, 0.5 x 0.5 view in the middle",
+			"value": "view unchanged"
+		},
+		{
+			"key": "zoom 0.25, small, straddling the left edge",
+			"value": "panned, horizontally start at safe edge, vertically kept"
+		},
+		{
+			"key": "zoom 4, small, straddling the left edge",
+			"value": "panned, horizontally start at safe edge, vertically kept"
+		}
+	]
+}

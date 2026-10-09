@@ -1,0 +1,295 @@
+{
+	"experiment": "paste-destination",
+	"question": "Ctrl+V into a selected frame (filled or empty) and into an emptied page: where does the content land (kept, centred on one axis or both, at the frame origin, at the page origin), and how does the view react? (paste.md experiments 13, 14, 15)",
+	"recordedAt": "2026-10-09T00:57:17.389Z",
+	"results": [
+		{
+			"key": "filled frame, R disjoint from F on both axes: created",
+			"value": "R RECTANGLE at 250,160 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, R disjoint from F on both axes: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R disjoint from F on both axes: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, R overlaps F in x only: created",
+			"value": "R RECTANGLE at 100,160 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, R overlaps F in x only: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R overlaps F in x only: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, R overlaps F in y only: created",
+			"value": "R RECTANGLE at 250,100 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, R overlaps F in y only: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R overlaps F in y only: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, R wider than F: created",
+			"value": "R RECTANGLE at -100,160 size 800x80 in F"
+		},
+		{
+			"key": "filled frame, R wider than F: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R wider than F: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, R taller than F: created",
+			"value": "R RECTANGLE at 250,-50 size 100x500 in F"
+		},
+		{
+			"key": "filled frame, R taller than F: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R taller than F: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, R inside F: created",
+			"value": "R RECTANGLE at 100,100 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, R inside F: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R inside F: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, R sticks out of F on the right: created",
+			"value": "R RECTANGLE at 550,350 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, R sticks out of F on the right: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R sticks out of F on the right: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, R left of F touching its edge: created",
+			"value": "R RECTANGLE at 250,100 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, R left of F touching its edge: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, R left of F touching its edge: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, left half out of view, R in the visible half: created",
+			"value": "R RECTANGLE at 350,100 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, left half out of view, R in the visible half: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, left half out of view, R in the visible half: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "filled frame, left half out of view, R in the hidden half: created",
+			"value": "R RECTANGLE at 100,100 size 100x80 in F"
+		},
+		{
+			"key": "filled frame, left half out of view, R in the hidden half: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "filled frame, left half out of view, R in the hidden half: view",
+			"value": "panned, horizontally start at safe edge, vertically kept"
+		},
+		{
+			"key": "F copied with F selected, left half out of view: created",
+			"value": "F FRAME at 640,0 size 600x400 in PAGE; K RECTANGLE at 650,10 size 20x20 in F"
+		},
+		{
+			"key": "F copied with F selected, left half out of view: selection",
+			"value": "F (new)"
+		},
+		{
+			"key": "F copied with F selected, left half out of view: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "empty frame, E in view: created",
+			"value": "R RECTANGLE at 400,360 size 100x80 in E"
+		},
+		{
+			"key": "empty frame, E in view: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty frame, E in view: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "empty frame, E out of view: created",
+			"value": "R RECTANGLE at 2950,2960 size 100x80 in PAGE"
+		},
+		{
+			"key": "empty frame, E out of view: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty frame, E out of view: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "empty frame, R copied from inside it: created",
+			"value": "R RECTANGLE at 350,350 size 100x80 in E"
+		},
+		{
+			"key": "empty frame, R copied from inside it: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty frame, R copied from inside it: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "empty frame, R cut from inside it: created",
+			"value": "R RECTANGLE at 350,350 size 100x80 in E"
+		},
+		{
+			"key": "empty frame, R cut from inside it: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty frame, R cut from inside it: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "empty page, R small: created",
+			"value": "R RECTANGLE at 500,500 size 100x80 in PAGE"
+		},
+		{
+			"key": "empty page, R small: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty page, R small: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "empty page, R large: created",
+			"value": "R RECTANGLE at 500,500 size 3000x2000 in PAGE"
+		},
+		{
+			"key": "empty page, R large: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty page, R large: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "empty page, R tall: created",
+			"value": "R RECTANGLE at 500,500 size 100x3000 in PAGE"
+		},
+		{
+			"key": "empty page, R tall: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty page, R tall: view",
+			"value": "zoomed to fit, limited by height, margin 40 px"
+		},
+		{
+			"key": "empty page, R cut, view moved away: created",
+			"value": "R RECTANGLE at 4950,4960 size 100x80 in PAGE"
+		},
+		{
+			"key": "empty page, R cut, view moved away: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "empty page, R cut, view moved away: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from the page at 100,100: created",
+			"value": "R RECTANGLE at 1250,1160 size 100x80 in F"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from the page at 100,100: selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from the page at 100,100: view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 0,0 (50,50 inside it): created",
+			"value": "R RECTANGLE at 1050,1050 size 100x80 in F"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 0,0 (50,50 inside it): selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 0,0 (50,50 inside it): view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 1000,0 (50,50 inside it): created",
+			"value": "R RECTANGLE at 1050,1050 size 100x80 in F"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 1000,0 (50,50 inside it): selection",
+			"value": "R (new)"
+		},
+		{
+			"key": "frame at 1000,1000, R copied from frame G at 1000,0 (50,50 inside it): view",
+			"value": "view unchanged"
+		},
+		{
+			"key": "empty page, frame cut, view on it: created",
+			"value": "T FRAME at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "empty page, frame cut, view on it: selection",
+			"value": "T (new)"
+		},
+		{
+			"key": "empty page, frame cut, view on it: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		},
+		{
+			"key": "empty page, frame cut, view moved away: created",
+			"value": "T FRAME at 0,0 size 200x150 in PAGE"
+		},
+		{
+			"key": "empty page, frame cut, view moved away: selection",
+			"value": "T (new)"
+		},
+		{
+			"key": "empty page, frame cut, view moved away: view",
+			"value": "zoomed to fit, limited by width, margin 40 px"
+		}
+	]
+}
