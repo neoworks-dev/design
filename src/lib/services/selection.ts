@@ -205,12 +205,12 @@ export class SelectionService extends Service {
 
 	/** Remember the selection of the page being left and restore the one of the page entered. */
 	handleCurrentPageChange(pageId: NodeId, previousPageId: NodeId | null): void {
+		this.state.hoverId = null;
 		if (previousPageId !== null) {
 			this.state.memory.set(previousPageId, { ids: this.state.ids, scopeId: this.state.scopeId });
 		}
 		const remembered = this.state.memory.get(pageId);
 		if (!remembered) {
-			this.state.hoverId = null;
 			this.commit([], pageId);
 			return;
 		}

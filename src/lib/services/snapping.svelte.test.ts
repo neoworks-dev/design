@@ -98,15 +98,15 @@ describe('snapping service', () => {
 		await mounted.cleanup();
 	});
 
-	it('uses a threshold of 5 screen pixels divided by the zoom', async () => {
+	it('uses a threshold of 4 screen pixels divided by the zoom', async () => {
 		const mounted = await mountPlugin(snappingPlugin, { providers: providers(4) });
 		const { snapping } = mounted.ctx;
-		expect(snapping.threshold).toBeCloseTo(1.25);
+		expect(snapping.threshold).toBeCloseTo(1);
 		expect(snapping.snap(rect(101, 300, 10, 10), { parentId: 'f' }).delta.x).toBe(-1);
 		expect(snapping.snap(rect(102, 300, 10, 10), { parentId: 'f' }).delta.x).toBe(0);
 		await mounted.cleanup();
 		const zoomedOut = await mountPlugin(snappingPlugin, { providers: providers(0.5) });
-		expect(zoomedOut.ctx.snapping.threshold).toBe(10);
+		expect(zoomedOut.ctx.snapping.threshold).toBe(8);
 		await zoomedOut.cleanup();
 	});
 

@@ -40,7 +40,7 @@ declare module '@neoworks/extension-system' {
 }
 
 /** Screen pixels within which an edge snaps. */
-export const DEFAULT_SNAP_THRESHOLD_PIXELS = 5;
+export const DEFAULT_SNAP_THRESHOLD_PIXELS = 4;
 
 export interface SnapRequest {
 	/** The container the moved nodes live in (or the draw target); the page when omitted. */
@@ -82,8 +82,15 @@ interface CandidateSet {
 	parent: Rect | undefined;
 }
 
+interface CachedNeighbours {
+	ignoreIds: readonly NodeId[];
+	key: string;
+	neighbours: Rect[];
+}
+
 export class SnappingService extends Service {
 	private readonly lineSources = new Set<() => readonly SnapLine[]>();
+	private cachedNeighbours: CachedNeighbours | null = null;
 
 	constructor(
 		ctx: Context,
@@ -225,6 +232,7 @@ export class SnappingService extends Service {
 	release(): void {
 		this.state.guides = [];
 		this.state.gaps = [];
+		this.cachedNeighbours = null;
 	}
 
 	/** The rectangles `snap` would consider for `moving`. Exposed for tools and tests. */
@@ -294,9 +302,40 @@ export class SnappingService extends Service {
 		const pageId = this.document.currentPageId;
 		let parentId = pageId;
 		if (request.parentId !== undefined) parentId = request.parentId;
-		const ignored = new Set<NodeId>();
-		if (request.ignoreIds !== undefined) for (const id of request.ignoreIds) ignored.add(id);
+		const neighbours = this.neighbours(moving, pageId, parentId, request);
+		const ignoresParent = request.ignoreIds !== undefined && request.ignoreIds.includes(parentId);
+		if (parentId === pageId || ignoresParent) return { neighbours, parent: undefined };
+		// Not cached: resizing a child can resize a hugging parent.
+		return { neighbours, parent: this.spatial.absoluteBounds(parentId) };
+	}
+
+	/**
+	 * Within one gesture only the moving nodes change, and they are ignored, so the neighbours are
+	 * kept while the caller passes the same `ignoreIds` array (until `release`). Scanning every
+	 * visible node on every pointer move is what made dragging slow in large scenes.
+	 */
+	private neighbours(moving: Rect, pageId: NodeId, parentId: NodeId, request: SnapRequest): Rect[] {
 		const area = this.viewportArea(moving, this.threshold);
+		const key = `${pageId} ${parentId} ${area.x} ${area.y} ${area.width} ${area.height}`;
+		const cached = this.cachedNeighbours;
+		if (cached !== null && cached.ignoreIds === request.ignoreIds && cached.key === key) {
+			return cached.neighbours;
+		}
+		const neighbours = this.collectNeighbours(pageId, parentId, area, request.ignoreIds);
+		this.cachedNeighbours = null;
+		if (request.ignoreIds !== undefined) {
+			this.cachedNeighbours = { ignoreIds: request.ignoreIds, key, neighbours };
+		}
+		return neighbours;
+	}
+
+	private collectNeighbours(
+		pageId: NodeId,
+		parentId: NodeId,
+		area: Rect,
+		ignoreIds: readonly NodeId[] | undefined
+	): Rect[] {
+		const ignored = new Set<NodeId>(ignoreIds);
 		const neighbours: Rect[] = [];
 		for (const id of this.spatial.visible(area, pageId)) {
 			const node = this.document.get(id);
@@ -304,8 +343,7 @@ export class SnappingService extends Service {
 			if (!this.isCandidate(node, parentId, pageId)) continue;
 			neighbours.push(this.spatial.absoluteBounds(id));
 		}
-		if (parentId === pageId || ignored.has(parentId)) return { neighbours, parent: undefined };
-		return { neighbours, parent: this.spatial.absoluteBounds(parentId) };
+		return neighbours;
 	}
 
 	private isCandidate(node: Node, parentId: NodeId, pageId: NodeId): boolean {

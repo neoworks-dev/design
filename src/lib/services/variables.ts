@@ -495,6 +495,14 @@ export class VariablesService extends Service {
 		return { cached: resolver === null ? 0 : resolver.cachedCount };
 	}
 
+	/**
+	 * Reactive. The resolver itself, for loops over many nodes (the renderer, the selection's
+	 * sections): one call here instead of one service call per node. Valid until the next revision.
+	 */
+	currentResolver(): VariableResolver {
+		return this.resolver();
+	}
+
 	// ---------- internals ----------
 
 	private resolver(): VariableResolver {

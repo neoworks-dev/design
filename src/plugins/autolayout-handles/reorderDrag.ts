@@ -1,12 +1,14 @@
 // Dragging children of an auto layout frame reorders them. The drag takes over from the free
-// move (`move/begin`, lib/selecting/moveDrag.ts): the document is left alone while the pointer
-// moves, the overlay shows the blue insertion line and outlines where the pointer holds the
-// nodes, and the drop is ONE change set (one undo step):
+// move (`move/begin`, lib/selecting/moveDrag.ts). As in Figma the order changes live: every
+// pointer move applies the new slot inside one history group (one undo step), and the overlay
+// outlines where the pointer holds the nodes.
 //
 //   over an auto layout frame   the nodes take that slot (reparenting into another auto layout
-//                               frame is the same move); reflow puts them in place
-//   over any other container    the nodes leave auto layout where they were dropped, keeping
-//                               their page position
+//                               frame is the same move); reflow puts them in place. Inside the
+//                               frame they started in, the slot changes when the leading edge of
+//                               the dragged nodes passes the centre of a neighbour
+//   over any other container    the nodes leave auto layout and follow the pointer; the pointer
+//                               must be LEAVE_DISTANCE outside the frame they sit in to do so
 //   Space held                  the drop stays in the frame the drag started in
 
 import type { Context } from '@neoworks/extension-system';
@@ -15,6 +17,7 @@ import {
 	planSetProps,
 	type Change,
 	type DocumentReader,
+	type Matrix2x3,
 	type Node,
 	type NodeId,
 	type Rect
@@ -33,6 +36,9 @@ import { findContainer, type NestingSource } from '../../lib/tools/creation';
 import type { Modifiers } from '../../lib/tools/protocol';
 import type { HandlesFeedback } from './feedback.svelte';
 
+/** Screen-independent distance (page px) the pointer must be outside a stack to pull a child out. */
+const LEAVE_DISTANCE = 32;
+
 interface DropPlan {
 	targetId: NodeId;
 	/** Set when the target is an auto layout frame. */
@@ -41,6 +47,9 @@ interface DropPlan {
 
 export class ReorderDrag implements MoveDrag {
 	private pinned = false;
+	private readonly group: ReturnType<Context['history']['beginGroup']>;
+	private readonly origins: { id: NodeId; origin: Matrix2x3 }[];
+	private readonly startBounds: Rect[];
 	private lastWorld: Point;
 	private lastModifiers: Modifiers;
 
@@ -54,6 +63,10 @@ export class ReorderDrag implements MoveDrag {
 	) {
 		this.lastWorld = startWorld;
 		this.lastModifiers = modifiers;
+		const reader = ctx.document.reader;
+		this.origins = ids.map((id) => ({ id, origin: reader.cache.absoluteTransform(id) }));
+		this.startBounds = ids.map((id) => ctx.document.absoluteBounds(id));
+		this.group = ctx.history.beginGroup({ label: 'Reorder' });
 	}
 
 	/** Take the drag when every dragged node is a flow child of one auto layout frame. */
@@ -85,25 +98,23 @@ export class ReorderDrag implements MoveDrag {
 		this.lastWorld = world;
 		this.lastModifiers = modifiers;
 		const plan = this.plan(world);
-		let line: DropSlot['line'] | null = null;
-		if (plan.slot !== null) line = plan.slot.line;
+		const changes = this.changesFor(plan);
+		if (changes.length > 0) this.ctx.document.apply(changes, { origin: 'user', label: 'Reorder' });
 		this.feedback.reorder = {
 			targetId: plan.targetId,
-			line,
+			line: null,
 			ghosts: this.ghosts(world)
 		};
 	}
 
 	commit(): void {
-		const plan = this.plan(this.lastWorld);
 		this.feedback.reorder = null;
-		const changes = this.changesFor(plan);
-		if (changes.length === 0) return;
-		this.ctx.document.apply(changes, { origin: 'user', label: this.label(plan) });
+		this.ctx.history.endGroup(this.group);
 	}
 
 	cancel(): void {
 		this.feedback.reorder = null;
+		this.ctx.history.cancelGroup(this.group);
 	}
 
 	// ---------- where the drop lands ----------
@@ -123,7 +134,22 @@ export class ReorderDrag implements MoveDrag {
 			...base,
 			children: (id) => base.children(id).filter((child) => !dragged.has(child))
 		};
-		return findContainer(source, this.ctx.document.currentPageId, world);
+		const found = findContainer(source, this.ctx.document.currentPageId, world);
+		return this.stickToCurrentStack(found, world);
+	}
+
+	/** A child only leaves its stack once the pointer is LEAVE_DISTANCE outside of it. */
+	private stickToCurrentStack(found: NodeId, world: Point): NodeId {
+		const reader = this.ctx.document.reader;
+		const currentId = reader.requireNode(this.ids[0]).parentId;
+		if (currentId === null || found === currentId) return found;
+		if (!isStackContainer(reader.requireNode(currentId))) return found;
+		if (reader.ancestors(found).some((ancestor) => ancestor.id === currentId)) return found;
+		const bounds = this.ctx.document.absoluteBounds(currentId);
+		const outsideX = Math.max(bounds.x - world.x, 0, world.x - (bounds.x + bounds.width));
+		const outsideY = Math.max(bounds.y - world.y, 0, world.y - (bounds.y + bounds.height));
+		if (Math.max(outsideX, outsideY) >= LEAVE_DISTANCE) return found;
+		return currentId;
 	}
 
 	private slotIn(frameId: NodeId, world: Point): DropSlot | null {
@@ -144,6 +170,10 @@ export class ReorderDrag implements MoveDrag {
 			width: Math.max(0, bounds.width - frame.paddingLeft - frame.paddingRight),
 			height: Math.max(0, bounds.height - frame.paddingTop - frame.paddingBottom)
 		};
+		const sameFrame = reader.requireNode(this.ids[0]).parentId === frameId;
+		if (sameFrame && frame.layoutWrap !== 'WRAP') {
+			return this.edgeSlot(frame.layoutMode, rects);
+		}
 		return dropSlot({
 			mode: frame.layoutMode,
 			wrap: frame.layoutWrap === 'WRAP',
@@ -153,21 +183,37 @@ export class ReorderDrag implements MoveDrag {
 		});
 	}
 
+	/**
+	 * Live reordering inside the frame the nodes sit in: the slot is the number of neighbours whose
+	 * centre lies before the leading edge of the dragged nodes (the edge towards which they have
+	 * been pulled away from their laid-out position).
+	 */
+	private edgeSlot(mode: 'HORIZONTAL' | 'VERTICAL', rects: readonly Rect[]): DropSlot {
+		const horizontal = mode === 'HORIZONTAL';
+		const held = union(this.ghosts(this.lastWorld));
+		const laidOut = union(this.ids.map((id) => this.ctx.document.absoluteBounds(id)));
+		const start = horizontal ? held.x : held.y;
+		const size = horizontal ? held.width : held.height;
+		const placedStart = horizontal ? laidOut.x : laidOut.y;
+		let edge = start + size / 2;
+		if (start > placedStart) edge = start + size;
+		if (start < placedStart) edge = start;
+		let index = 0;
+		for (const rect of rects) {
+			const centre = horizontal ? rect.x + rect.width / 2 : rect.y + rect.height / 2;
+			if (centre < edge) index += 1;
+		}
+		const origin = { x: held.x, y: held.y };
+		return { index, line: { from: origin, to: origin } };
+	}
+
 	private ghosts(world: Point): Rect[] {
 		const dx = world.x - this.startWorld.x;
 		const dy = world.y - this.startWorld.y;
-		return this.ids.map((id) => {
-			const bounds = this.ctx.document.absoluteBounds(id);
-			return { ...bounds, x: bounds.x + dx, y: bounds.y + dy };
-		});
+		return this.startBounds.map((bounds) => ({ ...bounds, x: bounds.x + dx, y: bounds.y + dy }));
 	}
 
 	// ---------- the drop ----------
-
-	private label(plan: DropPlan): string {
-		if (plan.slot === null) return 'Move';
-		return 'Reorder';
-	}
 
 	private changesFor(plan: DropPlan): Change[] {
 		if (plan.slot === null) return this.leaveAutoLayout(plan.targetId);
@@ -213,8 +259,7 @@ export class ReorderDrag implements MoveDrag {
 			x: this.lastWorld.x - this.startWorld.x,
 			y: this.lastWorld.y - this.startWorld.y
 		};
-		const items = this.ids.map((id) => ({ id, origin: reader.cache.absoluteTransform(id) }));
-		const changes = planDrag(reader, items, delta, () => targetId);
+		const changes = planDrag(reader, this.origins, delta, () => targetId);
 		for (const id of this.ids) {
 			changes.push(...planSetProps(reader, id, releasedSizing(reader.requireNode(id))));
 		}
@@ -249,4 +294,12 @@ function releasedSizing(node: Node): Record<string, unknown> {
 			node.layoutSizingHorizontal === 'FILL' ? 'FIXED' : node.layoutSizingHorizontal,
 		layoutSizingVertical: node.layoutSizingVertical === 'FILL' ? 'FIXED' : node.layoutSizingVertical
 	};
+}
+
+function union(rects: readonly Rect[]): Rect {
+	const left = Math.min(...rects.map((rect) => rect.x));
+	const top = Math.min(...rects.map((rect) => rect.y));
+	const right = Math.max(...rects.map((rect) => rect.x + rect.width));
+	const bottom = Math.max(...rects.map((rect) => rect.y + rect.height));
+	return { x: left, y: top, width: right - left, height: bottom - top };
 }

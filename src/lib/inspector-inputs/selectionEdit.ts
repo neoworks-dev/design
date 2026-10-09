@@ -7,11 +7,33 @@ import { applyEdit } from '../editing/contribute';
 import type { NumberGesture } from '../ui/numberField';
 import { boundVariableId } from './values';
 
+interface ResolvedSelection {
+	revision: number;
+	nodes: Node[];
+}
+
+// Keyed by the selection's ids array (replaced on every selection change): every section reads
+// the selection, so it is resolved once per document revision instead of once per section.
+const resolvedSelections = new WeakMap<readonly string[], ResolvedSelection>();
+
 /** Reactive: the selected nodes with bound properties replaced by their resolved values. */
 export function selectedNodes(ctx: Context): Node[] {
-	return ctx.selection.ids.flatMap((id) => {
-		if (!ctx.document.has(id)) return [];
-		return [ctx.variables.resolvedNode(id)];
+	const ids = ctx.selection.ids;
+	const revision = ctx.document.revision;
+	const cached = resolvedSelections.get(ids);
+	if (cached !== undefined && cached.revision === revision) return cached.nodes;
+	const nodes = resolveSelection(ctx, ids);
+	resolvedSelections.set(ids, { revision, nodes });
+	return nodes;
+}
+
+// The plain reader and resolver: thousands of selected nodes, one service call each.
+function resolveSelection(ctx: Context, ids: readonly string[]): Node[] {
+	const reader = ctx.document.reader;
+	const resolver = ctx.variables.currentResolver();
+	return ids.flatMap((id) => {
+		if (!reader.hasNode(id)) return [];
+		return [resolver.resolvedNode(id)];
 	});
 }
 
@@ -21,8 +43,9 @@ export function boundVariableName(
 	nodes: readonly Node[],
 	property: string
 ): string | undefined {
+	const reader = ctx.document.reader;
 	const id = boundVariableId(
-		nodes.map((node) => ctx.document.require(node.id)),
+		nodes.map((node) => reader.requireNode(node.id)),
 		property
 	);
 	if (id === null) return undefined;
@@ -64,4 +87,13 @@ export function setSelectionProps(
 	props: (node: Node) => Record<string, unknown>
 ): void {
 	editSelection(ctx, edit, (reader, node) => planSetProps(reader, node.id, props(node)));
+}
+
+/** Reactive: no selected node has an entry in its `property` list (fills, strokes, effects...). */
+export function listsAreEmpty(ctx: Context, property: string): boolean {
+	return ctx.inspectors.nodes().every((node) => {
+		const list: unknown = Reflect.get(node, property);
+		if (!Array.isArray(list)) return true;
+		return list.length === 0;
+	});
 }

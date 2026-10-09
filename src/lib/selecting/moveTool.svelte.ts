@@ -73,11 +73,22 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 		state.dropTargetId = null;
 	};
 
+	// Figma: Escape mid-drag ends the drag where it is and deselects; nothing is rolled back.
+	const endDragKeepingResult = (): void => {
+		session?.commit();
+		session = undefined;
+		gesture.cancel();
+		press = { kind: 'none' };
+		state.marquee = null;
+		state.dropTargetId = null;
+		ctx.selection.clear();
+	};
+
 	return {
 		onPointerDown(event: ToolPointerEvent): void {
 			if (event.button !== PRIMARY_BUTTON) return;
 			ctx.selection.setHover(null);
-			if (event.detail >= DOUBLE_CLICK) {
+			if (event.detail >= DOUBLE_CLICK && ctx.selection.count > 0) {
 				enter(ctx, event);
 				return;
 			}
@@ -114,6 +125,10 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 		onCancel(): boolean {
 			if (gesture.phase === 'idle') return false;
 			if (press.kind === 'empty' && state.marquee !== null) ctx.selection.restore(press.before);
+			if (session !== undefined) {
+				endDragKeepingResult();
+				return true;
+			}
 			reset();
 			return true;
 		},
@@ -121,6 +136,7 @@ export function createMoveTool(ctx: Context, state: MoveToolState): MoveHandlers
 			if (session === undefined) return false;
 			if (event.code === 'Space') session.setPinned(true);
 			else if (event.key === 'Shift') session.refresh({ ...event, shiftKey: true });
+			else if (event.key === 'Alt' && session.duplicateNow !== undefined) session.duplicateNow();
 			else return false;
 			return true;
 		},
@@ -214,6 +230,7 @@ function pressAt(ctx: Context, event: ToolPointerEvent): Press {
 	const selected = ctx.selection.has(targetId);
 	if (event.shiftKey) return pressWithShift(ctx, targetId, selected);
 	if (selected) return pressOnSelected(ctx, targetId);
+	if (hasSelectedAncestor(ctx, targetId)) return pressInsideSelected(ctx, targetId);
 	ctx.selection.select([targetId], 'replace', { source: 'canvas' });
 	return { kind: 'object', targetId, onClick: () => undefined };
 }
@@ -234,6 +251,22 @@ function pressWithShift(ctx: Context, targetId: NodeId, selected: boolean): Pres
 /** A selected node in a multi selection narrows the selection to itself on a click. */
 function pressOnSelected(ctx: Context, targetId: NodeId): Press {
 	if (ctx.selection.count === 1) return { kind: 'object', targetId, onClick: () => undefined };
+	return {
+		kind: 'object',
+		targetId,
+		onClick: () => ctx.selection.select([targetId], 'replace', { source: 'canvas' })
+	};
+}
+
+function hasSelectedAncestor(ctx: Context, targetId: NodeId): boolean {
+	return ctx.document.ancestors(targetId).some((ancestor) => ctx.selection.has(ancestor.id));
+}
+
+/**
+ * A press on a descendant of a selected node keeps the selection so the drag moves it; only a
+ * click (no drag) narrows the selection to the pressed node.
+ */
+function pressInsideSelected(ctx: Context, targetId: NodeId): Press {
 	return {
 		kind: 'object',
 		targetId,

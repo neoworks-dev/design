@@ -33,7 +33,7 @@ describe('PointerGesture', () => {
 	it('measures the threshold as distance, so a diagonal move counts', () => {
 		const gesture = new PointerGesture();
 		gesture.press({ x: 0, y: 0 });
-		expect(gesture.move({ x: 3, y: 3 }).startedDragging).toBe(true);
+		expect(gesture.move({ x: 4, y: 4 }).startedDragging).toBe(true);
 	});
 
 	it('a dragged-back pointer stays a drag (no click after leaving the threshold)', () => {

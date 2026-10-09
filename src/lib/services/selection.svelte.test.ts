@@ -216,6 +216,15 @@ describe('pages', () => {
 		await mounted.cleanup();
 	});
 
+	it('clears the hover when the page changes', async () => {
+		const mounted = await mount();
+		const { selection, document } = mounted.ctx;
+		selection.setHover('n3');
+		document.setCurrentPage('n7');
+		expect(selection.hoverId).toBeNull();
+		await mounted.cleanup();
+	});
+
 	it('restoring drops nodes deleted while the page was away', async () => {
 		const mounted = await mount();
 		const { selection, document } = mounted.ctx;

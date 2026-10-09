@@ -25,16 +25,23 @@ export interface DragItem {
 	origin: Matrix2x3;
 }
 
-/** Shift: keep only the larger component of the movement. */
-export function constrainToAxis(delta: Point): Point {
-	if (Math.abs(delta.x) >= Math.abs(delta.y)) return { x: delta.x, y: 0 };
-	return { x: 0, y: delta.y };
+/**
+ * The axis a Shift-constrained movement runs along: the larger component wins; on an exact tie
+ * the previous axis stays, and a movement without history goes vertical (as in Figma).
+ */
+export function axisFor(delta: Point, previous: 'x' | 'y' | undefined): 'x' | 'y' {
+	const horizontal = Math.abs(delta.x);
+	const vertical = Math.abs(delta.y);
+	if (horizontal > vertical) return 'x';
+	if (vertical > horizontal) return 'y';
+	if (previous !== undefined) return previous;
+	return 'y';
 }
 
-/** The axis a constrained movement runs along, or undefined for free movement. */
-export function lockedAxis(delta: Point): 'x' | 'y' {
-	if (Math.abs(delta.x) >= Math.abs(delta.y)) return 'x';
-	return 'y';
+/** Shift: keep only the component along `axis`. */
+export function constrainToAxis(delta: Point, axis: 'x' | 'y'): Point {
+	if (axis === 'x') return { x: delta.x, y: 0 };
+	return { x: 0, y: delta.y };
 }
 
 /** The nodes of `ids` a drag can move: positioned, unlocked, not placed by auto layout. */

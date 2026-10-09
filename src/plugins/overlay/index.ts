@@ -9,7 +9,8 @@ export interface OverlayConfig {
 }
 
 // Events that change what overlays show without the contributor asking: the camera, the
-// selection, the active tool, the page and the document. Contributors with other inputs use
+// selection, the active tool, the page (the renderer announces it late, so the document event
+// counts too) and the document. Contributors with other inputs use
 // `track` (reactive state) or call `ctx.overlay.requestRedraw`.
 const REDRAW_EVENTS = [
 	'viewport/change',
@@ -17,6 +18,7 @@ const REDRAW_EVENTS = [
 	'selection/change',
 	'tools/change',
 	'scene/page-change',
+	'document/currentpagechange',
 	'document/change',
 	'document/replace'
 ] as const;

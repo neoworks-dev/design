@@ -7,8 +7,8 @@
 //   Space   pin every node to the container it started in (no nesting into or out of frames)
 //   Ctrl    no snapping
 //
-// Each node goes into the deepest frame under its own centre. A node inside a group keeps the
-// group while its centre stays over the group's frame. Auto layout frames are never drop targets
+// Each node goes into the deepest frame under the pointer (not under the node). A node inside a
+// group keeps the group while the pointer stays over the group's frame. Ctrl pins like Space. Auto layout frames are never drop targets
 // and auto layout children never move here: the `autolayout-handles` plugin takes over the drag
 // (the `move/begin` event, see moveDrag.ts) and reorders them.
 
@@ -18,7 +18,7 @@ import { findContainer, type NestingSource } from '../tools/creation';
 import { nestingSource } from '../editing/creationTool.svelte';
 import { topLevelIds, unionBounds } from '../editing/selectionOps';
 import type { Modifiers, Point } from '../tools/protocol';
-import { constrainToAxis, draggableIds, lockedAxis, planDrag, type DragItem } from './drag';
+import { axisFor, constrainToAxis, draggableIds, planDrag, type DragItem } from './drag';
 import type { MoveDrag } from './moveDrag';
 
 /** The ui state the session reports to the overlay. */
@@ -29,9 +29,13 @@ export interface MoveFeedback {
 export class MoveSession implements MoveDrag {
 	private readonly items: DragItem[] = [];
 	private readonly originalParents = new Map<NodeId, NodeId>();
+	// One array per set of dragged nodes: snapping keeps its candidates while it gets the same one.
+	private draggedIds: NodeId[] = [];
 	private readonly group: ReturnType<Context['history']['beginGroup']>;
 	private initialBounds: Rect = { x: 0, y: 0, width: 0, height: 0 };
 	private pinned = false;
+	private duplicated = false;
+	private axis: 'x' | 'y' | undefined;
 	private lastWorld: Point;
 	private lastModifiers: Modifiers;
 
@@ -58,7 +62,10 @@ export class MoveSession implements MoveDrag {
 		if (movable.length === 0) return undefined;
 		const session = new MoveSession(ctx, feedback, startWorld, modifiers);
 		let ids = movable;
-		if (modifiers.altKey) ids = session.duplicate(movable);
+		if (modifiers.altKey) {
+			session.duplicated = true;
+			ids = session.duplicate(movable);
+		}
 		session.capture(ids);
 		session.initialBounds = session.measureStart();
 		return session;
@@ -66,6 +73,34 @@ export class MoveSession implements MoveDrag {
 
 	setPinned(pinned: boolean): void {
 		this.pinned = pinned;
+		this.update(this.lastWorld, this.lastModifiers);
+	}
+
+	/**
+	 * Alt pressed during a plain drag: the copy appears where the pointer is and is what moves on,
+	 * the originals return to where they started.
+	 */
+	duplicateNow(): void {
+		if (this.duplicated) return;
+		this.duplicated = true;
+		const originals = [...this.items];
+		const originalParents = new Map(this.originalParents);
+		const copies = this.duplicate(originals.map((item) => item.id));
+		const restore = planDrag(
+			this.ctx.document.reader,
+			originals,
+			{ x: 0, y: 0 },
+			(id) => originalParents.get(id) ?? this.ctx.document.currentPageId
+		);
+		this.ctx.document.apply(restore, { origin: 'user', label: 'Move' });
+		this.items.length = 0;
+		this.originalParents.clear();
+		copies.forEach((copyId, position) => {
+			const original = originals[position];
+			this.items.push({ id: copyId, origin: original.origin });
+			this.originalParents.set(copyId, originalParents.get(original.id) ?? '');
+		});
+		this.draggedIds = this.items.map((item) => item.id);
 		this.update(this.lastWorld, this.lastModifiers);
 	}
 
@@ -78,8 +113,11 @@ export class MoveSession implements MoveDrag {
 		this.lastWorld = world;
 		this.lastModifiers = modifiers;
 		const delta = this.snappedDelta(world, modifiers);
-		const changes = planDrag(this.ctx.document.reader, this.items, delta, (id, bounds) =>
-			this.containerFor(id, bounds)
+		// The drop frame depends on the pointer only, so it is found once per move, not per node.
+		const target = this.dropTarget();
+		const nearestContainers = new Map<NodeId, NodeId>();
+		const changes = planDrag(this.ctx.document.reader, this.items, delta, (id) =>
+			this.containerFor(id, target, nearestContainers)
 		);
 		if (changes.length > 0) this.ctx.document.apply(changes, { origin: 'user', label: 'Move' });
 		this.reportDropTarget();
@@ -119,6 +157,7 @@ export class MoveSession implements MoveDrag {
 			this.originalParents.set(id, node.parentId);
 			this.items.push({ id, origin: reader.cache.absoluteTransform(id) });
 		}
+		this.draggedIds = this.items.map((item) => item.id);
 	}
 
 	private measureStart(): Rect {
@@ -132,15 +171,24 @@ export class MoveSession implements MoveDrag {
 	}
 
 	private snappedDelta(world: Point, modifiers: Modifiers): Point {
-		let delta = { x: world.x - this.startWorld.x, y: world.y - this.startWorld.y };
+		// Whole canvas pixels, before snapping (Figma snaps the rounded position).
+		let delta = {
+			x: Math.round(world.x - this.startWorld.x),
+			y: Math.round(world.y - this.startWorld.y)
+		};
 		const constrained = modifiers.shiftKey;
-		if (constrained) delta = constrainToAxis(delta);
+		if (constrained) {
+			this.axis = axisFor(delta, this.axis);
+			delta = constrainToAxis(delta, this.axis);
+		} else {
+			this.axis = undefined;
+		}
 		const start = this.initialBounds;
 		const moving = { x: start.x + delta.x, y: start.y + delta.y, ...sizeOf(start) };
 		const outcome = this.ctx.snapping.snap(moving, {
-			ignoreIds: this.items.map((item) => item.id),
+			ignoreIds: this.draggedIds,
 			parentId: this.snapParentId(),
-			axes: constrained ? lockedAxis(delta) : 'both',
+			axes: this.axis === undefined ? 'both' : this.axis,
 			bypass: modifiers.ctrlKey || modifiers.metaKey
 		});
 		return { x: delta.x + outcome.delta.x, y: delta.y + outcome.delta.y };
@@ -153,20 +201,35 @@ export class MoveSession implements MoveDrag {
 		return this.ctx.document.currentPageId;
 	}
 
-	private containerFor(id: NodeId, bounds: Rect): NodeId {
-		const originalParentId = this.originalParents.get(id);
-		if (originalParentId === undefined) return this.ctx.document.currentPageId;
-		if (this.pinned) return originalParentId;
-		const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-		const dragged = new Set(this.items.map((item) => item.id));
+	/** The frame under the pointer, or undefined while nodes stay in their containers. */
+	private dropTarget(): NodeId | undefined {
+		if (this.pinned) return undefined;
+		if (this.lastModifiers.ctrlKey || this.lastModifiers.metaKey) return undefined;
+		const dragged = new Set(this.draggedIds);
 		const found = findContainer(
 			excluding(nestingSource(this.ctx), dragged),
 			this.ctx.document.currentPageId,
-			center
+			this.lastWorld
 		);
-		if (found === this.nearestContainer(originalParentId)) return originalParentId;
-		if (this.isAutoLayout(found)) return originalParentId;
+		if (this.isAutoLayout(found)) return undefined;
 		return found;
+	}
+
+	private containerFor(
+		id: NodeId,
+		target: NodeId | undefined,
+		nearestContainers: Map<NodeId, NodeId>
+	): NodeId {
+		const originalParentId = this.originalParents.get(id);
+		if (originalParentId === undefined) return this.ctx.document.currentPageId;
+		if (target === undefined) return originalParentId;
+		let nearest = nearestContainers.get(originalParentId);
+		if (nearest === undefined) {
+			nearest = this.nearestContainer(originalParentId);
+			nearestContainers.set(originalParentId, nearest);
+		}
+		if (target === nearest) return originalParentId;
+		return target;
 	}
 
 	/** The frame or page a group (or frame) parent sits in, including the parent itself. */

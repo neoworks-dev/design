@@ -30,6 +30,7 @@ import type { Component } from 'svelte';
 import type { Node } from '../document';
 import {
 	MIXED,
+	isSameValue,
 	readProperty,
 	summarizeSelection,
 	type InspectorSelection,
@@ -61,6 +62,8 @@ export interface InspectorContribution {
 	actions?: AnyComponent;
 	props?: Record<string, unknown>;
 	collapsed?: boolean;
+	/** Reactive: the section has nothing to show yet and folds into its title row. */
+	empty?: () => boolean;
 }
 
 export interface InspectorEntry extends RegistryEntry {
@@ -78,9 +81,30 @@ export interface SelectionProperty<Value> {
 	set(value: Value): void;
 }
 
+const NO_SELECTION: readonly Node[] = [];
+
 /** Holds the selection source. Not a Service, so runes are fine. */
 export class SelectionSourceHolder {
 	current = $state.raw<SelectionSource | null>(null);
+
+	// Every section and every property read the selection; deriving it once per document change
+	// keeps that from scaling with sections × properties × selected nodes.
+	readonly nodes: readonly Node[] = $derived.by(() => {
+		const source = this.current;
+		if (source === null) return NO_SELECTION;
+		return source.nodes();
+	});
+
+	#lastSummary: InspectorSelection = summarizeSelection(NO_SELECTION);
+
+	// The same object while the shape stays: a drag changes every selected node on every move,
+	// but not which sections apply, so they need not re-evaluate.
+	readonly summary: InspectorSelection = $derived.by(() => {
+		const next = summarizeSelection(this.nodes);
+		if (isSameValue(next, this.#lastSummary)) return this.#lastSummary;
+		this.#lastSummary = next;
+		return next;
+	});
 }
 
 declare module '@neoworks/extension-system' {
@@ -88,8 +112,6 @@ declare module '@neoworks/extension-system' {
 		inspectors: InspectorsService;
 	}
 }
-
-const NO_SELECTION: readonly Node[] = [];
 
 export class InspectorsService extends Service {
 	readonly registry = new Registry<InspectorEntry>();
@@ -123,6 +145,7 @@ export class InspectorsService extends Service {
 			actions: inspector.actions,
 			props: inspector.props,
 			collapsed: inspector.collapsed,
+			empty: inspector.empty,
 			owner,
 			visible: () => this.appliesTo(entry)
 		});
@@ -142,14 +165,12 @@ export class InspectorsService extends Service {
 
 	/** Reactive: the selected nodes, empty while no source is connected. */
 	nodes(): readonly Node[] {
-		const source = this.source.current;
-		if (source === null) return NO_SELECTION;
-		return source.nodes();
+		return this.source.nodes;
 	}
 
 	/** Reactive: the shape of the selection. */
 	summary(): InspectorSelection {
-		return summarizeSelection(this.nodes());
+		return this.source.summary;
 	}
 
 	/** Reactive: ids of the registered inspectors that apply right now. */

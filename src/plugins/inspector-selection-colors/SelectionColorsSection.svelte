@@ -7,16 +7,23 @@
 
 	const ctx = getKernel();
 
+	// Through the plain reader and resolver: a selection can hold thousands of nodes.
 	function subtreeIds(): string[] {
+		const reader = ctx.document.reader;
 		const ids: string[] = [];
 		for (const id of ctx.selection.ids) {
-			if (!ctx.document.has(id)) continue;
-			ids.push(id, ...ctx.document.descendants(id).map((node) => node.id));
+			if (!reader.hasNode(id)) continue;
+			ids.push(id, ...reader.descendants(id).map((node) => node.id));
 		}
 		return ids;
 	}
 
-	const resolvedNodes = $derived(subtreeIds().map((id) => ctx.variables.resolvedNode(id)));
+	function resolvedSubtree(): Node[] {
+		const resolver = ctx.variables.currentResolver();
+		return subtreeIds().map((id) => resolver.resolvedNode(id));
+	}
+
+	const resolvedNodes = $derived(resolvedSubtree());
 	const rows = $derived(collectColors(resolvedNodes));
 
 	function nameOf(row: ColorRow): string | undefined {
@@ -68,12 +75,9 @@
 	}
 </script>
 
-<div class="flex flex-col gap-1 px-3 pb-3" data-selection-colors>
+<div class="flex flex-col gap-1 px-4 pb-4" data-selection-colors>
 	{#each rows as row, index (index)}
-		<div
-			class="border-line bg-raised flex h-7 items-center gap-1.5 rounded-md border px-1.5"
-			data-color-row={row.key}
-		>
+		<div class="bg-input flex h-8 items-center gap-1.5 rounded-md px-2" data-color-row={row.key}>
 			<button
 				type="button"
 				aria-label={`Replace ${label(row)}`}

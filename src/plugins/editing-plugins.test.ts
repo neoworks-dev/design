@@ -25,8 +25,10 @@ describePlugin('nudge', nudge, {
 		}
 		expect(chords).toContain('arrowleft>nudge.left');
 		expect(chords).toContain('shift+arrowdown>nudge.down-big');
+		expect(chords).toContain('alt+arrowleft>nudge.left-fine');
+		expect(chords).toContain('ctrl+shift+arrowup>nudge.up-resize-big');
 		const repeating = ctx.keymap.registry.listAll().filter((binding) => binding.repeat);
-		expect(repeating).toHaveLength(8);
+		expect(repeating).toHaveLength(20);
 	}
 });
 

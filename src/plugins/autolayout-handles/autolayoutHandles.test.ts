@@ -198,7 +198,7 @@ describe('reorder drag', () => {
 		expect(ctx.history.canUndo).toBe(false);
 	});
 
-	it('leaves the document alone while dragging and reports the slot and ghosts', async () => {
+	it('reorders live while dragging, reports the ghosts and cancels without a trace', async () => {
 		const ctx = await open();
 		const feedback = new HandlesFeedback();
 		const drag = ReorderDrag.begin(ctx, feedback, {
@@ -208,11 +208,11 @@ describe('reorder drag', () => {
 		});
 		expect(drag).toBeDefined();
 		drag?.update({ x: 205, y: 130 }, pointerEvent(205, 130));
-		expect(order(ctx)).toEqual(['a', 'b', 'c']);
+		expect(order(ctx)).toEqual(['b', 'a', 'c']);
 		expect(feedback.reorder?.targetId).toBe('AF');
-		expect(feedback.reorder?.line).toEqual({ from: { x: 205, y: 110 }, to: { x: 205, y: 150 } });
 		expect(feedback.reorder?.ghosts).toEqual([{ x: 185, y: 110, width: 40, height: 40 }]);
 		drag?.cancel();
+		expect(order(ctx)).toEqual(['a', 'b', 'c']);
 		expect(feedback.reorder).toBeNull();
 		expect(ctx.history.canUndo).toBe(false);
 	});

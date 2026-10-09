@@ -12,6 +12,8 @@ export interface MoveDrag {
 	refresh(modifiers: Modifiers): void;
 	/** Space pins the drag to the container it started in. */
 	setPinned(pinned: boolean): void;
+	/** Alt pressed mid-drag: continue the drag with a copy (optional). */
+	duplicateNow?(): void;
 	/** The drop: closes the history group, one undo step. */
 	commit(): void;
 	/** Escape: no trace in the document. */

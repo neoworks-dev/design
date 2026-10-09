@@ -1,4 +1,4 @@
-import type { Node, NodeId } from '../document';
+import type { DocumentReader, Node, NodeId, VariableResolver } from '../document';
 import type { SceneChange, SceneListener, SceneSource } from '../renderer/sceneSource';
 import type { DocumentService } from './document';
 import type { VariablesService } from './variables';
@@ -7,8 +7,14 @@ import type { VariablesService } from './variables';
  * The renderer's view of the live document: the current page of `ctx.document`, with every node
  * passed through the variable resolver so the renderer never sees a raw bound property.
  */
+interface Resolution {
+	reader: DocumentReader;
+	resolver: VariableResolver;
+}
+
 export class DocumentSceneSource implements SceneSource {
 	private readonly listeners = new Set<SceneListener>();
+	private resolution: Resolution | null = null;
 
 	constructor(
 		private readonly document: DocumentService,
@@ -21,15 +27,15 @@ export class DocumentSceneSource implements SceneSource {
 	}
 
 	getNode(id: NodeId): Node | undefined {
-		return this.document.get(id);
+		return this.current().reader.getNode(id);
 	}
 
 	children(id: NodeId | null): readonly NodeId[] {
-		return this.document.children(id);
+		return this.current().reader.children(id);
 	}
 
 	resolve<T extends Node>(node: T): T {
-		return sameKind(node, this.variables.resolvedNode(node.id));
+		return sameKind(node, this.current().resolver.resolvedNode(node.id));
 	}
 
 	subscribe(listener: SceneListener): () => void {
@@ -40,11 +46,24 @@ export class DocumentSceneSource implements SceneSource {
 	}
 
 	notify(change: SceneChange): void {
+		this.resolution = null;
 		for (const listener of this.listeners) listener(change);
 	}
 
 	get listenerCount(): number {
 		return this.listeners.size;
+	}
+
+	// A frame reads every visible node; going through the services for each would cost several
+	// kernel proxy hops per node, so the plain reader and resolver are fetched once per change
+	// (every change, replace and page switch arrives through `notify`).
+	private current(): Resolution {
+		if (this.resolution !== null) return this.resolution;
+		this.resolution = {
+			reader: this.document.reader,
+			resolver: this.variables.currentResolver()
+		};
+		return this.resolution;
 	}
 }
 

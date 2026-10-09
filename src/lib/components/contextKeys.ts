@@ -7,7 +7,8 @@
 //   selectionHasVariants     the selection includes a component set or a variant
 
 import type { Context } from '@neoworks/extension-system';
-import { hasOverrides, instanceOf, overriddenBelow } from '../document';
+import { hasOverrides, instanceOf, overriddenBelow, type Change } from '../document';
+import type { DocumentChangeEvent } from '../document/changeEvents';
 import { canMakeComponent } from '../editing/componentEdit';
 
 function selectedNodes(ctx: Context): ReturnType<Context['selection']['nodes']> {
@@ -58,6 +59,15 @@ function publish(ctx: Context): Array<() => void> {
 	];
 }
 
+// A drag commits a transform change on every pointer move; no component fact depends on where a
+// node is, and recomputing them walks the whole selection each time.
+function onlyMovesNodes(changes: readonly Change[]): boolean {
+	return changes.every((change) => {
+		if (change.t !== 'set') return false;
+		return Object.keys(change.set).every((key) => key === 'transform');
+	});
+}
+
 export function publishComponentContextKeys(ctx: Context): void {
 	// Each publish replaces the keys' entries, so older disposers are no-ops (dispose by
 	// identity) and only the latest ones unset the keys on unmount.
@@ -70,5 +80,8 @@ export function publishComponentContextKeys(ctx: Context): void {
 		return () => disposers.forEach((dispose) => dispose());
 	}, 'component context keys');
 	ctx.on('selection/change', update);
-	ctx.on('document/change', update);
+	ctx.on('document/change', (event: DocumentChangeEvent) => {
+		if (onlyMovesNodes(event.transaction.changes)) return;
+		update();
+	});
 }

@@ -43,7 +43,7 @@ export interface ToolKeyEvent extends Modifiers {
 }
 
 /** Pixels the pointer must travel from the press before a press becomes a drag. */
-export const DRAG_THRESHOLD_PX = 4;
+export const DRAG_THRESHOLD_PX = 5;
 
 export type GesturePhase = 'idle' | 'pressing' | 'dragging';
 

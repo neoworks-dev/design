@@ -64,15 +64,23 @@ describe('move gesture', () => {
 		expect(ctx.history.canUndo).toBe(false);
 	});
 
-	it('Esc cancels without a history entry, also after reparenting', async () => {
+	it('Esc ends the drag where it is and clears the selection (as Figma does)', async () => {
 		const ctx = await mountMove();
-		drag(ctx, [950, 50], [650, 150], { ctrlKey: true }, false);
+		drag(ctx, [950, 50], [650, 150], {}, false);
 		expect(parentOf(ctx, 'L')).toBe('F2');
 		expect(ctx.tools.cancel()).toBe(true);
+		expect(parentOf(ctx, 'L')).toBe('F2');
+		expect(ctx.selection.count).toBe(0);
+		expect(ctx.history.canUndo).toBe(true);
+		ctx.tools.pointerMove(pointerEvent(100, 100));
+		releaseAt(ctx, 100, 100);
+		expect(parentOf(ctx, 'L')).toBe('F2');
+	});
+
+	it('Ctrl held during the drag keeps the node in its parent', async () => {
+		const ctx = await mountMove();
+		drag(ctx, [950, 50], [650, 150], { ctrlKey: true });
 		expect(parentOf(ctx, 'L')).toBe('p');
-		expect(boundsOf(ctx, 'L')).toEqual({ x: 900, y: 0 });
-		expect(ctx.history.canUndo).toBe(false);
-		expect(ctx.history.canRedo).toBe(false);
 	});
 
 	it('Shift keeps the larger component of the movement', async () => {
@@ -96,7 +104,7 @@ describe('move gesture', () => {
 
 	it('reparents a node dropped over a frame, and out to the page again', async () => {
 		const ctx = await mountMove();
-		drag(ctx, [950, 50], [650, 150]);
+		drag(ctx, [950, 50], [650, 150], {});
 		expect(parentOf(ctx, 'L')).toBe('F2');
 		expect(boundsOf(ctx, 'L')).toEqual({ x: 600, y: 100 });
 		expect(ctx.history.undo()).toBe(true);
@@ -106,10 +114,10 @@ describe('move gesture', () => {
 
 	it('moves a child from one frame into another', async () => {
 		const ctx = await mountMove();
-		drag(ctx, [540, 40], [160, 140]);
+		drag(ctx, [540, 40], [160, 140], {});
 		expect(parentOf(ctx, 'kid')).toBe('F');
 		expect(boundsOf(ctx, 'kid')).toEqual({ x: 140, y: 120 });
-		drag(ctx, [160, 140], [1200, 500]);
+		drag(ctx, [160, 140], [1200, 500], {});
 		expect(parentOf(ctx, 'kid')).toBe('p');
 		expect(boundsOf(ctx, 'kid')).toEqual({ x: 1180, y: 480 });
 	});
@@ -139,11 +147,11 @@ describe('move gesture', () => {
 			preventDefault: (): void => undefined
 		};
 		expect(ctx.tools.keyDown(key)).toBe(true);
-		ctx.tools.pointerMove(pointerEvent(650, 150, { ctrlKey: true }));
+		ctx.tools.pointerMove(pointerEvent(650, 150));
 		expect(parentOf(ctx, 'L')).toBe('p');
 		ctx.tools.keyUp(key);
 		expect(parentOf(ctx, 'L')).toBe('F2');
-		releaseAt(ctx, 650, 150, { ctrlKey: true });
+		releaseAt(ctx, 650, 150);
 		expect(parentOf(ctx, 'L')).toBe('F2');
 	});
 
