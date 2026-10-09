@@ -42,6 +42,15 @@ export default {
 		);
 		ctx.effect(
 			() =>
+				ctx.commands.register({
+					id: 'home.hide',
+					title: 'Back to the open file',
+					run: () => home.hide()
+				}),
+			'command home.hide'
+		);
+		ctx.effect(
+			() =>
 				ctx.regions.register({
 					id: 'home/screen',
 					region: 'overlay',

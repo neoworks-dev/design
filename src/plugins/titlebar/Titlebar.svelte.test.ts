@@ -155,6 +155,12 @@ describe('titlebar', () => {
 		flushSync();
 		expect(target?.querySelector('[data-save-status]')?.textContent).toBe('Saving...');
 		expect(target?.querySelector('[data-dirty-marker]')).toBeNull();
+
+		ctx.contextKeys.set('document.saveError', 'change refers to missing node a');
+		flushSync();
+		const status = target?.querySelector('[data-save-status]');
+		expect(status?.textContent).toBe('Not saved');
+		expect(status?.getAttribute('title')).toBe('change refers to missing node a');
 	});
 
 	it('renames the file inline: Enter commits through file.rename, Escape cancels', async () => {

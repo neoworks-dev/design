@@ -68,6 +68,25 @@
 	function showCreateButton(): boolean {
 		return !home.searching && !home.inRecents;
 	}
+
+	function titleOf(): string {
+		if (home.searching) return `Results for "${home.query.trim()}"`;
+		if (home.inRecents) return 'Recents';
+		const crumb = crumbs[crumbs.length - 1];
+		if (crumb === undefined) return '';
+		return crumb.label;
+	}
+
+	function countLabel(): string {
+		const total = files.length + folders.length;
+		if (total === 1) return '1 item';
+		return `${total} items`;
+	}
+
+	function timeColumnLabel(): string {
+		if (home.inRecents && !home.searching) return 'Last opened';
+		return 'Last edited';
+	}
 </script>
 
 {#if home.visible}
@@ -80,59 +99,61 @@
 		<HomeSidebar />
 
 		<div class="flex min-w-0 flex-1 flex-col">
-			<header class="border-line-faint flex h-14 shrink-0 items-center gap-3 border-b px-6">
-				<h1 class="flex min-w-0 items-center gap-1.5 text-sm font-semibold" data-home-title>
-					{#if home.searching}
-						<span class="truncate">Results for "{home.query.trim()}"</span>
-					{:else if home.inRecents}
-						<span>Recents</span>
-					{:else}
-						{#each crumbs as crumb, position (crumb.path)}
+			<header class="shrink-0 px-8 pt-6">
+				<!-- Parent folders as a small trail above the title, like Figma's team / project line. -->
+				<nav class="text-muted mb-1 flex h-4 min-w-0 items-center gap-1 text-xs" aria-label="Path">
+					{#if !home.searching && !home.inRecents}
+						{#each crumbs.slice(0, -1) as crumb, position (crumb.path)}
 							{#if position > 0}
 								<CaretRightIcon size={10} class="text-faint shrink-0" />
 							{/if}
-							{#if position < crumbs.length - 1}
-								<button
-									type="button"
-									class="text-muted hover:text-default truncate"
-									onclick={() => void home.showDirectory(crumb.path)}
-								>
-									{crumb.label}
-								</button>
-							{:else}
-								<span class="truncate">{crumb.label}</span>
-							{/if}
+							<button
+								type="button"
+								class="hover:text-default truncate"
+								onclick={() => void home.showDirectory(crumb.path)}
+							>
+								{crumb.label}
+							</button>
 						{/each}
 					{/if}
-				</h1>
-				<div class="flex-1"></div>
-				<div class="w-36">
-					<Select
-						size="sm"
-						value={home.sort}
-						options={SORTS}
-						onChange={(next) => {
-							if (next === 'edited' || next === 'opened' || next === 'name') home.setSort(next);
+				</nav>
+				<div class="flex items-center gap-3">
+					<h1 class="min-w-0 flex-1 truncate text-2xl font-normal tracking-tight" data-home-title>
+						{titleOf()}
+					</h1>
+					<Button variant="primary" icon={PlusIcon} onclick={() => void home.newFile()}>
+						New design file
+					</Button>
+				</div>
+				<div class="mt-6 flex h-8 items-center gap-3">
+					<span class="text-muted text-xs">{countLabel()}</span>
+					<div class="flex-1"></div>
+					<span class="text-muted text-xs">Sort:</span>
+					<div class="w-32">
+						<Select
+							size="sm"
+							value={home.sort}
+							options={SORTS}
+							onChange={(next) => {
+								if (next === 'edited' || next === 'opened' || next === 'name') home.setSort(next);
+							}}
+						/>
+					</div>
+					<ToggleGroup
+						name="Layout"
+						value={home.view}
+						options={[
+							{ value: 'grid', label: 'Grid', icon: SquaresFourIcon },
+							{ value: 'list', label: 'List', icon: ListIcon }
+						]}
+						onchange={(next) => {
+							if (next === 'grid' || next === 'list') home.setView(next);
 						}}
 					/>
 				</div>
-				<ToggleGroup
-					name="Layout"
-					value={home.view}
-					options={[
-						{ value: 'grid', label: 'Grid', icon: SquaresFourIcon },
-						{ value: 'list', label: 'List', icon: ListIcon }
-					]}
-					onchange={(next) => {
-						if (next === 'grid' || next === 'list') home.setView(next);
-					}}
-				/>
-				<Button variant="primary" icon={PlusIcon} onclick={() => void home.newFile()}>
-					New design file
-				</Button>
 			</header>
 
-			<div class="min-h-0 flex-1 overflow-y-auto p-6">
+			<div class="min-h-0 flex-1 overflow-y-auto px-8 pt-3 pb-8">
 				{#if nothingToShow}
 					<div
 						class="text-muted flex h-full flex-col items-center justify-center gap-2 text-sm"
@@ -150,7 +171,7 @@
 					</div>
 				{:else if home.view === 'grid'}
 					<ul
-						class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4"
+						class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6"
 						role="list"
 						data-home-grid
 					>
@@ -162,6 +183,14 @@
 						{/each}
 					</ul>
 				{:else}
+					<div
+						class="text-muted border-line grid h-8 grid-cols-[minmax(0,1fr)_12rem_10rem] items-center gap-4 border-b px-2 text-xs"
+						aria-hidden="true"
+					>
+						<span>Name</span>
+						<span>Location</span>
+						<span>{timeColumnLabel()}</span>
+					</div>
 					<ul class="flex flex-col" role="list" data-home-list>
 						{#each folders as folder (folder.path)}
 							<FolderCard {folder} layout="list" />

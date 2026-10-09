@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PenNibIcon from 'phosphor-svelte/lib/PenNibIcon';
 	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
 	import XIcon from 'phosphor-svelte/lib/XIcon';
 	import { getKernel } from '../../lib/kernel/context';
@@ -6,6 +7,22 @@
 
 	const ctx = getKernel();
 	const tabs = ctx.tabs;
+	// The home screen covers the document while it shows, so no tab reads as the current one (the
+	// home plugin publishes the key; the strip never imports it).
+	const homeShown = $derived(ctx.contextKeys.get('home.visible') === true);
+
+	function isCurrent(id: string): boolean {
+		return id === tabs.activeId && !homeShown;
+	}
+
+	/** A hairline between two tabs, left out next to the current tab (it has its own edge). */
+	function showsSeparator(position: number): boolean {
+		if (position === 0) return false;
+		const before = tabs.tabs[position - 1];
+		const after = tabs.tabs[position];
+		if (before === undefined || after === undefined) return false;
+		return !isCurrent(before.id) && !isCurrent(after.id);
+	}
 
 	const DRAG_THRESHOLD_PIXELS = 4;
 
@@ -38,6 +55,15 @@
 		drag = { ...drag, moved: true, index: dropIndexAt(event.clientX, tabRects()) };
 	}
 
+	function showTab(id: string): void {
+		// The tab is already the live document, only hidden behind the home screen.
+		if (homeShown && id === tabs.activeId) {
+			report(ctx.commands.run('home.hide'));
+			return;
+		}
+		report(tabs.activate(id));
+	}
+
 	function onPointerUp(): void {
 		if (drag === null) return;
 		const finished = drag;
@@ -46,7 +72,7 @@
 			tabs.move(finished.id, finished.index);
 			return;
 		}
-		report(tabs.activate(finished.id));
+		showTab(finished.id);
 	}
 
 	function onAuxClick(event: MouseEvent, id: string): void {
@@ -58,15 +84,18 @@
 
 <div
 	bind:this={strip}
-	class="app-no-drag flex min-w-0 items-end gap-0.5 self-end overflow-x-auto px-1"
+	class="app-no-drag flex min-w-0 [scrollbar-width:none] items-stretch overflow-x-auto"
 	role="tablist"
 	aria-label="Documents"
 	data-tabs
 >
 	{#each tabs.tabs as tab, position (tab.id)}
 		{@const active = tab.id === tabs.activeId}
+		{@const current = isCurrent(tab.id)}
 		{#if drag !== null && drag.moved && drag.index === position}
-			<span class="bg-action h-6 w-0.5 shrink-0 self-center rounded" data-tab-drop-marker></span>
+			<span class="bg-action h-5 w-0.5 shrink-0 self-center rounded" data-tab-drop-marker></span>
+		{:else if showsSeparator(position)}
+			<span class="bg-line h-4 w-px shrink-0 self-center" aria-hidden="true"></span>
 		{/if}
 		<div
 			role="tab"
@@ -74,26 +103,31 @@
 			aria-selected={active}
 			data-tab={tab.id}
 			title={tab.path}
-			class="group border-line-faint flex h-8 max-w-48 min-w-24 shrink-0 cursor-default items-center gap-1.5 rounded-t-md border border-b-0 px-2.5 text-xs select-none"
-			class:bg-canvas={active}
-			class:text-default={active}
-			class:text-muted={!active}
-			class:hover:bg-hover={!active}
+			class="group relative flex max-w-56 min-w-32 shrink-0 cursor-default items-center gap-2 pr-1.5 pl-3 text-xs select-none"
+			class:bg-canvas={current}
+			class:text-default={current}
+			class:text-muted={!current}
+			class:hover:bg-hover={!current}
+			class:hover:text-default={!current}
 			class:opacity-60={drag !== null && drag.moved && drag.id === tab.id}
 			onpointerdown={(event) => onPointerDown(event, tab.id)}
 			onpointermove={onPointerMove}
 			onpointerup={onPointerUp}
 			onauxclick={(event) => onAuxClick(event, tab.id)}
 			onkeydown={(event) => {
-				if (event.key === 'Enter') report(tabs.activate(tab.id));
+				if (event.key === 'Enter') showTab(tab.id);
 			}}
 		>
-			<span class="min-w-0 flex-1 truncate">{tabs.nameOf(tab)}</span>
+			<span class="inline-flex shrink-0" class:text-blue={current} class:text-faint={!current}>
+				<PenNibIcon size={12} weight={current ? 'fill' : 'regular'} />
+			</span>
+			<span class="min-w-0 flex-1 truncate" class:font-medium={current}>{tabs.nameOf(tab)}</span>
 			<button
 				type="button"
 				data-tab-close
 				aria-label="Close {tabs.nameOf(tab)}"
-				class="text-faint hover:bg-raised hover:text-default inline-flex size-4 shrink-0 items-center justify-center rounded"
+				class="text-muted hover:bg-raised hover:text-default inline-flex size-5 shrink-0 items-center justify-center rounded group-hover:opacity-100 focus-visible:opacity-100"
+				class:opacity-0={!current}
 				onclick={() => report(tabs.close(tab.id))}
 			>
 				<XIcon size={10} weight="bold" />
@@ -101,12 +135,12 @@
 		</div>
 	{/each}
 	{#if drag !== null && drag.moved && drag.index === tabs.tabs.length}
-		<span class="bg-action h-6 w-0.5 shrink-0 self-center rounded" data-tab-drop-marker></span>
+		<span class="bg-action h-5 w-0.5 shrink-0 self-center rounded" data-tab-drop-marker></span>
 	{/if}
 	<button
 		type="button"
 		aria-label="New tab"
-		class="text-muted hover:bg-hover hover:text-default mb-1 inline-flex size-6 shrink-0 items-center justify-center rounded"
+		class="text-muted hover:bg-hover hover:text-default mx-1 inline-flex size-7 shrink-0 items-center justify-center self-center rounded"
 		onclick={() => report(ctx.commands.run('tabs.new'))}
 	>
 		<PlusIcon size={12} weight="bold" />

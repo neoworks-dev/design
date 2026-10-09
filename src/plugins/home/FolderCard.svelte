@@ -17,7 +17,7 @@
 	}
 </script>
 
-{#snippet label()}
+{#snippet label(size: 'grid' | 'list')}
 	{#if renaming}
 		<InlineNameInput
 			value={folder.name}
@@ -26,43 +26,66 @@
 			oncancel={() => home.cancelRename()}
 		/>
 	{:else}
-		<div class="truncate text-xs font-medium">{folder.name}</div>
-		<div class="text-faint truncate text-xs">{count}</div>
+		<span
+			class="text-default block truncate font-medium"
+			class:text-sm={size === 'grid'}
+			class:text-xs={size === 'list'}
+		>
+			{folder.name}
+		</span>
+		{#if size === 'grid'}
+			<span class="text-muted mt-0.5 block truncate text-xs">{count}</span>
+		{/if}
 	{/if}
 {/snippet}
 
 {#if layout === 'grid'}
 	<div
-		class="border-line-faint bg-elevated hover:border-line-strong rounded-lg border"
+		class="border-line bg-elevated hover:border-line-strong overflow-hidden rounded-md border transition-colors"
 		role="listitem"
 		data-home-folder={folder.path}
 		oncontextmenu={(event) => home.openFolderMenu(event, folder)}
 	>
 		<button
 			type="button"
-			class="text-muted flex w-full items-center gap-3 px-3 py-4 text-left"
+			class="block w-full text-left"
 			aria-label="Open folder {folder.name}"
 			onclick={open}
 		>
-			<FolderIcon size={28} weight="fill" class="shrink-0" />
-			<span class="min-w-0 flex-1">{@render label()}</span>
+			<span
+				class="bg-raised border-line text-faint flex aspect-[16/9] w-full items-center justify-center border-b"
+			>
+				<FolderIcon size={56} weight="fill" />
+			</span>
+			<span class="flex items-center gap-3 px-4 py-3">
+				<span class="text-muted inline-flex size-6 shrink-0 items-center justify-center">
+					<FolderIcon size={16} />
+				</span>
+				<span class="min-w-0 flex-1">{@render label('grid')}</span>
+			</span>
 		</button>
 	</div>
 {:else}
 	<div
-		class="hover:bg-hover border-line-faint flex items-center gap-3 border-b px-2 py-2"
+		class="hover:bg-hover border-line-faint grid h-14 grid-cols-[minmax(0,1fr)_12rem_10rem] items-center gap-4 rounded-md border-b px-2"
 		role="listitem"
 		data-home-folder={folder.path}
 		oncontextmenu={(event) => home.openFolderMenu(event, folder)}
 	>
 		<button
 			type="button"
-			class="text-muted flex min-w-0 flex-1 items-center gap-3 text-left"
+			class="flex min-w-0 items-center gap-3 text-left"
 			aria-label="Open folder {folder.name}"
 			onclick={open}
 		>
-			<FolderIcon size={20} weight="fill" class="shrink-0" />
-			<span class="min-w-0 flex-1">{@render label()}</span>
+			<span
+				class="bg-raised border-line text-faint flex h-9 w-14 shrink-0 items-center justify-center rounded border"
+			>
+				<FolderIcon size={18} weight="fill" />
+			</span>
+			<span class="min-w-0 flex-1">{@render label('list')}</span>
 		</button>
+		<span class="text-muted truncate text-xs">Folder</span>
+		<span class="text-muted truncate text-xs">{count}</span>
 	</div>
 {/if}

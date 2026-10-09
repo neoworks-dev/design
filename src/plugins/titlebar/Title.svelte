@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import { getKernel } from '../../lib/kernel/context';
 	import {
+		documentSaveErrorOf,
 		documentTitleOf,
 		isDocumentRenamable,
 		isDocumentSaving,
@@ -12,6 +13,7 @@
 	const title = $derived(documentTitleOf(ctx.contextKeys));
 	const renamable = $derived(isDocumentRenamable(ctx.contextKeys));
 	const saving = $derived(isDocumentSaving(ctx.contextKeys));
+	const saveError = $derived(documentSaveErrorOf(ctx.contextKeys));
 	const renaming = $derived(renamable && isRenamingTitle(ctx.contextKeys));
 	// macOS draws its traffic lights over the top-left corner of the window.
 	const insetForTrafficLights = ctx.desktop.platform === 'darwin';
@@ -81,7 +83,9 @@
 				}}>{title}</span
 			>
 		{/if}
-		{#if renamable}
+		{#if renamable && saveError !== null}
+			<span class="text-red shrink-0" data-save-status title={saveError}>Not saved</span>
+		{:else if renamable}
 			<span class="text-faint shrink-0" data-save-status>{saving ? 'Saving...' : 'Saved'}</span>
 		{/if}
 	</span>

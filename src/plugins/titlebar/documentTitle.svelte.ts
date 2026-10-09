@@ -1,6 +1,7 @@
 // Document title and save status. The file session publishes the context keys `document.title`,
-// `document.renamable` (a file is open) and `document.saving` (autosave has work); the titlebar
-// only reads them, so it never imports the session plugin.
+// `document.renamable` (a file is open), `document.saving` (autosave has work) and
+// `document.saveError` (the last send failed; it keeps retrying); the titlebar only reads them, so
+// it never imports the session plugin.
 
 import type { ContextKeysService } from '../../lib/registries/contextKeys.svelte';
 
@@ -19,6 +20,13 @@ export function isDocumentRenamable(contextKeys: ContextKeysService): boolean {
 
 export function isDocumentSaving(contextKeys: ContextKeysService): boolean {
 	return contextKeys.get('document.saving') === true;
+}
+
+/** Why the last autosave failed, or `null` while saving works. */
+export function documentSaveErrorOf(contextKeys: ContextKeysService): string | null {
+	const error = contextKeys.get('document.saveError');
+	if (typeof error === 'string' && error.length > 0) return error;
+	return null;
 }
 
 export function isRenamingTitle(contextKeys: ContextKeysService): boolean {

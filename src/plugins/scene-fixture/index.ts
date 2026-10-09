@@ -29,29 +29,21 @@ function loadFixture(ctx: Context, config: SceneFixtureConfig | undefined): void
 // the real path (document -> document-scene adapter -> renderer). Unloading puts the previous
 // document back. A production build opened normally never loads it.
 //
-// When `blobs` exists the fixture's pictures are stored in the open file and the image paints
-// point at them; without it they keep a pending hash and draw as placeholders.
+// When `blobs` exists and a file is open, the fixture's pictures are stored in it and the image
+// paints point at them; otherwise they keep a pending hash and draw as placeholders.
 //
-// The file session starts a blank document asynchronously after boot, which would replace the
-// fixture. The first replacement that is not ours therefore loads the fixture again, once.
+// Nothing opens a file at launch (the home screen shows), so the fixture is only ever replaced by
+// the user opening or creating a real file. That replacement wins: reloading the fixture over it
+// would put fixture nodes into the open file, and autosave would send changes main cannot apply.
 export default {
 	name: 'scene-fixture',
 	inject: ['document'],
 	apply(ctx: Context, config?: SceneFixtureConfig): void {
 		if (!isEnabled(config)) return;
-		let loading = false;
-		let reloaded = false;
-		ctx.on('document/replace', () => {
-			if (loading || reloaded) return;
-			reloaded = true;
-			loading = true;
-			loadFixture(ctx, config);
-			loading = false;
-		});
 		ctx.inject(['blobs'], (withBlobs) => {
 			const attach = (): void => {
 				if (withBlobs.document.documentId !== FIXTURE_FILE_ID) return;
-				// before the file session has opened a file the store refuses; the next replace retries
+				// with no file open the store refuses and the paints stay placeholders
 				attachFixtureImages(withBlobs).catch((error: unknown) => withBlobs.logger.warn(error));
 			};
 			withBlobs.on('document/replace', attach);
@@ -60,14 +52,10 @@ export default {
 		ctx.effect(() => {
 			const previous = ctx.document.snapshot;
 			const previousPageId = ctx.document.currentPageId;
-			loading = true;
 			loadFixture(ctx, config);
-			loading = false;
 			return () => {
-				loading = true;
 				ctx.document.replaceDocument(previous);
 				ctx.document.setCurrentPage(previousPageId);
-				loading = false;
 			};
 		}, 'scene-fixture/document');
 	}

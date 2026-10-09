@@ -1,8 +1,17 @@
 <script lang="ts">
-	import FileIcon from 'phosphor-svelte/lib/FileIcon';
 	import type { Thumbnail } from '../../../electron/bridge';
+	import FileBadge from './FileBadge.svelte';
 
-	let { thumbnail, name }: { thumbnail: Thumbnail | null; name: string } = $props();
+	let {
+		thumbnail,
+		name,
+		compact = false
+	}: {
+		thumbnail: Thumbnail | null;
+		name: string;
+		/** The small list-row preview: less margin around the design. */
+		compact?: boolean;
+	} = $props();
 
 	let url = $state<string | null>(null);
 
@@ -18,12 +27,24 @@
 		url = created;
 		return () => URL.revokeObjectURL(created);
 	});
+
+	function paddingClass(): string {
+		if (compact) return 'p-1';
+		return 'p-[12%]';
+	}
 </script>
 
-{#if url !== null}
-	<img src={url} alt="Preview of {name}" class="size-full object-contain" draggable="false" />
-{:else}
-	<div class="text-faint flex size-full items-center justify-center" data-thumbnail-placeholder>
-		<FileIcon size={28} />
-	</div>
-{/if}
+<!-- Like Figma: the design sits centred on a page-coloured backdrop with room around it, never
+     stretched to the card's edges. -->
+<div class="bg-raised flex size-full items-center justify-center {paddingClass()}">
+	{#if url !== null}
+		<img
+			src={url}
+			alt="Preview of {name}"
+			class="max-h-full max-w-full object-contain shadow-sm"
+			draggable="false"
+		/>
+	{:else}
+		<span class="opacity-60" data-thumbnail-placeholder><FileBadge size="sm" /></span>
+	{/if}
+</div>

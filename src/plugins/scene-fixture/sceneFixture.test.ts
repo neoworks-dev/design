@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DocumentStore, type Node, type NodeId } from '../../lib/document';
+import { emptyDocument } from '../../lib/document/fixtures';
 import { planReflow } from '../../lib/layout/reflow';
 import { mountPlugin, type MountedPlugin, type StateSnapshot } from '../../lib/kernel/testing';
 import coreCommands from '../core-commands';
@@ -38,6 +39,18 @@ describe('scene-fixture', () => {
 		mounted = await mountPlugin(sceneFixture, { providers, config: { enabled: false } });
 		expect(mounted.ctx.document.documentId).not.toBe(FIXTURE_FILE_ID);
 	});
+
+	it('does not load itself again over a file the user opened', async () => {
+		mounted = await mountPlugin(sceneFixture, {
+			providers,
+			config: { enabled: true, startPage: FIRST_PAGE_ID }
+		});
+		const { ctx } = mounted;
+		const opened = emptyDocument();
+		ctx.document.replaceDocument(opened);
+		expect(ctx.document.documentId).toBe(opened.id);
+		expect(ctx.document.get('image-fill')).toBeUndefined();
+	});
 });
 
 describe('when the fixture is served', () => {
@@ -52,7 +65,7 @@ describe('when the fixture is served', () => {
 		const source = readFileSync(`${import.meta.dirname}/index.ts`, 'utf8');
 		expect(source).toContain('isFixtureEnabled(currentEnvironment())');
 		expect(source.indexOf('if (!isEnabled(config)) return;')).toBeLessThan(
-			source.indexOf("ctx.on('document/replace'")
+			source.indexOf('loadFixture(ctx, config);')
 		);
 	});
 });

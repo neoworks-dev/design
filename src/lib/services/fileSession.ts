@@ -289,6 +289,7 @@ export class FileSessionService extends Service {
 	private onQueueStatus(status: AutosaveStatus): void {
 		this.state.status = status;
 		this.setKey('document.saving', this.isSaving);
+		this.setKey('document.saveError', status.error);
 		const idle = status.queued === 0 && status.inFlight === 0;
 		if (!idle || status.persisted === this.lastPersisted) return;
 		this.lastPersisted = status.persisted;
@@ -328,6 +329,7 @@ export class FileSessionService extends Service {
 		this.setKey('document.closed', this.state.closed);
 		this.setKey('document.renamable', this.state.info !== null);
 		this.setKey('document.saving', this.isSaving);
+		this.setKey('document.saveError', this.state.status.error);
 	}
 
 	private setKey(key: string, value: unknown): void {

@@ -38,7 +38,16 @@ const COMMANDS: TabCommand[] = [
 // document (see lib/services/tabs.ts for why it is not one kernel context per document).
 export default {
 	name: 'tabs',
-	inject: ['fileSession', 'document', 'selection', 'regions', 'commands', 'keymap', 'desktop'],
+	inject: [
+		'fileSession',
+		'document',
+		'selection',
+		'regions',
+		'commands',
+		'keymap',
+		'desktop',
+		'contextKeys'
+	],
 	apply(ctx: Context): void {
 		const tabs = new TabsService(
 			ctx,
