@@ -7,14 +7,17 @@
 //   - anything else selected: its parent (climbing past instances), right above the selection.
 // Replace takes the selection's place and removes it.
 //
-// Where they land (absolute position of the pasted bounds):
+// Where they land (absolute position of the pasted bounds), as measured in Figma (docs/research/
+// figma-client/paste.md, "Measured"):
 //   - paste in place: exactly where they were copied from;
-//   - paste here: centred on the cursor;
+//   - paste here: the top left on the cursor;
 //   - replace: centred on the replaced nodes;
-//   - into a frame (or group): same coordinates relative to the frame, centred when that does not
-//     fit; paste over selection keeps the relative coordinates even when they do not fit;
-//   - onto a page: the original coordinates when it is a different page or file, or when the
-//     original is still in view, else the centre of the viewport.
+//   - one top-level frame with nothing or that frame (or one of its size) selected, original in
+//     view: next to the original, pushed right past whatever it would overlap;
+//   - into a frame: the same position when it touches the frame, else centred (per axis, in the
+//     visible part of the frame);
+//   - onto a page: the original position while the original is in view, else the view centre.
+// Pasting also reports where the content went and how the view should follow (pasteView.ts).
 
 import {
 	canHaveChildren,
@@ -41,9 +44,18 @@ import {
 	type Vec2
 } from '../document';
 import type { ClipboardPayload } from './clipboardPayload';
+import {
+	centringShift,
+	intersection,
+	pushRightOfSiblings,
+	rectsIntersect,
+	roundedFrom
+} from './placement';
+import type { ZoomRule } from './pasteView';
 import { isPositioned, sortByDocumentOrder, topLevelIds, unionBounds } from './selectionOps';
 
-export type PasteMode = 'default' | 'in-place' | 'over-selection' | 'replace' | 'here';
+/** `here` puts the top left on the cursor (Figma); `drop` centres the content on the drop point. */
+export type PasteMode = 'default' | 'in-place' | 'over-selection' | 'replace' | 'here' | 'drop';
 
 export interface PasteSettings {
 	mode: PasteMode;
@@ -59,6 +71,9 @@ export interface PasteSettings {
 export interface PastePlan {
 	changes: Change[];
 	newRootIds: NodeId[];
+	/** Absolute bounds of the pasted roots, for the view to follow; `null` when not tracked. */
+	placedBounds: Rect | null;
+	zoomRule: ZoomRule;
 }
 
 interface Target {
@@ -69,7 +84,12 @@ interface Target {
 	replaced: NodeId[];
 }
 
-const EMPTY_PLAN: PastePlan = { changes: [], newRootIds: [] };
+const EMPTY_PLAN: PastePlan = {
+	changes: [],
+	newRootIds: [],
+	placedBounds: null,
+	zoomRule: 'covers-safe-area'
+};
 const PASTE_TARGET_TYPES = ['FRAME', 'SECTION', 'COMPONENT', 'COMPONENT_SET'];
 /** Fraction of the viewport a pasted image may fill. */
 const IMAGE_VIEWPORT_FRACTION = 0.9;
@@ -124,23 +144,67 @@ function replaceTarget(reader: DocumentReader, selected: NodeId[]): Target {
 	return { parentId, afterId: siblings[siblings.length - 1], replaced };
 }
 
-function resolveTarget(reader: DocumentReader, settings: PasteSettings): Target {
+function isInView(reader: DocumentReader, id: NodeId, settings: PasteSettings): boolean {
+	if (settings.viewport === null) return true;
+	return rectsIntersect(reader.cache.absoluteBounds(id), settings.viewport);
+}
+
+/** With nothing selected, a copy from inside a frame goes back into that frame while it is on screen. */
+function originalParentTarget(
+	reader: DocumentReader,
+	payload: ClipboardPayload,
+	settings: PasteSettings
+): Target | null {
+	if (settings.mode !== 'default' && settings.mode !== 'here') return null;
+	if (payload.documentId !== settings.documentId || payload.pageId !== settings.currentPageId) {
+		return null;
+	}
+	const root = payload.nodes.find((candidate) => candidate.id === payload.roots[0].id);
+	if (root === undefined || root.parentId === null || root.parentId === payload.pageId) return null;
+	if (!reader.hasNode(root.parentId)) return null;
+	const parent = reader.requireNode(root.parentId);
+	if (!canHold(reader, parent) || !isInView(reader, parent.id, settings)) return null;
+	return { parentId: parent.id, afterId: null, replaced: [] };
+}
+
+function isCopiedRoot(payload: ClipboardPayload, id: NodeId): boolean {
+	return payload.roots.some((root) => root.id === id);
+}
+
+function resolveTarget(
+	reader: DocumentReader,
+	settings: PasteSettings,
+	nextTo: NextTo | null,
+	payload: ClipboardPayload | null
+): Target {
 	const selected = selectedNodes(reader, settings);
-	if (selected.length === 0) return pageTarget(settings);
+	if (selected.length === 0) {
+		if (payload === null) return pageTarget(settings);
+		const original = originalParentTarget(reader, payload, settings);
+		if (original === null) return pageTarget(settings);
+		return original;
+	}
 	if (settings.mode === 'replace') return replaceTarget(reader, selected);
 	const anchorId = selected[selected.length - 1];
-	if (isPasteTarget(reader, reader.requireNode(anchorId))) {
-		return { parentId: anchorId, afterId: null, replaced: [] };
+	if (nextTo !== null) return climbToHolder(reader, anchorId);
+	// Pasting what is selected puts the copy beside it, not inside it.
+	if (payload !== null && selected.every((id) => isCopiedRoot(payload, id))) {
+		return climbToHolder(reader, anchorId);
 	}
-	return climbToHolder(reader, anchorId);
+	const anchor = reader.requireNode(anchorId);
+	if (!isPasteTarget(reader, anchor)) return climbToHolder(reader, anchorId);
+	// A frame that is out of view is not a destination: the content goes to the page instead.
+	if (settings.mode !== 'over-selection' && !isInView(reader, anchorId, settings)) {
+		return pageTarget(settings);
+	}
+	return { parentId: anchorId, afterId: null, replaced: [] };
 }
 
 // ---------- placement ----------
 
-function containsRect(outer: Rect, inner: Rect): boolean {
-	if (inner.x < outer.x || inner.y < outer.y) return false;
-	if (inner.x + inner.width > outer.x + outer.width) return false;
-	return inner.y + inner.height <= outer.y + outer.height;
+interface NextTo {
+	/** Top left, in page coordinates, where the push to the right starts. */
+	start: Vec2;
 }
 
 function centred(area: Rect, size: { width: number; height: number }): Vec2 {
@@ -155,32 +219,131 @@ function parentAbsoluteBounds(reader: DocumentReader, parentId: NodeId): Rect | 
 	return reader.cache.absoluteBounds(parentId);
 }
 
-function fitsInside(offset: Vec2, size: Rect, parent: Rect): boolean {
-	if (offset.x < 0 || offset.y < 0) return false;
-	if (offset.x + size.width > parent.width) return false;
-	return offset.y + size.height <= parent.height;
+function isSingleTopLevelFrame(payload: ClipboardPayload): boolean {
+	if (payload.roots.length !== 1) return false;
+	const root = payload.nodes.find((candidate) => candidate.id === payload.roots[0].id);
+	if (root === undefined) return false;
+	return root.type === 'FRAME' && root.parentId === payload.pageId;
 }
 
-function destinationInFrame(payload: ClipboardPayload, parent: Rect, mode: PasteMode): Vec2 {
-	const offset = {
-		x: payload.bounds.x - payload.parentOrigin.x,
-		y: payload.bounds.y - payload.parentOrigin.y
-	};
-	if (mode === 'over-selection' || fitsInside(offset, payload.bounds, parent)) {
-		return { x: parent.x + offset.x, y: parent.y + offset.y };
+/** The original is where the user can see it: same file, same page, touching the view. */
+function isOriginalInView(payload: ClipboardPayload, settings: PasteSettings): boolean {
+	if (payload.documentId !== settings.documentId) return false;
+	if (payload.pageId !== settings.currentPageId) return false;
+	if (settings.viewport === null) return true;
+	return rectsIntersect(payload.bounds, settings.viewport);
+}
+
+/** Next to the original needs its box on screen, even when it comes from another page or file. */
+function originalTouchesView(payload: ClipboardPayload, settings: PasteSettings): boolean {
+	if (settings.viewport === null) return isOriginalInView(payload, settings);
+	return rectsIntersect(payload.bounds, settings.viewport);
+}
+
+const SAME_SIZE_TOLERANCE = 0.01;
+
+function sameSize(bounds: Rect, other: Rect): boolean {
+	const widthGap = bounds.width - other.width;
+	const heightGap = bounds.height - other.height;
+	return Math.abs(widthGap) <= SAME_SIZE_TOLERANCE && Math.abs(heightGap) <= SAME_SIZE_TOLERANCE;
+}
+
+/**
+ * Ctrl+V of one top-level frame goes next to the original: with nothing selected, with that frame
+ * selected, or with a top-level frame of the same size selected (the push then starts there).
+ */
+function nextToOf(
+	reader: DocumentReader,
+	payload: ClipboardPayload,
+	settings: PasteSettings
+): NextTo | null {
+	if (settings.mode !== 'default') return null;
+	if (!isSingleTopLevelFrame(payload)) return null;
+	const originalOnScreen = originalTouchesView(payload, settings);
+	const selected = selectedNodes(reader, settings);
+	if (selected.length === 0) {
+		if (!originalOnScreen) return null;
+		return { start: { x: payload.bounds.x, y: payload.bounds.y } };
 	}
-	return centred(parent, payload.bounds);
+	if (selected.length !== 1) return null;
+	const frame = reader.requireNode(selected[0]);
+	if (frame.type !== 'FRAME' || frame.parentId !== settings.currentPageId) return null;
+	const bounds = reader.cache.absoluteBounds(frame.id);
+	if (frame.id !== payload.roots[0].id && !sameSize(bounds, payload.bounds)) return null;
+	// The original may have scrolled away after earlier pastes; the selected frame is what counts.
+	if (!originalOnScreen && !isInView(reader, frame.id, settings)) return null;
+	return { start: { x: bounds.x, y: bounds.y } };
+}
+
+function destinationNextTo(
+	reader: DocumentReader,
+	payload: ClipboardPayload,
+	nextTo: NextTo,
+	settings: PasteSettings
+): Vec2 {
+	const start = { ...nextTo.start, width: payload.bounds.width, height: payload.bounds.height };
+	const free = pushRightOfSiblings(reader, settings.currentPageId, start);
+	return { x: free.x, y: free.y };
+}
+
+function wasCopiedFromPage(payload: ClipboardPayload): boolean {
+	const root = payload.nodes.find((candidate) => candidate.id === payload.roots[0].id);
+	return root !== undefined && root.parentId === payload.pageId;
+}
+
+function relativePositionIn(payload: ClipboardPayload, parent: Rect): Vec2 {
+	return {
+		x: parent.x + payload.bounds.x - payload.parentOrigin.x,
+		y: parent.y + payload.bounds.y - payload.parentOrigin.y
+	};
+}
+
+/** Page coordinates stay as they are; coordinates inside a frame carry over to the new frame. */
+function keptPositionIn(payload: ClipboardPayload, parent: Rect): Vec2 {
+	if (wasCopiedFromPage(payload)) return { x: payload.bounds.x, y: payload.bounds.y };
+	return relativePositionIn(payload, parent);
+}
+
+/** The position inside a frame: kept when it touches the frame, else centred per axis (11879). */
+function destinationInFrame(
+	payload: ClipboardPayload,
+	parent: Rect,
+	settings: PasteSettings
+): Vec2 {
+	if (settings.mode === 'over-selection') return relativePositionIn(payload, parent);
+	const kept = keptPositionIn(payload, parent);
+	const size = { width: payload.bounds.width, height: payload.bounds.height };
+	const keptRect = { ...kept, ...size };
+	if (rectsIntersect(parent, keptRect)) return kept;
+	const visibleArea = visiblePart(parent, settings);
+	return roundedFrom(payload.bounds, axisCentred(visibleArea, keptRect));
+}
+
+function visiblePart(parent: Rect, settings: PasteSettings): Rect {
+	if (settings.viewport === null) return parent;
+	const visible = intersection(parent, settings.viewport);
+	if (visible === null) return parent;
+	return visible;
+}
+
+/** Keeps an axis that still touches `area`, centres the others; both when the content is bigger. */
+function axisCentred(area: Rect, content: Rect): Vec2 {
+	const both = centred(area, content);
+	if (content.width > area.width || content.height > area.height) return both;
+	const horizontally = { ...content, x: both.x };
+	if (rectsIntersect(area, horizontally)) return { x: both.x, y: content.y };
+	const vertically = { ...content, y: both.y };
+	if (rectsIntersect(area, vertically)) return { x: content.x, y: both.y };
+	return both;
 }
 
 function destinationOnPage(payload: ClipboardPayload, settings: PasteSettings): Vec2 {
 	const origin = { x: payload.bounds.x, y: payload.bounds.y };
 	if (settings.mode === 'over-selection') return origin;
-	const elsewhere =
-		payload.documentId !== settings.documentId || payload.pageId !== settings.currentPageId;
-	if (elsewhere) return origin;
 	if (settings.viewport === null) return origin;
-	if (containsRect(settings.viewport, payload.bounds)) return origin;
-	return centred(settings.viewport, payload.bounds);
+	if (isOriginalInView(payload, settings)) return origin;
+	const shift = centringShift(settings.viewport, payload.bounds);
+	return { x: origin.x + shift.x, y: origin.y + shift.y };
 }
 
 function centredOnPoint(point: Vec2, size: { width: number; height: number }): Vec2 {
@@ -191,18 +354,24 @@ function destinationFor(
 	reader: DocumentReader,
 	payload: ClipboardPayload,
 	settings: PasteSettings,
-	target: Target
+	target: Target,
+	nextTo: NextTo | null
 ): Vec2 {
 	if (settings.mode === 'in-place') return { x: payload.bounds.x, y: payload.bounds.y };
 	if (settings.mode === 'here' && settings.cursor !== null) {
+		return roundedFrom(payload.bounds, settings.cursor);
+	}
+	if (settings.mode === 'drop' && settings.cursor !== null) {
 		return centredOnPoint(settings.cursor, payload.bounds);
 	}
 	if (settings.mode === 'replace' && target.replaced.length > 0) {
 		const area = unionBounds(target.replaced.map((id) => reader.cache.absoluteBounds(id)));
 		return centred(area, payload.bounds);
 	}
+	if (isSingleTopLevelFrame(payload) && isEmptyPage(reader, target)) return { x: 0, y: 0 };
+	if (nextTo !== null) return destinationNextTo(reader, payload, nextTo, settings);
 	const parent = parentAbsoluteBounds(reader, target.parentId);
-	if (parent !== null) return destinationInFrame(payload, parent, settings.mode);
+	if (parent !== null) return destinationInFrame(payload, parent, settings);
 	return destinationOnPage(payload, settings);
 }
 
@@ -352,6 +521,18 @@ function planRemovals(reader: DocumentReader, target: Target): Change[] {
 	return changes;
 }
 
+function isEmptyPage(reader: DocumentReader, target: Target): boolean {
+	if (target.replaced.length > 0) return false;
+	if (reader.requireNode(target.parentId).type !== 'PAGE') return false;
+	return reader.childNodes(target.parentId).length === 0;
+}
+
+function zoomRuleFor(reader: DocumentReader, settings: PasteSettings, target: Target): ZoomRule {
+	if (settings.mode === 'here') return 'larger-than-safe-area';
+	if (isEmptyPage(reader, target)) return 'always';
+	return 'covers-safe-area';
+}
+
 /** Paste the copied nodes according to `settings`; fresh ids, instances stay linked. */
 export function planPaste(
 	reader: DocumentReader,
@@ -359,9 +540,10 @@ export function planPaste(
 	settings: PasteSettings,
 	generate: IdGenerator = generateNodeId
 ): PastePlan {
-	const target = resolveTarget(reader, settings);
+	const nextTo = nextToOf(reader, payload, settings);
+	const target = resolveTarget(reader, settings, nextTo, payload);
 	if (settings.mode === 'replace' && target.replaced.length === 0) return EMPTY_PLAN;
-	const destination = destinationFor(reader, payload, settings, target);
+	const destination = destinationFor(reader, payload, settings, target, nextTo);
 	const shift = { x: destination.x - payload.bounds.x, y: destination.y - payload.bounds.y };
 	const pasted = instantiate(reader, payload, target, shift, generate);
 	const changes = [
@@ -369,7 +551,16 @@ export function planPaste(
 		...planInsertAll(pasted.nodes),
 		...planRemovals(reader, target)
 	];
-	return { changes, newRootIds: pasted.rootIds };
+	return {
+		changes,
+		newRootIds: pasted.rootIds,
+		placedBounds: {
+			...payload.bounds,
+			x: payload.bounds.x + shift.x,
+			y: payload.bounds.y + shift.y
+		},
+		zoomRule: zoomRuleFor(reader, settings, target)
+	};
 }
 
 // ---------- text and images ----------
@@ -472,10 +663,12 @@ export function planPasteNode(
 	generate: IdGenerator = generateNodeId
 ): PastePlan {
 	if (!isPositioned(node)) return EMPTY_PLAN;
-	const target = resolveTarget(reader, {
-		...settings,
-		mode: settings.mode === 'here' ? 'here' : 'default'
-	});
+	const target = resolveTarget(
+		reader,
+		{ ...settings, mode: settings.mode === 'here' ? 'here' : 'default' },
+		null,
+		null
+	);
 	const destination = newNodeDestination(reader, node, settings, target);
 	const placed: Node = { ...node, id: generate(), parentId: target.parentId };
 	placed.index = insertionIndexes(reader, target, 1)[0];
@@ -488,6 +681,8 @@ export function planPasteNode(
 	}
 	return {
 		changes: [...extraChanges, ...planInsertAll([placed])],
-		newRootIds: [placed.id]
+		newRootIds: [placed.id],
+		placedBounds: null,
+		zoomRule: 'covers-safe-area'
 	};
 }

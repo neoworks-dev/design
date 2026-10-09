@@ -1,10 +1,10 @@
 // Mount tests and behaviour for the duplicate, align, clipboard and mask plugins.
 
-import type { Context } from '@neoworks/extension-system';
+import type { Context, Plugin } from '@neoworks/extension-system';
 import { describe, expect, it } from 'vitest';
 import { createNode } from '../lib/document';
 import { describePlugin, mountPlugin } from '../lib/kernel/testing';
-import { editingProviders, at } from '../lib/editing/fixtures/editingFixture';
+import { editingProviders, at, noCanvasViewport } from '../lib/editing/fixtures/editingFixture';
 import align from './align';
 import duplicate from './duplicate';
 
@@ -36,8 +36,12 @@ function move(ctx: Context, id: string, x: number, y: number): void {
 	});
 }
 
+function duplicateProviders(): Plugin[] {
+	return [...editingProviders(), noCanvasViewport];
+}
+
 describePlugin('duplicate', duplicate, {
-	providers: editingProviders(),
+	providers: duplicateProviders(),
 	contributes: ({ ctx }) => {
 		expect(boundKeys(ctx)).toContain('ctrl+d>duplicate.duplicate');
 		expect(ctx.commands.has('duplicate.duplicate')).toBe(true);
@@ -47,7 +51,7 @@ describePlugin('duplicate', duplicate, {
 
 describe('duplicate through the keymap', () => {
 	it('duplicates in place, repeats the moved offset and undoes in one step', async () => {
-		const { ctx, cleanup } = await mountPlugin(duplicate, { providers: editingProviders() });
+		const { ctx, cleanup } = await mountPlugin(duplicate, { providers: duplicateProviders() });
 		ctx.selection.select(['a']);
 		press(ctx, 'd', { ctrl: true });
 		const [first] = ctx.selection.ids;
@@ -70,7 +74,7 @@ describe('duplicate through the keymap', () => {
 	});
 
 	it('forgets the offset when something else is selected', async () => {
-		const { ctx, cleanup } = await mountPlugin(duplicate, { providers: editingProviders() });
+		const { ctx, cleanup } = await mountPlugin(duplicate, { providers: duplicateProviders() });
 		ctx.selection.select(['a']);
 		press(ctx, 'd', { ctrl: true });
 		const [clone] = ctx.selection.ids;
@@ -83,7 +87,7 @@ describe('duplicate through the keymap', () => {
 	});
 
 	it('duplicates a component into a new component with its own key', async () => {
-		const { ctx, cleanup } = await mountPlugin(duplicate, { providers: editingProviders() });
+		const { ctx, cleanup } = await mountPlugin(duplicate, { providers: duplicateProviders() });
 		const component = createNode('COMPONENT', {
 			id: 'comp',
 			name: 'C',

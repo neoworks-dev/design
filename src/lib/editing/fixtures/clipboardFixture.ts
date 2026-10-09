@@ -52,8 +52,18 @@ class StubViewport extends Service {
 		return { width: this.view.rect.width, height: this.view.rect.height };
 	}
 
+	get zoom(): number {
+		return 1;
+	}
+
 	visibleRect(): Rect {
 		return this.view.rect;
+	}
+
+	panBy(): void {}
+
+	zoomToRect(): boolean {
+		return true;
 	}
 }
 

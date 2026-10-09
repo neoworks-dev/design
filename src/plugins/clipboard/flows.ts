@@ -4,7 +4,7 @@
 import type { Context } from '@neoworks/extension-system';
 import { looksLikeSvg, rasterizeSvg } from '../../lib/assets/svgRaster';
 import type { Rect, Vec2 } from '../../lib/document';
-import { applyEdit, objectArguments } from '../../lib/editing/contribute';
+import { applyEdit, followContent, objectArguments } from '../../lib/editing/contribute';
 import {
 	buildPayload,
 	copyableIds,
@@ -29,7 +29,8 @@ const PASTE_LABELS: Record<PasteMode, string> = {
 	'in-place': 'Paste in place',
 	'over-selection': 'Paste over selection',
 	replace: 'Paste to replace',
-	here: 'Paste here'
+	here: 'Paste here',
+	drop: 'Drop'
 };
 
 /** The world point a context menu was opened at, when its opener passed one as target. */
@@ -141,4 +142,5 @@ export async function pasteClipboard(ctx: Context, mode: PasteMode, args?: unkno
 	if (plan === null) return;
 	if (!applyEdit(ctx, plan.changes, PASTE_LABELS[mode])) return;
 	ctx.selection.select(plan.newRootIds);
+	if (plan.placedBounds !== null) followContent(ctx, plan.placedBounds, plan.zoomRule);
 }

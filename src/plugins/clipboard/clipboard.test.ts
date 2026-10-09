@@ -51,6 +51,7 @@ async function mountClipboard(): Promise<{
 	cleanup: () => Promise<void>;
 }> {
 	const world = clipboardWorld();
+	world.viewport.rect = { x: 0, y: 0, width: 1000, height: 800 };
 	const mounted = await mountPlugin(clipboard, { providers: world.providers });
 	mounted.ctx.keymap.pushScope('canvas');
 	return { ctx: mounted.ctx, world, cleanup: mounted.cleanup };
@@ -123,7 +124,7 @@ describe('clipboard through the keymap', () => {
 		await cleanup();
 	});
 
-	it('paste here centres on the cursor passed as the menu target', async () => {
+	it('paste here puts the top left on the cursor passed as the menu target', async () => {
 		const { ctx, world, cleanup } = await mountClipboard();
 		ctx.selection.select(['loose']);
 		press(ctx, 'c', { ctrl: true });
@@ -131,7 +132,7 @@ describe('clipboard through the keymap', () => {
 		ctx.selection.clear();
 		await ctx.commands.run('clipboard.paste-here', { world: { x: 50, y: 70 } });
 		await vi.waitFor(() => expect(ctx.selection.count).toBe(1));
-		expect(ctx.document.absoluteBounds(ctx.selection.ids[0])).toMatchObject({ x: 45, y: 65 });
+		expect(ctx.document.absoluteBounds(ctx.selection.ids[0])).toMatchObject({ x: 50, y: 70 });
 		await cleanup();
 	});
 

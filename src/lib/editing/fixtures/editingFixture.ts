@@ -1,7 +1,7 @@
 // Fixtures for the editing tests: small documents with explicit positions, and the provider set
 // the editing plugins need.
 
-import type { Context, Plugin } from '@neoworks/extension-system';
+import { Service, type Context, type Plugin } from '@neoworks/extension-system';
 import coreCommands from '../../../plugins/core-commands';
 import coreContextKeys from '../../../plugins/core-context-keys';
 import coreKeymap from '../../../plugins/core-keymap';
@@ -15,7 +15,8 @@ import {
 	type Change,
 	type DesignDocument,
 	type Matrix2x3,
-	type NodeId
+	type NodeId,
+	type Rect
 } from '../../document';
 import { buildDocument, frame, page, rectangle, type NodeSpec } from '../../document/fixtures';
 import { documentWith } from '../../services/fixtures/documentFixture';
@@ -61,6 +62,39 @@ export function sampleDocument(): DesignDocument {
 		)
 	]);
 }
+
+/** A viewport without a canvas: size 0, so placement and view following stay out of the way. */
+class NoCanvasViewport extends Service {
+	constructor(ctx: Context) {
+		super(ctx, 'viewport');
+	}
+
+	get size(): { width: number; height: number } {
+		return { width: 0, height: 0 };
+	}
+
+	get zoom(): number {
+		return 1;
+	}
+
+	visibleRect(): Rect {
+		return { x: 0, y: 0, width: 0, height: 0 };
+	}
+
+	panBy(): void {}
+
+	zoomToRect(): boolean {
+		return false;
+	}
+}
+
+export const noCanvasViewport: Plugin = {
+	name: 'viewport',
+	inject: [],
+	apply: (ctx: Context): void => {
+		new NoCanvasViewport(ctx);
+	}
+};
 
 export function editingProviders(document: DesignDocument = sampleDocument()): Plugin[] {
 	return [

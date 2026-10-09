@@ -3,8 +3,10 @@
 // Always call these with the plugin's own `ctx`, never an outer one.
 
 import type { Context } from '@neoworks/extension-system';
-import type { Change } from '../document';
+import type { Change, Rect } from '../document';
 import type { KeyScope } from '../registries/keymap.svelte';
+import { PASTE_FIT } from '../viewport/camera';
+import { planViewAdjustment, type PanMode, type ZoomRule } from './pasteView';
 
 export interface MenuPlacement {
 	/** Menu path, for example `context/canvas`. */
@@ -95,6 +97,28 @@ export function applyEdit(
 	if (changes.length === 0) return false;
 	ctx.document.apply(changes, { origin: 'user', label, mergeKey });
 	return true;
+}
+
+/**
+ * Pans or zooms the view so freshly pasted or duplicated `content` is on screen, the way Figma
+ * does after those actions. Does nothing without a canvas.
+ */
+export function followContent(
+	ctx: Context,
+	content: Rect,
+	rule: ZoomRule,
+	panMode: PanMode = 'overlap'
+): void {
+	const size = ctx.viewport.size;
+	if (size.width <= 0 || size.height <= 0) return;
+	const adjustment = planViewAdjustment(content, ctx.viewport.visibleRect(), rule, panMode);
+	if (adjustment.kind === 'zoom-to-selection') {
+		ctx.viewport.zoomToRect(content, PASTE_FIT);
+		return;
+	}
+	if (adjustment.kind !== 'pan') return;
+	const scale = ctx.viewport.zoom;
+	ctx.viewport.panBy(-adjustment.shift.x * scale, -adjustment.shift.y * scale);
 }
 
 export function objectArguments(args: unknown): Record<string, unknown> {

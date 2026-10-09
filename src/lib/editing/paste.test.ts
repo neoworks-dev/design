@@ -170,13 +170,15 @@ describe('paste placement', () => {
 		expect(store.requireNode(away[0]).parentId).toBe('p');
 	});
 
-	it('onto another page or into another file: keeps the original coordinates', () => {
+	it('onto another page or into another file: centres on the viewport, keeps coordinates without one', () => {
 		const store = sample();
 		const payload = copyOf(store, ['loose']);
 		const otherPage = pasteInto(store, payload, { currentPageId: 'q', viewport });
-		expect(topLeft(store, otherPage[0])).toEqual([600, 600]);
+		expect(topLeft(store, otherPage[0])).toEqual([1395, 1295]);
 		const otherFile = pasteInto(store, { ...payload, documentId: 'elsewhere' }, { viewport });
-		expect(topLeft(store, otherFile[0])).toEqual([600, 600]);
+		expect(topLeft(store, otherFile[0])).toEqual([1395, 1295]);
+		const headless = pasteInto(store, payload, { currentPageId: 'q' });
+		expect(topLeft(store, headless[0])).toEqual([600, 600]);
 	});
 
 	it('into a selected frame: same relative coordinates, on top, centred when they do not fit', () => {
@@ -215,13 +217,20 @@ describe('paste placement', () => {
 		expect(topLeft(store, pasted)).toEqual([120, 120]);
 	});
 
-	it('paste here centres on the cursor and falls back to the default without one', () => {
+	it('paste here puts the top left on the cursor and falls back to the default without one', () => {
 		const store = sample();
 		const payload = copyOf(store, ['b']);
 		const [here] = pasteInto(store, payload, { mode: 'here', cursor: { x: 50, y: 60 } });
-		expect(topLeft(store, here)).toEqual([45, 55]);
+		expect(topLeft(store, here)).toEqual([50, 60]);
 		const [fallback] = pasteInto(store, payload, { mode: 'here', viewport });
 		expect(topLeft(store, fallback)).toEqual([1395, 1295]);
+	});
+
+	it('a drop centres the content on the drop point and is never pushed next to anything', () => {
+		const store = sample();
+		const payload = copyOf(store, ['f']);
+		const [dropped] = pasteInto(store, payload, { mode: 'drop', cursor: { x: 1000, y: 1000 } });
+		expect(topLeft(store, dropped)).toEqual([800, 800]);
 	});
 
 	it('paste to replace removes the selection, takes its z-position and centres on it', () => {
@@ -240,6 +249,181 @@ describe('paste placement', () => {
 		expect(
 			planPaste(store, payload, settings({ selection: ['b'], mode: 'replace' })).changes
 		).toEqual([]);
+	});
+});
+
+describe('paste next to the original', () => {
+	const view: Rect = { x: -200, y: -200, width: 2000, height: 1000 };
+
+	function frames(): DocumentStore {
+		return storeOf([
+			page(
+				'Page',
+				[
+					frame({ id: 'a', name: 'A', transform: at(0, 0), width: 400, height: 300 }),
+					frame({ id: 'twin', name: 'Twin', transform: at(0, 600), width: 400, height: 300 }),
+					frame({ id: 'other', name: 'Other', transform: at(900, 0), width: 500, height: 200 }),
+					frame({ id: 'host', name: 'Host', transform: at(2000, 0), width: 600, height: 400 }, [
+						frame({ id: 'inner', name: 'Inner', transform: at(10, 10), width: 100, height: 100 })
+					]),
+					box('rect', 500, 500, 50, 50)
+				],
+				{ id: 'p' }
+			)
+		]);
+	}
+
+	it('puts a copy of a top-level frame to the right with a gap of 40, selected or not', () => {
+		for (const selection of [[], ['a']]) {
+			const store = frames();
+			const [pasted] = pasteInto(store, copyOf(store, ['a']), { viewport: view, selection });
+			expect(topLeft(store, pasted)).toEqual([440, 0]);
+			expect(store.requireNode(pasted).parentId).toBe('p');
+		}
+	});
+
+	it('repeats: the next copy goes past the previous one and past other frames', () => {
+		const store = frames();
+		const payload = copyOf(store, ['a']);
+		const [first] = pasteInto(store, payload, { viewport: view });
+		expect(topLeft(store, first)).toEqual([440, 0]);
+		const [second] = pasteInto(store, payload, { viewport: view, selection: [first] });
+		expect(topLeft(store, second)).toEqual([1440, 0]);
+	});
+
+	it('pushes past every frame it would overlap', () => {
+		const store = frames();
+		const [pasted] = pasteInto(store, copyOf(store, ['a']), { viewport: view });
+		applyTo(store, [{ t: 'del', node: store.requireNode(pasted) }]);
+		const [again] = pasteInto(store, copyOf(store, ['other']), { viewport: view });
+		expect(topLeft(store, again)).toEqual([1440, 0]);
+	});
+
+	it('starts at a selected frame of the same size, which can be elsewhere', () => {
+		const store = frames();
+		const [pasted] = pasteInto(store, copyOf(store, ['a']), {
+			viewport: view,
+			selection: ['twin']
+		});
+		expect(topLeft(store, pasted)).toEqual([440, 600]);
+		expect(store.requireNode(pasted).parentId).toBe('p');
+	});
+
+	it('keeps pushing from a selected copy after the view moved away from the original', () => {
+		const store = frames();
+		const payload = copyOf(store, ['a']);
+		const [first] = pasteInto(store, payload, { viewport: view });
+		const scrolled: Rect = { x: 450, y: -200, width: 2000, height: 1000 };
+		const [second] = pasteInto(store, payload, { viewport: scrolled, selection: [first] });
+		expect(topLeft(store, second)).toEqual([1440, 0]);
+		const nothingSelected = pasteInto(store, payload, { viewport: scrolled });
+		expect(topLeft(store, nothingSelected[0])).toEqual([1250, 150]);
+	});
+
+	it('does not push rectangles, groups, nested frames, several roots or a frame of another size', () => {
+		const store = frames();
+		const [rectangle] = pasteInto(store, copyOf(store, ['rect']), { viewport: view });
+		expect(topLeft(store, rectangle)).toEqual([500, 500]);
+		const around: Rect = { x: 1500, y: -200, width: 2000, height: 1000 };
+		const [nested] = pasteInto(store, copyOf(store, ['inner']), { viewport: around });
+		expect(topLeft(store, nested)).toEqual([2010, 10]);
+		const roots = pasteInto(store, copyOf(store, ['a', 'twin']), { viewport: view });
+		expect(topLeft(store, roots[0])).toEqual([0, 0]);
+		expect(topLeft(store, roots[1])).toEqual([0, 600]);
+	});
+
+	it('does not push when the original is out of view: the copy is centred in the view', () => {
+		const store = frames();
+		const away: Rect = { x: 5000, y: 5000, width: 1000, height: 800 };
+		const [pasted] = pasteInto(store, copyOf(store, ['a']), { viewport: away });
+		expect(topLeft(store, pasted)).toEqual([5300, 5250]);
+	});
+
+	it('with nothing selected, a copy from inside a frame goes back into that frame while it is in view', () => {
+		const store = frames();
+		const around: Rect = { x: 1500, y: -200, width: 2000, height: 1000 };
+		const [pasted] = pasteInto(store, copyOf(store, ['inner']), { viewport: around });
+		expect(store.requireNode(pasted).parentId).toBe('host');
+		const away: Rect = { x: 5000, y: 5000, width: 1000, height: 800 };
+		const [elsewhere] = pasteInto(store, copyOf(store, ['inner']), { viewport: away });
+		expect(store.requireNode(elsewhere).parentId).toBe('p');
+	});
+
+	it('pastes into a different frame when another size is selected', () => {
+		const store = frames();
+		const [pasted] = pasteInto(store, copyOf(store, ['a']), {
+			viewport: view,
+			selection: ['other']
+		});
+		expect(store.requireNode(pasted).parentId).toBe('other');
+	});
+});
+
+describe('paste into a frame', () => {
+	const view: Rect = { x: -2000, y: -2000, width: 8000, height: 8000 };
+
+	function framed(): DocumentStore {
+		return storeOf([
+			page(
+				'Page',
+				[
+					frame({ id: 'f', name: 'F', transform: at(1000, 1000), width: 600, height: 400 }, [
+						box('k', 10, 10, 20, 20)
+					]),
+					box('far', 5000, 5000, 100, 80),
+					box('beside', 1100, 5000, 100, 80),
+					box('above', 5000, 1100, 100, 80),
+					box('wide', 1100, 5000, 800, 80),
+					box('inside', 1100, 1100, 100, 80),
+					frame({ id: 'g', name: 'G', transform: at(0, 0), width: 300, height: 300 }, [
+						box('nested', 50, 50, 100, 80)
+					])
+				],
+				{ id: 'p' }
+			)
+		]);
+	}
+
+	function pastedAt(source: string, overrides: Partial<PasteSettings> = {}): [number, number] {
+		const store = framed();
+		const [pasted] = pasteInto(store, copyOf(store, [source]), {
+			viewport: view,
+			selection: ['f'],
+			...overrides
+		});
+		expect(store.requireNode(pasted).parentId).toBe('f');
+		return topLeft(store, pasted);
+	}
+
+	it('keeps the position when the content touches the frame', () => {
+		expect(pastedAt('inside')).toEqual([1100, 1100]);
+	});
+
+	it('centres on an axis that misses the frame and keeps one that touches it', () => {
+		expect(pastedAt('far')).toEqual([1250, 1160]);
+		expect(pastedAt('beside')).toEqual([1100, 1160]);
+		expect(pastedAt('above')).toEqual([1250, 1100]);
+	});
+
+	it('centres on both axes when the content is wider than the frame', () => {
+		expect(pastedAt('wide')).toEqual([900, 1160]);
+	});
+
+	it('keeps the offset inside the original parent when it came from another frame', () => {
+		expect(pastedAt('nested')).toEqual([1050, 1050]);
+	});
+
+	it('centres in the visible part of the frame', () => {
+		const half: Rect = { x: 1300, y: 0, width: 2000, height: 2000 };
+		expect(pastedAt('far', { viewport: half })).toEqual([1400, 1160]);
+	});
+
+	it('pastes onto the page, centred in the view, when the selected frame is out of view', () => {
+		const store = framed();
+		const away: Rect = { x: 9000, y: 9000, width: 1000, height: 800 };
+		const [pasted] = pasteInto(store, copyOf(store, ['far']), { viewport: away, selection: ['f'] });
+		expect(store.requireNode(pasted).parentId).toBe('p');
+		expect(topLeft(store, pasted)).toEqual([9450, 9360]);
 	});
 });
 

@@ -76,7 +76,7 @@ export async function importDroppedSvgs(
 			ctx,
 			await file.text(),
 			{
-				mode: 'here',
+				mode: 'drop',
 				documentId: ctx.document.documentId,
 				currentPageId: ctx.document.currentPageId,
 				selection: [],

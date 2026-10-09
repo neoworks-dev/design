@@ -73,19 +73,29 @@ export interface FitOptions {
 	padding: number;
 	/** Upper bound for the resulting scale. */
 	maxScale: number;
+	/** Extra free space at the bottom (the toolbar), in CSS pixels. */
+	bottomInset?: number;
 }
 
 export const DEFAULT_FIT: FitOptions = { padding: 64, maxScale: MAX_SCALE };
 
+/** How Figma frames a pasted selection: 40 px around it and 60 px more under it. */
+export const PASTE_FIT: FitOptions = { padding: 40, maxScale: MAX_SCALE, bottomInset: 60 };
+
 /** Camera that centres `rect` in a canvas of `size` with `padding` around it. */
 export function fitCamera(rect: Rect, size: Size, options: FitOptions = DEFAULT_FIT): Camera {
+	const bottomInset = options.bottomInset === undefined ? 0 : options.bottomInset;
 	const availableWidth = Math.max(1, size.width - options.padding * 2);
-	const availableHeight = Math.max(1, size.height - options.padding * 2);
+	const availableHeight = Math.max(1, size.height - options.padding * 2 - bottomInset);
 	const fitScale = Math.min(availableWidth / rect.width, availableHeight / rect.height);
 	const scale = clampScale(Math.min(fitScale, options.maxScale));
 	const centreX = rect.x + rect.width / 2;
 	const centreY = rect.y + rect.height / 2;
-	return { x: size.width / 2 - centreX * scale, y: size.height / 2 - centreY * scale, scale };
+	return {
+		x: size.width / 2 - centreX * scale,
+		y: (size.height - bottomInset) / 2 - centreY * scale,
+		scale
+	};
 }
 
 /** Relative tolerance so a scale that is "on" a stop does not step to the same stop. */
